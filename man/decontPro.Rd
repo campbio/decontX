@@ -7,24 +7,24 @@
 \alias{decontPro,ANY-method}
 \title{Decontaminate using decontPro}
 \usage{
-decontPro(object, cell_type, delta_sd, background_sd, ...)
+decontPro(object, cell_type, ...)
 
-\S4method{decontPro}{SingleCellExperiment}(object, cell_type, delta_sd, background_sd, ...)
+\S4method{decontPro}{SingleCellExperiment}(object, cell_type, delta_sd = 2e-05, background_sd = 2e-06, ...)
 
-\S4method{decontPro}{Seurat}(object, cell_type, delta_sd, background_sd, ...)
+\S4method{decontPro}{Seurat}(object, cell_type, delta_sd = 2e-05, background_sd = 2e-06, ...)
 
-\S4method{decontPro}{ANY}(object, cell_type, delta_sd, background_sd, ...)
+\S4method{decontPro}{ANY}(object, cell_type, delta_sd = 2e-05, background_sd = 2e-06, ...)
 }
 \arguments{
 \item{object}{Data matrix NxM (feature x droplet).}
 
 \item{cell_type}{1xM vector of cell_type. 1-based.}
 
+\item{...}{Additional arguments for generics.}
+
 \item{delta_sd}{Prior for delta. Set to 2e-5 for now.}
 
 \item{background_sd}{Prior for background. Set to 2e-6 for now.}
-
-\item{...}{Additional arguments for generics.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.

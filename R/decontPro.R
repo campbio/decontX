@@ -18,8 +18,6 @@ NULL
 
 setGeneric("decontPro", function(object,
                                  cell_type,
-                                 delta_sd,
-                                 background_sd,
                                  ...)
   standardGeneric("decontPro"))
 
@@ -28,14 +26,14 @@ setGeneric("decontPro", function(object,
 #' @rdname decontPro
 setMethod("decontPro", "SingleCellExperiment", function(object,
                                                         cell_type,
-                                                        delta_sd,
-                                                        background_sd,
+                                                        delta_sd = 2e-5,
+                                                        background_sd = 2e-6,
                                                         ...) {
   counts <- SummarizedExperiment::assay(object, 'counts')
-  output <- .decontPro(counts,
-                       cell_type,
-                       delta_sd,
-                       background_sd)
+  output <- .decontPro(counts = counts,
+                       cell_type = cell_type,
+                       delta_sd = delta_sd,
+                       background_sd = background_sd)
 
 })
 
@@ -45,14 +43,14 @@ setMethod("decontPro", "SingleCellExperiment", function(object,
 #' @rdname decontPro
 setMethod("decontPro", "Seurat", function(object,
                                           cell_type,
-                                          delta_sd,
-                                          background_sd,
+                                          delta_sd = 2e-5,
+                                          background_sd = 2e-6,
                                           ...) {
   counts <- Seurat::GetAssayData(object, slot = 'counts')
-  output <- .decontPro(counts,
-                       cell_type,
-                       delta_sd,
-                       background_sd)
+  output <- .decontPro(counts = counts,
+                       cell_type = cell_type,
+                       delta_sd = delta_sd,
+                       background_sd = background_sd)
 
 })
 
@@ -61,14 +59,14 @@ setMethod("decontPro", "Seurat", function(object,
 #' @export
 #' @rdname decontPro
 setMethod("decontPro", "ANY", function(object,
-                                                  cell_type,
-                                                  delta_sd,
-                                                  background_sd,
-                                                  ...) {
-  output <- .decontPro(object,
-                                  cell_type,
-                                  delta_sd,
-                                  background_sd)
+                                       cell_type,
+                                       delta_sd = 2e-5,
+                                       background_sd = 2e-6,
+                                       ...) {
+  output <- .decontPro(counts = object,
+                       cell_type = cell_type,
+                       delta_sd = delta_sd,
+                       background_sd = background_sd)
 
 })
 
@@ -77,9 +75,9 @@ setMethod("decontPro", "ANY", function(object,
 
 
 .decontPro <- function(counts,
-                                  cell_type,
-                                  delta_sd,
-                                  background_sd) {
+                       cell_type,
+                       delta_sd,
+                       background_sd) {
   ## Prep data
   N <- nrow(counts)
   M <- ncol(counts)
