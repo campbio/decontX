@@ -3,9 +3,9 @@
 #' @name decontPro
 #'
 #' @param object Data matrix NxM (feature x droplet).
-#' @param cell_type 1xM vector of cell_type. 1-based.
-#' @param delta_sd Prior for delta. Set to 2e-5 for now.
-#' @param background_sd Prior for background. Set to 2e-6 for now.
+#' @param cell_type 1xM vector of cell type. 1-based.
+#' @param delta_sd Prior variance for ambient contamination level. Default to 2e-5.
+#' @param background_sd Prior variance for background contamination level. Default to 2e-6.
 #' @param ... Additional arguments for generics.
 #'
 #' @return A list containing decontaminated counts, and estimated parameters.
