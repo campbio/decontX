@@ -1,0 +1,59 @@
+---
+title: "decontPro"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{decontPro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(decontX)
+```
+
+# Importing data
+
+Import CITE-seq dataset.
+
+```{r eval=FALSE}
+library(DropletUtils)
+sce_filtered <- read10xCounts('filtered_feature_bc_matrix')
+adt_filtered <- sce_filtered[rowData(sce_filtered)$Type == 'Antibody Capture',]
+```
+
+You may clean the imported data after importing. For example, remove droplets with outlier library sizes.
+
+# Generate cell clusters
+
+`decontPro` requires a vector indicating the cell types of each droplet. Here we use `Seurat` for clustering.
+
+```{r eval=FALSE}
+library(Seurat)
+library(dplyr)
+adt_seurat <- CreateSeuratObject(counts(adt_filtered), assay = 'ADT')
+adt_seurat <- NormalizeData(adt_seurat, normalization.method = "CLR", margin = 2) %>%
+  ScaleData(assay = "ADT") %>%
+  RunPCA(assay = "ADT", features = rownames(adt_seurat),
+  reduction.name = "pca_adt", npcs = 10) %>%
+  FindNeighbors(dims = 1:10, assay = "ADT", reduction = "pca_adt") %>%
+  FindClusters(resolution = 0.2)
+  
+clusters = as.integer(Idents(adt_seurat))
+```
+
+
+# Run DecontPro
+
+```{r eval=FALSE}
+counts <- as.matrix(counts(adt_filtered))
+out <- decontPro(counts, clusters)
+
+decontaminated_counts <- out$decontaminated_counts
+```

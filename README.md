@@ -10,7 +10,7 @@ Methods for decontamination of single cell data
 
 ## Installation Instructions
 
-You can install the development version of decontX from
+You can install the development version of `decontX` from
 [GitHub](https://github.com/) with:
 
 ``` r
@@ -18,32 +18,17 @@ You can install the development version of decontX from
 devtools::install_github("campbio/decontX")
 ```
 
-## Use DecontPro
+## Vignettes
+
+To build vignette when installing from GitHub:
 
 ``` r
-# Load CITE-seq dataset
-library(DropletUtils)
-sce_filtered <- read10xCounts('filtered_feature_bc_matrix')
-adt_filtered <- sce_filtered[rowData(sce_filtered)$Type == 'Antibody Capture',]
+library(devtools)
+install_github("campbio/decontX", build_vignettes = TRUE)
+```
 
-# Cleaning of data as see fit.
+Vignette of `decontPro` can be accessed through:
 
-# Generate cell clusters
-library(Seurat)
-library(dplyr)
-adt_seurat <- CreateSeuratObject(counts(adt_filtered), assay = 'ADT')
-adt_seurat <- NormalizeData(adt_seurat, normalization.method = "CLR", margin = 2) %>%
-  ScaleData(assay = "ADT") %>%
-  RunPCA(assay = "ADT", features = rownames(adt_seurat),
-  reduction.name = "pca_adt", npcs = 10) %>%
-  FindNeighbors(dims = 1:10, assay = "ADT", reduction = "pca_adt") %>%
-  FindClusters(resolution = 0.2)
-  
-clusters = as.integer(Idents(adt_seurat))
-
-# Run DecontPro
-counts <- as.matrix(counts(adt_filtered))
-out <- decontPro(counts, clusters)
-
-decontaminated_counts <- out$decontaminated_counts
+``` r
+vignette('decontPro')
 ```
