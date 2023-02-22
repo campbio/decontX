@@ -270,7 +270,7 @@ setMethod("decontX", "ANY", function(x,
 
     background <- temp$background
     countsBackground <- background
-    
+
     bgBatch <- temp$bgBatch
 
   }
@@ -1108,101 +1108,101 @@ addLogLikelihood <- function(llA, llB) {
 }
 
 
-## Initialization of cell labels for DecontX when they are not given
-.decontxInitializeZ_prevous <-
-  function(object, # object is either a sce object or a count matrix
-           varGenes = 5000,
-           dbscanEps = 1.0,
-           verbose = TRUE,
-           seed = 12345,
-           logfile = NULL) {
-    if (!is(object, "SingleCellExperiment")) {
-      sce <- SingleCellExperiment::SingleCellExperiment(
-        assays =
-          list(counts = object)
-      )
-    }
-
-    sce <- sce[Matrix::rowSums(SingleCellExperiment::counts(sce)) > 0, ]
-    sce <- scater::logNormCounts(sce, log = TRUE)
-    # sce <- scater::normalize(sce)
-
-
-    if (nrow(sce) <= varGenes) {
-      topVariableGenes <- seq_len(nrow(sce))
-    } else if (nrow(sce) > varGenes) {
-      sce.var <- scran::modelGeneVar(sce)
-      topVariableGenes <- order(sce.var$bio,
-        decreasing = TRUE
-      )[seq(varGenes)]
-    }
-    countsFiltered <- as.matrix(SingleCellExperiment::counts(
-      sce[topVariableGenes, ]
-    ))
-    storage.mode(countsFiltered) <- "integer"
-
-    .logMessages(
-      date(),
-      "...... Collapsing features into",
-      L,
-      "modules",
-      logfile = logfile,
-      append = TRUE,
-      verbose = verbose
-    )
-    ## Celda clustering using recursive module splitting
-    L <- min(L, nrow(countsFiltered))
-    if (is.null(seed)) {
-      initialModuleSplit <- recursiveSplitModule(countsFiltered,
-        initialL = L, maxL = L, perplexity = FALSE, verbose = FALSE
-      )
-    } else {
-      with_seed(seed,
-                initialModuleSplit <- recursiveSplitModule(countsFiltered,
-        initialL = L, maxL = L, perplexity = FALSE, verbose = FALSE
-      ))
-    }
-    initialModel <- subsetCeldaList(initialModuleSplit, list(L = L))
-
-    .logMessages(
-      date(),
-      "...... Reducing dimensionality with UMAP",
-      logfile = logfile,
-      append = TRUE,
-      verbose = verbose
-    )
-    ## Louvan graph-based method to reduce dimension into 2 cluster
-    nNeighbors <- min(15, ncol(countsFiltered))
-    # resUmap <- uwot::umap(t(sqrt(fm)), n_neighbors = nNeighbors,
-    #    min_dist = 0.01, spread = 1)
-    # rm(fm)
-    resUmap <- celdaUmap(countsFiltered, initialModel,
-      minDist = 0.01, spread = 1, nNeighbors = nNeighbors, seed = seed
-    )
-
-    .logMessages(
-      date(),
-      " ...... Determining cell clusters with DBSCAN (Eps=",
-      dbscanEps,
-      ")",
-      sep = "",
-      logfile = logfile,
-      append = TRUE,
-      verbose = verbose
-    )
-    # Use dbSCAN on the UMAP to identify broad cell types
-    totalClusters <- 1
-    while (totalClusters <= 1 & dbscanEps > 0) {
-      resDbscan <- dbscan::dbscan(resUmap, dbscanEps)
-      dbscanEps <- dbscanEps - (0.25 * dbscanEps)
-      totalClusters <- length(unique(resDbscan$cluster))
-    }
-
-    return(list(
-      "z" = resDbscan$cluster,
-      "umap" = resUmap
-    ))
-  }
+# ## Initialization of cell labels for DecontX when they are not given
+# .decontxInitializeZ_prevous <-
+#   function(object, # object is either a sce object or a count matrix
+#            varGenes = 5000,
+#            dbscanEps = 1.0,
+#            verbose = TRUE,
+#            seed = 12345,
+#            logfile = NULL) {
+#     if (!is(object, "SingleCellExperiment")) {
+#       sce <- SingleCellExperiment::SingleCellExperiment(
+#         assays =
+#           list(counts = object)
+#       )
+#     }
+#
+#     sce <- sce[Matrix::rowSums(SingleCellExperiment::counts(sce)) > 0, ]
+#     sce <- scater::logNormCounts(sce, log = TRUE)
+#     # sce <- scater::normalize(sce)
+#
+#
+#     if (nrow(sce) <= varGenes) {
+#       topVariableGenes <- seq_len(nrow(sce))
+#     } else if (nrow(sce) > varGenes) {
+#       sce.var <- scran::modelGeneVar(sce)
+#       topVariableGenes <- order(sce.var$bio,
+#         decreasing = TRUE
+#       )[seq(varGenes)]
+#     }
+#     countsFiltered <- as.matrix(SingleCellExperiment::counts(
+#       sce[topVariableGenes, ]
+#     ))
+#     storage.mode(countsFiltered) <- "integer"
+#
+#     .logMessages(
+#       date(),
+#       "...... Collapsing features into",
+#       L,
+#       "modules",
+#       logfile = logfile,
+#       append = TRUE,
+#       verbose = verbose
+#     )
+#     ## Celda clustering using recursive module splitting
+#     L <- min(L, nrow(countsFiltered))
+#     if (is.null(seed)) {
+#       initialModuleSplit <- recursiveSplitModule(countsFiltered,
+#         initialL = L, maxL = L, perplexity = FALSE, verbose = FALSE
+#       )
+#     } else {
+#       with_seed(seed,
+#                 initialModuleSplit <- recursiveSplitModule(countsFiltered,
+#         initialL = L, maxL = L, perplexity = FALSE, verbose = FALSE
+#       ))
+#     }
+#     initialModel <- subsetCeldaList(initialModuleSplit, list(L = L))
+#
+#     .logMessages(
+#       date(),
+#       "...... Reducing dimensionality with UMAP",
+#       logfile = logfile,
+#       append = TRUE,
+#       verbose = verbose
+#     )
+#     ## Louvan graph-based method to reduce dimension into 2 cluster
+#     nNeighbors <- min(15, ncol(countsFiltered))
+#     # resUmap <- uwot::umap(t(sqrt(fm)), n_neighbors = nNeighbors,
+#     #    min_dist = 0.01, spread = 1)
+#     # rm(fm)
+#     resUmap <- celdaUmap(countsFiltered, initialModel,
+#       minDist = 0.01, spread = 1, nNeighbors = nNeighbors, seed = seed
+#     )
+#
+#     .logMessages(
+#       date(),
+#       " ...... Determining cell clusters with DBSCAN (Eps=",
+#       dbscanEps,
+#       ")",
+#       sep = "",
+#       logfile = logfile,
+#       append = TRUE,
+#       verbose = verbose
+#     )
+#     # Use dbSCAN on the UMAP to identify broad cell types
+#     totalClusters <- 1
+#     while (totalClusters <= 1 & dbscanEps > 0) {
+#       resDbscan <- dbscan::dbscan(resUmap, dbscanEps)
+#       dbscanEps <- dbscanEps - (0.25 * dbscanEps)
+#       totalClusters <- length(unique(resDbscan$cluster))
+#     }
+#
+#     return(list(
+#       "z" = resDbscan$cluster,
+#       "umap" = resUmap
+#     ))
+#   }
 
 
 ## process varGenes
@@ -1273,6 +1273,7 @@ addLogLikelihood <- function(llA, llB) {
 #' @author Shiyi Yang, Yuan Yin, Joshua Campbell
 #' @examples
 #' contaminationSim <- simulateContamination(K = 3, delta = c(1, 10))
+#' @importFrom withr with_seed
 #' @export
 simulateContamination <- function(C = 300,
                                   G = 100,

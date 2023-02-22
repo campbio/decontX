@@ -1,4 +1,4 @@
-library(celda)
+library(decontX)
 context("Testing DecontX functions")
 
 deconSim <- simulateContamination(K = 10, delta = c(1, 5))
