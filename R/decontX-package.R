@@ -4,7 +4,7 @@
 #'
 #' @docType package
 #' @name decontX-package
-#' @aliases decontX
+#' @aliases decontX-package
 #' @useDynLib decontX, .registration = TRUE
 #' @import methods
 #' @import Rcpp

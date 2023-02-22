@@ -167,6 +167,7 @@ in single cell genomic datasets.
 s <- simulateContamination(seed = 12345)
 
 library(SingleCellExperiment)
+library(celda)
 sce <- SingleCellExperiment(list(counts = s$observedCounts))
 sce <- decontX(sce)
 
@@ -175,7 +176,7 @@ plotDecontXContamination(sce)
 
 # Plot decontX cluster labels
 umap <- reducedDim(sce)
-plotDimReduceCluster(x = sce$decontX_clusters,
+celda::plotDimReduceCluster(x = sce$decontX_clusters,
     dim1 = umap[, 1], dim2 = umap[, 2], )
 
 # Plot percentage of marker genes detected

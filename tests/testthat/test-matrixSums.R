@@ -56,7 +56,7 @@ test_that(desc = "Testing .colSumByGroup", {
 #     expect_true(all(res2 == t(rowsum(t(mat), label4))))
 # })
 #
-# storage.mode(mat) <- "numeric"
+storage.mode(mat) <- "numeric"
 # test_that(desc = "Testing .rowSumByGroupNumeric", {
 #     expect_error(.Call("_rowSumByGroup_numeric", mat, label1))
 #     expect_error(.Call("_rowSumByGroup_numeric", mat, label2))

@@ -11,11 +11,196 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// decontXEM
+Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& counts_colsums, const NumericVector& theta, const bool& estimate_eta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const bool& estimate_delta, const NumericVector& delta, const double& pseudocount);
+RcppExport SEXP _decontX_decontXEM(SEXP countsSEXP, SEXP counts_colsumsSEXP, SEXP thetaSEXP, SEXP estimate_etaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP estimate_deltaSEXP, SEXP deltaSEXP, SEXP pseudocountSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type counts_colsums(counts_colsumsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type estimate_eta(estimate_etaSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const bool& >::type estimate_delta(estimate_deltaSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< const double& >::type pseudocount(pseudocountSEXP);
+    rcpp_result_gen = Rcpp::wrap(decontXEM(counts, counts_colsums, theta, estimate_eta, eta, phi, z, estimate_delta, delta, pseudocount));
+    return rcpp_result_gen;
+END_RCPP
+}
+// decontXLogLik
+double decontXLogLik(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
+RcppExport SEXP _decontX_decontXLogLik(SEXP countsSEXP, SEXP thetaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const double& >::type pseudocount(pseudocountSEXP);
+    rcpp_result_gen = Rcpp::wrap(decontXLogLik(counts, theta, eta, phi, z, pseudocount));
+    return rcpp_result_gen;
+END_RCPP
+}
+// decontXInitialize
+Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const IntegerVector& z, const double& pseudocount);
+RcppExport SEXP _decontX_decontXInitialize(SEXP countsSEXP, SEXP thetaSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const double& >::type pseudocount(pseudocountSEXP);
+    rcpp_result_gen = Rcpp::wrap(decontXInitialize(counts, theta, z, pseudocount));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calculateNativeMatrix
+Eigen::SparseMatrix<double> calculateNativeMatrix(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
+RcppExport SEXP _decontX_calculateNativeMatrix(SEXP countsSEXP, SEXP thetaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type eta(etaSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type z(zSEXP);
+    Rcpp::traits::input_parameter< const double& >::type pseudocount(pseudocountSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculateNativeMatrix(counts, theta, eta, phi, z, pseudocount));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fastNormProp
+SEXP fastNormProp(NumericMatrix R_counts, double R_alpha);
+RcppExport SEXP _decontX_fastNormProp(SEXP R_countsSEXP, SEXP R_alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type R_counts(R_countsSEXP);
+    Rcpp::traits::input_parameter< double >::type R_alpha(R_alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fastNormProp(R_counts, R_alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fastNormPropLog
+SEXP fastNormPropLog(NumericMatrix R_counts, double R_alpha);
+RcppExport SEXP _decontX_fastNormPropLog(SEXP R_countsSEXP, SEXP R_alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type R_counts(R_countsSEXP);
+    Rcpp::traits::input_parameter< double >::type R_alpha(R_alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fastNormPropLog(R_counts, R_alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
+// fastNormPropSqrt
+SEXP fastNormPropSqrt(NumericMatrix R_counts, double R_alpha);
+RcppExport SEXP _decontX_fastNormPropSqrt(SEXP R_countsSEXP, SEXP R_alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type R_counts(R_countsSEXP);
+    Rcpp::traits::input_parameter< double >::type R_alpha(R_alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(fastNormPropSqrt(R_counts, R_alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonzero
+SEXP nonzero(NumericMatrix R_counts);
+RcppExport SEXP _decontX_nonzero(SEXP R_countsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type R_counts(R_countsSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonzero(R_counts));
+    return rcpp_result_gen;
+END_RCPP
+}
+// colSumByGroupSparse
+Rcpp::NumericMatrix colSumByGroupSparse(const Eigen::MappedSparseMatrix<double>& counts, const IntegerVector& group, const int& K);
+RcppExport SEXP _decontX_colSumByGroupSparse(SEXP countsSEXP, SEXP groupSEXP, SEXP KSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type group(groupSEXP);
+    Rcpp::traits::input_parameter< const int& >::type K(KSEXP);
+    rcpp_result_gen = Rcpp::wrap(colSumByGroupSparse(counts, group, K));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rowSumByGroupSparse
+Rcpp::NumericMatrix rowSumByGroupSparse(const Eigen::MappedSparseMatrix<double>& counts, const IntegerVector& group, const int& L);
+RcppExport SEXP _decontX_rowSumByGroupSparse(SEXP countsSEXP, SEXP groupSEXP, SEXP LSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type group(groupSEXP);
+    Rcpp::traits::input_parameter< const int& >::type L(LSEXP);
+    rcpp_result_gen = Rcpp::wrap(rowSumByGroupSparse(counts, group, L));
+    return rcpp_result_gen;
+END_RCPP
+}
+// colSumByGroupChangeSparse
+Rcpp::NumericMatrix colSumByGroupChangeSparse(const Eigen::MappedSparseMatrix<double>& counts, const NumericMatrix& px, const IntegerVector& group, const IntegerVector& pgroup, const int& K);
+RcppExport SEXP _decontX_colSumByGroupChangeSparse(SEXP countsSEXP, SEXP pxSEXP, SEXP groupSEXP, SEXP pgroupSEXP, SEXP KSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type px(pxSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type group(groupSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type pgroup(pgroupSEXP);
+    Rcpp::traits::input_parameter< const int& >::type K(KSEXP);
+    rcpp_result_gen = Rcpp::wrap(colSumByGroupChangeSparse(counts, px, group, pgroup, K));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rowSumByGroupChangeSparse
+Rcpp::NumericMatrix rowSumByGroupChangeSparse(const Eigen::MappedSparseMatrix<double>& counts, const NumericMatrix& px, const IntegerVector& group, const IntegerVector& pgroup, const int& L);
+RcppExport SEXP _decontX_rowSumByGroupChangeSparse(SEXP countsSEXP, SEXP pxSEXP, SEXP groupSEXP, SEXP pgroupSEXP, SEXP LSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const NumericMatrix& >::type px(pxSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type group(groupSEXP);
+    Rcpp::traits::input_parameter< const IntegerVector& >::type pgroup(pgroupSEXP);
+    Rcpp::traits::input_parameter< const int& >::type L(LSEXP);
+    rcpp_result_gen = Rcpp::wrap(rowSumByGroupChangeSparse(counts, px, group, pgroup, L));
+    return rcpp_result_gen;
+END_RCPP
+}
 
+RcppExport SEXP _colSumByGroup(SEXP, SEXP);
+RcppExport SEXP _colSumByGroup_numeric(SEXP, SEXP);
 RcppExport SEXP _rcpp_module_boot_stan_fit4shrinkage_mod();
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_decontX_decontXEM", (DL_FUNC) &_decontX_decontXEM, 10},
+    {"_decontX_decontXLogLik", (DL_FUNC) &_decontX_decontXLogLik, 6},
+    {"_decontX_decontXInitialize", (DL_FUNC) &_decontX_decontXInitialize, 4},
+    {"_decontX_calculateNativeMatrix", (DL_FUNC) &_decontX_calculateNativeMatrix, 6},
+    {"_decontX_fastNormProp", (DL_FUNC) &_decontX_fastNormProp, 2},
+    {"_decontX_fastNormPropLog", (DL_FUNC) &_decontX_fastNormPropLog, 2},
+    {"_decontX_fastNormPropSqrt", (DL_FUNC) &_decontX_fastNormPropSqrt, 2},
+    {"_decontX_nonzero", (DL_FUNC) &_decontX_nonzero, 1},
+    {"_decontX_colSumByGroupSparse", (DL_FUNC) &_decontX_colSumByGroupSparse, 3},
+    {"_decontX_rowSumByGroupSparse", (DL_FUNC) &_decontX_rowSumByGroupSparse, 3},
+    {"_decontX_colSumByGroupChangeSparse", (DL_FUNC) &_decontX_colSumByGroupChangeSparse, 5},
+    {"_decontX_rowSumByGroupChangeSparse", (DL_FUNC) &_decontX_rowSumByGroupChangeSparse, 5},
     {"_rcpp_module_boot_stan_fit4shrinkage_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4shrinkage_mod, 0},
+    {"_colSumByGroup",         (DL_FUNC) &_colSumByGroup,         2},
+    {"_colSumByGroup_numeric", (DL_FUNC) &_colSumByGroup_numeric, 2},
     {NULL, NULL, 0}
 };
 

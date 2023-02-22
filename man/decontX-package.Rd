@@ -3,7 +3,6 @@
 \docType{package}
 \name{decontX-package}
 \alias{decontX-package}
-\alias{decontX}
 \title{The 'decontX' package.}
 \description{
 A DESCRIPTION OF THE PACKAGE

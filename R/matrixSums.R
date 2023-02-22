@@ -11,14 +11,14 @@
   return(res)
 }
 
-#' @useDynLib decontX _colSumByGroup_numeric
+#' @useDynLib decontX
 .colSumByGroupNumeric <- function(x, group, K) {
   group <- factor(group, levels = seq(K))
   res <- .Call("_colSumByGroup_numeric", x, group)
   return(res)
 }
 
-#' @useDynLib decontX _colSumByGroup
+#' @useDynLib decontX
 .colSumByGroupInteger <- function(x, group, K) {
   group <- factor(group, levels = seq(K))
   res <- .Call("_colSumByGroup", x, group)
