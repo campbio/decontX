@@ -4,6 +4,8 @@
 # decontX
 
 <!-- badges: start -->
+
+[![R-CMD-check](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 Methods for decontamination of single cell data
