@@ -939,11 +939,11 @@ setMethod(
   ## Update parameters
   theta <-
     (estRmat.cs + deltaV2[1]) / (counts.cs + sum(deltaV2))
-  phi <- normalizeCounts(rnGByK,
+  phi <- celda::normalizeCounts(rnGByK,
     normalize = "proportion",
     pseudocountNormalize = 1e-20
   )
-  eta <- normalizeCounts(cnGByK,
+  eta <- celda::normalizeCounts(cnGByK,
     normalize = "proportion",
     pseudocountNormalize = 1e-20
   )
@@ -984,12 +984,12 @@ setMethod(
     theta <-
       (colSums(estRmat) + deltaV2[1]) / (colSums(counts) + sum(deltaV2))
     phi <-
-      normalizeCounts(phiUnnormalized,
+      celda::normalizeCounts(phiUnnormalized,
         normalize = "proportion",
         pseudocountNormalize = 1e-20
       )
     eta <-
-      normalizeCounts(etaUnnormalized,
+      celda::normalizeCounts(etaUnnormalized,
         normalize = "proportion",
         pseudocountNormalize = 1e-20
       )
@@ -1397,7 +1397,7 @@ simulateContamination <- function(C = 300,
   ## sample contamination count matrix
   nGByK <-
     rowSums(cellRmat) - .colSumByGroup(cellRmat, group = z, K = K)
-  eta <- normalizeCounts(counts = nGByK, normalize = "proportion")
+  eta <- celda::normalizeCounts(counts = nGByK, normalize = "proportion")
 
   cellCmat <- vapply(seq(C), function(i) {
     stats::rmultinom(1, size = cNbyC[i], prob = eta[, z[i]])
