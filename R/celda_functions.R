@@ -69,10 +69,12 @@
 #' and \code{link{regex}} for how to use regular expressions when
 #' \code{exactMatch = FALSE}.
 #' @examples
-#' data(celdaCGSim)
-#' retrieveFeatureIndex(c("Gene_1", "Gene_5"), celdaCGSim$counts)
-#' retrieveFeatureIndex(c("Gene_1", "Gene_5"), celdaCGSim$counts,
-#'                                             exactMatch = FALSE)
+#' counts <- matrix(sample(1:10, 20*10, replace = TRUE),
+#'                  nrow = 20, ncol = 10,
+#'                  dimnames = list(paste0("Gene_",1:20),
+#'                                  paste0("Cell_", 1:10)))
+#' retrieveFeatureIndex(c("Gene_1", "Gene_5"), counts)
+#' retrieveFeatureIndex(c("Gene_1", "Gene_5"), counts, exactMatch = FALSE)
 #' @export
 retrieveFeatureIndex <- function(features,
                                  x,
