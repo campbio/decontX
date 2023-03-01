@@ -1,6 +1,15 @@
 ---
-title: "decontPro"
-output: rmarkdown::html_vignette
+title: "Decontamination of single cell protein expression data with DecontPro"
+author:
+- name: Yuan Yin
+  affiliation: &id Boston University School of Medicine
+- name: Joshua Campbell
+  affiliation: *id
+  email: camp@bu.edu
+date: "`r Sys.Date()`"
+output: 
+  BiocStyle::html_document:
+    toc: true
 vignette: >
   %\VignetteIndexEntry{decontPro}
   %\VignetteEngine{knitr::rmarkdown}
@@ -14,13 +23,22 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+
+# Introduction
+
+DecontPro assess and decontaminate single-cell protein expression data, such as 
+those generated from CITE-seq or Total-seq. The count matrix is decomposed into 
+three matrices, the native, the ambient and the background that represent the 
+contribution from the true protein expression on cells, the ambient material and
+other non-specific background contamination.
+
+The package can be loaded using the `library` command.
+
+```{r load, eval=TRUE, message=FALSE}
 library(decontX)
 ```
 
 # Importing data
-
-Import CITE-seq dataset.
 
 ```{r eval=FALSE}
 library(DropletUtils)
@@ -54,6 +72,18 @@ clusters = as.integer(Idents(adt_seurat))
 ```{r eval=FALSE}
 counts <- as.matrix(counts(adt_filtered))
 out <- decontPro(counts, clusters)
+```
 
+The output contains three matrices, and model parameters after inference. 
+`decontaminated_counts` represent the true protein expression on cells.
+
+```{r eval = FALSE}
 decontaminated_counts <- out$decontaminated_counts
+```
+
+
+# Session Information
+
+```{r}
+sessionInfo()
 ```

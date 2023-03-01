@@ -41,3 +41,5 @@ vignettes/*.pdf
 .Rdata
 .DS_Store
 inst/doc
+/doc/
+/Meta/
