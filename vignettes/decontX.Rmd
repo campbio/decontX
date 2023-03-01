@@ -30,7 +30,8 @@ Droplet-based microfluidic devices have become widely used to perform single-cel
 The package can be loaded using the `library` command.
 
 ```{r load, eval=TRUE, message=FALSE}
-library(celda)
+library(decontX)
+library(celda) # To use plotting functions in celda
 ```
 
 # Importing data
