@@ -1,10 +1,12 @@
 Package: decontX
 Title: Decontamination of single cell genomics data
-Version: 0.0.0.9000
+Version: 0.99.0
 Authors@R: 
     person("Yuan", "Yin", , "yin@bu.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-9261-6061"))
-Description: What the package does (one paragraph).
+Description: This package contains implementation of DecontX (Yang et al. 2020),
+    a decontamination algorithm for single-cell RNA-seq, and DecontPro (Yin et al. 
+    2023), a decontamination algorithm for single cell protein expression data.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
