@@ -10,8 +10,10 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Suggests: 
+    BiocStyle,
     knitr,
     rmarkdown,
+    TENxPBMCData,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports:
