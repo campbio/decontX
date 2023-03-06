@@ -34,7 +34,7 @@ plotDensity <- function(counts,
       ggplot2::scale_x_continuous(trans = scales::pseudo_log_trans(),
                                   breaks = c(1, 5, 10 ^ (1:4))) +
       ggplot2::scale_fill_manual(values = c("#E64B35B2", "#4DBBD5B2"),
-                                 labels = c('Raw', 'Decontaminated')) +
+                                 labels = c('Original', 'Decontaminated')) +
       ggplot2::ggtitle(feature) +
       ggplot2::labs(x = "", fill = "") +
       ggplot2::theme_classic() +
@@ -122,7 +122,7 @@ plotBoxByCluster <- function(counts,
       ggplot2::scale_y_continuous(trans = scales::pseudo_log_trans(),
                                   breaks = c(1, 5, 10 ^ (1:4))) +
       ggplot2::scale_fill_manual(values = c("#E64B35B2", "#4DBBD5B2"),
-                                 labels = c('Raw', 'Decontaminated')) +
+                                 labels = c('Original', 'Decontaminated')) +
       ggplot2::theme_bw() +
       ggplot2::theme(
         panel.grid.major = ggplot2::element_blank(),

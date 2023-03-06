@@ -40,46 +40,73 @@ library(decontX)
 
 # Importing data
 
-```{r eval=FALSE}
-library(DropletUtils)
-sce_filtered <- read10xCounts('filtered_feature_bc_matrix')
-adt_filtered <- sce_filtered[rowData(sce_filtered)$Type == 'Antibody Capture',]
+Here we use an example dataset from `SingleCellMultiModal` package.
+
+```{r message=FALSE}
+library(SingleCellMultiModal)
+dat <- CITEseq('cord_blood', dry.run = FALSE)
+counts <- experiments(dat)$scADT
 ```
 
-You may clean the imported data after importing. For example, remove droplets with outlier library sizes.
+For this tutorial, we subsample 1000 droplets from the dataset to speed up the analysis. Subsampling should be done with caution, as `decontPro` approximates contamination profile using the dataset. A biased sampling may introduce bias to the contamination profile approximation.
+
+```{r}
+set.seed(42)
+sample_id <- sample(dim(counts)[2], 1000, replace = FALSE)
+counts_sample <- counts[,sample_id]
+```
 
 # Generate cell clusters
 
 `decontPro` requires a vector indicating the cell types of each droplet. Here we use `Seurat` for clustering.
 
-```{r eval=FALSE}
+```{r message=FALSE}
 library(Seurat)
 library(dplyr)
-adt_seurat <- CreateSeuratObject(counts(adt_filtered), assay = 'ADT')
+adt_seurat <- CreateSeuratObject(counts_sample, assay = 'ADT')
 adt_seurat <- NormalizeData(adt_seurat, normalization.method = "CLR", margin = 2) %>%
   ScaleData(assay = "ADT") %>%
-  RunPCA(assay = "ADT", features = rownames(adt_seurat),
-  reduction.name = "pca_adt", npcs = 10) %>%
+  RunPCA(assay = "ADT", features = rownames(adt_seurat), npcs = 10,
+  reduction.name = "pca_adt") %>%
   FindNeighbors(dims = 1:10, assay = "ADT", reduction = "pca_adt") %>%
-  FindClusters(resolution = 0.2)
+  FindClusters(resolution = 0.5)
   
+```
+
+```{r message=FALSE}
+adt_seurat <- RunUMAP(adt_seurat, 
+                      dims = 1:10,
+                      assay = "ADT",
+                      reduction = "pca_adt",
+                      reduction.name = "adtUMAP",
+                      verbose = FALSE)
+DimPlot(adt_seurat, reduction = "adtUMAP", label = TRUE)
+FeaturePlot(adt_seurat, 
+            features = c('CD3', 'CD4','CD8', 'CD19', 'CD14', 'CD16', 'CD56'))
+
 clusters = as.integer(Idents(adt_seurat))
 ```
 
-
 # Run DecontPro
 
-```{r eval=FALSE}
-counts <- as.matrix(counts(adt_filtered))
-out <- decontPro(counts, clusters)
+```{r message=FALSE}
+counts <- as.matrix(counts_sample )
+out <- decontPro(counts, 
+                 clusters, 
+                 delta_sd = 2e-4, 
+                 background_sd = 2e-5)
 ```
 
 The output contains three matrices, and model parameters after inference. 
 `decontaminated_counts` represent the true protein expression on cells.
 
-```{r eval = FALSE}
+```{r}
 decontaminated_counts <- out$decontaminated_counts
 ```
+
+
+# Plot Results
+
 
 
 # Session Information
