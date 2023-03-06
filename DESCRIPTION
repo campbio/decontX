@@ -25,7 +25,7 @@ Imports:
     dbscan,
     DelayedArray,
     ggplot2,
-    Matrix,
+    Matrix (>= 1.5.3),
     MCMCprecision,
     methods,
     patchwork,
