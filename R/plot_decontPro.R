@@ -3,9 +3,9 @@
 #' @param counts raw count matrix
 #' @param decontaminated_counts decontaminated count matrix
 #' @param features names of ADT to plot
-#' @param file file name to save plot into a pdf. If omit, print plot in console.
+#' @param file file name to save plot into a pdf. If omit, return ggplot obj.
 #'
-#' @return pdf in working directory
+#' @return ggplot obj or pdf in working directory
 #' @export
 #'
 #' @examples
@@ -52,26 +52,30 @@ plotDensity <- function(counts,
     ylimit[2] <- min(ylimit[2], 5)
     p1 <- p1 + ggplot2::coord_cartesian(ylim = ylimit)
 
-    p[[i]] = p1
+    p[[i]] <- p1
 
   }
 
-  if (is.null(file)) {
+  # Combine plots
+  p_wrap <- patchwork::wrap_plots(p,
+                                 ncol = round(sqrt(length(features))),
+                                 guides = "collect") +
+    patchwork::plot_layout()&ggplot2::theme(legend.position = "bottom",
+                        plot.margin = ggplot2::unit(c(3,3,2,1), "pt"))
 
-    for (i in 1:length(features)) {
-      print(p[[i]])
-    }
+
+  # Output
+  if (is.null(file)) {
+    print(p_wrap)
+    return(p_wrap)
 
   } else {
 
-    grDevices::pdf(paste0(file, ".pdf"))
-
-    for (i in 1:length(features)) {
-      print(p[[i]])
-      message(paste0('Density of ', feature, ' plotted!'))
-    }
-
-    grDevices::dev.off()
+    ggplot2::ggsave(paste0(file, ".pdf"),
+                    p_wrap,
+                    width = 8.5,
+                    height = 11,
+                    units = "in")
   }
 }
 

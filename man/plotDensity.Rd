@@ -13,10 +13,10 @@ plotDensity(counts, decontaminated_counts, features, file = NULL)
 
 \item{features}{names of ADT to plot}
 
-\item{file}{file name to save plot into a pdf. If omit, print plot in console.}
+\item{file}{file name to save plot into a pdf. If omit, return ggplot obj.}
 }
 \value{
-pdf in working directory
+ggplot obj or pdf in working directory
 }
 \description{
 Density of each ADT, raw counts overlapped with decontaminated counts
