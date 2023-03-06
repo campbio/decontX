@@ -66,7 +66,6 @@ plotDensity <- function(counts,
 
   # Output
   if (is.null(file)) {
-    print(p_wrap)
     return(p_wrap)
 
   } else {
