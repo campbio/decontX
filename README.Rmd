@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 [![R-CMD-check](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-Methods for decontamination of single cell data
+Methods for decontamination of single cell data. This package implements both DecontX (Yang et al., [2020](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-1950-6)) for single-cell RNA-seq data and DecontPro (Yin et al., [2023](https://www.biorxiv.org/content/10.1101/2023.01.27.525964v2)) for single-cell protein expression data.
 
 ## Installation Instructions
 
@@ -39,8 +39,9 @@ library(devtools)
 install_github("campbio/decontX", build_vignettes = TRUE)
 ```
 
-Vignette of `decontPro` can be accessed through:
+Vignettes can be accessed through:
 
 ```{r eval=FALSE}
+vignette('decontX')
 vignette('decontPro')
 ```

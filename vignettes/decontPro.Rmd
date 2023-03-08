@@ -115,6 +115,11 @@ Plot ADT density before and after decontamination. For bimodal ADTs, the backgro
 plotDensity(counts, decontaminated_counts, c('CD3', 'CD4', 'CD8', 'CD14', 'CD16', 'CD19'))
 ```
 
+We can also visualize the decontamination by each cell cluster.
+```{r}
+plotBoxByCluster(counts, decontaminated_counts, clusters, c('CD3','CD4', 'CD8', 'CD16'))
+```
+
 # Session Information
 
 ```{r}

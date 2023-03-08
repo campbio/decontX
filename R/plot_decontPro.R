@@ -1,7 +1,7 @@
 #' Density of each ADT, raw counts overlapped with decontaminated counts
 #'
-#' @param counts original count matrix
-#' @param decontaminated_counts decontaminated count matrix
+#' @param counts original count matrix of nADT x nDroplet.
+#' @param decontaminated_counts decontaminated count matrix.
 #' @param features names of ADT to plot
 #' @param file file name to save plot into a pdf. If omit, return ggplot obj.
 #'
@@ -83,9 +83,9 @@ plotDensity <- function(counts,
 
 #' Boxplot of features grouped by cell type
 #'
-#' @param counts original count matrix
-#' @param decontaminated_counts decontaminated count matrix
-#' @param cell_type 1xM vector of cell_type. Could be vector of cell type names.
+#' @param counts original count matrix of nADT x nDroplet.
+#' @param decontaminated_counts decontaminated count matrix.
+#' @param cell_type 1xnDroplet vector of cell_type.
 #' @param features names of ADT to plot
 #' @param file file name to save plot into a pdf. If omit, return ggplot obj.
 #'
