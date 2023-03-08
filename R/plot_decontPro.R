@@ -1,6 +1,6 @@
 #' Density of each ADT, raw counts overlapped with decontaminated counts
 #'
-#' @param counts raw count matrix
+#' @param counts original count matrix
 #' @param decontaminated_counts decontaminated count matrix
 #' @param features names of ADT to plot
 #' @param file file name to save plot into a pdf. If omit, return ggplot obj.
@@ -69,7 +69,6 @@ plotDensity <- function(counts,
     return(p_wrap)
 
   } else {
-
     ggplot2::ggsave(paste0(file, ".pdf"),
                     p_wrap,
                     width = 8.5,
@@ -84,11 +83,11 @@ plotDensity <- function(counts,
 
 #' Boxplot of features grouped by cell type
 #'
-#' @param counts raw count matrix
+#' @param counts original count matrix
 #' @param decontaminated_counts decontaminated count matrix
 #' @param cell_type 1xM vector of cell_type. Could be vector of cell type names.
 #' @param features names of ADT to plot
-#' @param file file name to save plot into a pdf. If omit, print plot in console.
+#' @param file file name to save plot into a pdf. If omit, return ggplot obj.
 #'
 #' @return
 #' @export
@@ -140,7 +139,7 @@ plotBoxByCluster <- function(counts,
       ) +
 
       ggplot2::labs(x = "", y = "", fill = "") +
-      ggplot2::ggtitle(paste0(feature, " after Decontamination"))
+      ggplot2::ggtitle(paste0(feature, " counts by cell clusters"))
 
 
 
@@ -149,19 +148,21 @@ plotBoxByCluster <- function(counts,
 
   }
 
+  # Combine plots
+  p_wrap <- patchwork::wrap_plots(p,
+                                  ncol = round(sqrt(length(features))),
+                                  guides = "collect") +
+    patchwork::plot_layout()&ggplot2::theme(legend.position = "bottom",
+                                            plot.margin = ggplot2::unit(c(3,3,2,1), "pt"))
+
   if (is.null(file)) {
-    for (i in 1:length(features)) {
-      print(p[[i]])
-    }
+    return(p_wrap)
 
   } else {
-    grDevices::pdf(paste0(file, ".pdf"))
-
-    for (i in 1:length(features)) {
-      print(p[[i]])
-      message(paste0('Boxplot of ', feature, ' plotted!'))
-    }
-
-    grDevices::dev.off()
+    ggplot2::ggsave(paste0(file, ".pdf"),
+                    p_wrap,
+                    width = 8.5,
+                    height = 11,
+                    units = "in")
   }
 }
