@@ -19,9 +19,9 @@ plotDensity <- function(counts,
     feature <- features[i]
 
 
-    df <- data.frame(con = counts[feature,],
-                     decon = decontaminated_counts[feature,])
-    df.m <- reshape2::melt(df, measure.var = c('con', 'decon'))
+    df <- data.frame(con = counts[feature, ],
+                     decon = decontaminated_counts[feature, ])
+    df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
 
 
@@ -32,7 +32,7 @@ plotDensity <- function(counts,
       ggplot2::scale_x_continuous(trans = "pseudo_log",
                                   breaks = c(1, 5, 10 ^ (1:4))) +
       ggplot2::scale_fill_manual(values = c("#E64B35B2", "#4DBBD5B2"),
-                                 labels = c('Original', 'Decontaminated')) +
+                                 labels = c("Original", "Decontaminated")) +
       ggplot2::ggtitle(feature) +
       ggplot2::labs(x = "", fill = "") +
       ggplot2::theme_classic() +
@@ -42,7 +42,6 @@ plotDensity <- function(counts,
           vjust = 1,
           hjust = 0.9
         ),
-        # legend.title = element_blank(),
         legend.margin = ggplot2::margin(t = -10)
       )
 
@@ -59,7 +58,7 @@ plotDensity <- function(counts,
                                  ncol = round(sqrt(length(features))),
                                  guides = "collect") +
     patchwork::plot_layout()&ggplot2::theme(legend.position = "bottom",
-                        plot.margin = ggplot2::unit(c(3,3,2,1), "pt"))
+                        plot.margin = ggplot2::unit(c(3, 3, 2, 1), "pt"))
 
 
   # Output
@@ -102,12 +101,12 @@ plotBoxByCluster <- function(counts,
 
 
     df <- data.frame(
-      con = counts[feature,],
-      decon = decontaminated_counts[feature,],
+      con = counts[feature, ],
+      decon = decontaminated_counts[feature, ],
       cell_type = as.factor(cell_type)
     )
 
-    df.m <- reshape2::melt(df, measure.var = c('con', 'decon'))
+    df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
 
     # Plot
@@ -121,7 +120,7 @@ plotBoxByCluster <- function(counts,
       ggplot2::scale_y_continuous(trans = "pseudo_log",
                                   breaks = c(1, 5, 10 ^ (1:4))) +
       ggplot2::scale_fill_manual(values = c("#E64B35B2", "#4DBBD5B2"),
-                                 labels = c('Original', 'Decontaminated')) +
+                                 labels = c("Original", "Decontaminated")) +
       ggplot2::theme_bw() +
       ggplot2::theme(
         panel.grid.major = ggplot2::element_blank(),
@@ -150,7 +149,9 @@ plotBoxByCluster <- function(counts,
                                   ncol = round(sqrt(length(features))),
                                   guides = "collect") +
     patchwork::plot_layout()&ggplot2::theme(legend.position = "bottom",
-                                            plot.margin = ggplot2::unit(c(3,3,2,1), "pt"))
+                                            plot.margin =
+                                              ggplot2::unit(c(3, 3, 2, 1),
+                                                            "pt"))
 
   if (is.null(file)) {
     return(p_wrap)

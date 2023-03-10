@@ -8,12 +8,12 @@ test_that(desc = "Testing decontPro on count matrix", {
                           replace = TRUE),
                    ncol = 10)
 
-  k <- c(1,1,2,2,2,3,3,4,4,4)
+  k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
 
   out <- decontPro(counts, k, 1e-2, 1e-2)
 
   # Sum decomposed matrices
-  matsum = out$decontaminated_counts +
+  matsum <- out$decontaminated_counts +
     out$ambient_counts +
     out$background_counts
 

@@ -44,7 +44,7 @@ Here we use an example dataset from `SingleCellMultiModal` package.
 
 ```{r message=FALSE}
 library(SingleCellMultiModal)
-dat <- CITEseq('cord_blood', dry.run = FALSE)
+dat <- CITEseq("cord_blood", dry.run = FALSE)
 counts <- experiments(dat)$scADT
 ```
 
@@ -53,7 +53,7 @@ For this tutorial, we sample only 1000 droplets from the dataset to demonstrate 
 ```{r}
 set.seed(42)
 sample_id <- sample(dim(counts)[2], 1000, replace = FALSE)
-counts_sample <- counts[,sample_id]
+counts_sample <- counts[, sample_id]
 ```
 
 # Generate cell clusters
@@ -63,18 +63,17 @@ counts_sample <- counts[,sample_id]
 ```{r message=FALSE}
 library(Seurat)
 library(dplyr)
-adt_seurat <- CreateSeuratObject(counts_sample, assay = 'ADT')
+adt_seurat <- CreateSeuratObject(counts_sample, assay = "ADT")
 adt_seurat <- NormalizeData(adt_seurat, normalization.method = "CLR", margin = 2) %>%
   ScaleData(assay = "ADT") %>%
   RunPCA(assay = "ADT", features = rownames(adt_seurat), npcs = 10,
   reduction.name = "pca_adt") %>%
   FindNeighbors(dims = 1:10, assay = "ADT", reduction = "pca_adt") %>%
   FindClusters(resolution = 0.5)
-  
 ```
 
 ```{r message=FALSE}
-adt_seurat <- RunUMAP(adt_seurat, 
+adt_seurat <- RunUMAP(adt_seurat,
                       dims = 1:10,
                       assay = "ADT",
                       reduction = "pca_adt",
@@ -82,9 +81,9 @@ adt_seurat <- RunUMAP(adt_seurat,
                       verbose = FALSE)
 DimPlot(adt_seurat, reduction = "adtUMAP", label = TRUE)
 FeaturePlot(adt_seurat, 
-            features = c('CD3', 'CD4','CD8', 'CD19', 'CD14', 'CD16', 'CD56'))
+            features = c("CD3", "CD4", "CD8", "CD19", "CD14", "CD16", "CD56"))
 
-clusters = as.integer(Idents(adt_seurat))
+clusters <- as.integer(Idents(adt_seurat))
 ```
 
 # Run DecontPro
@@ -93,9 +92,9 @@ Priors (`delta_sd` and `background_sd`) may need tuning with the help of plottin
 
 ```{r message=FALSE}
 counts <- as.matrix(counts_sample)
-out <- decontPro(counts, 
-                 clusters, 
-                 delta_sd = 2e-4, 
+out <- decontPro(counts,
+                 clusters,
+                 delta_sd = 2e-4,
                  background_sd = 2e-5)
 ```
 
@@ -112,12 +111,17 @@ decontaminated_counts <- out$decontaminated_counts
 Plot ADT density before and after decontamination. For bimodal ADTs, the background peak should be removed. Note CD4 is tri-modal with the intermediate mode corresponding to monocytes. This can be used as a QC metric for decontamination as only the lowest mode should be removed. 
 
 ```{r}
-plotDensity(counts, decontaminated_counts, c('CD3', 'CD4', 'CD8', 'CD14', 'CD16', 'CD19'))
+plotDensity(counts,
+            decontaminated_counts,
+            c("CD3", "CD4", "CD8", "CD14", "CD16", "CD19"))
 ```
 
 We can also visualize the decontamination by each cell cluster.
 ```{r}
-plotBoxByCluster(counts, decontaminated_counts, clusters, c('CD3','CD4', 'CD8', 'CD16'))
+plotBoxByCluster(counts,
+                 decontaminated_counts,
+                 clusters,
+                 c("CD3", "CD4", "CD8", "CD16"))
 ```
 
 # Session Information
