@@ -48,7 +48,7 @@ dat <- CITEseq('cord_blood', dry.run = FALSE)
 counts <- experiments(dat)$scADT
 ```
 
-For this tutorial, we subsample 1000 droplets from the dataset to speed up the analysis. Subsampling should be done with caution, as `decontPro` approximates contamination profile using the dataset. A biased sampling may introduce bias to the contamination profile approximation.
+For this tutorial, we sample only 1000 droplets from the dataset to demonstrate the use of functions. When analyzing your dataset, sub-sampling should be done with caution, as `decontPro` approximates contamination profile using the dataset. A biased sampling may introduce bias to the contamination profile approximation.
 
 ```{r}
 set.seed(42)
