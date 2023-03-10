@@ -13,9 +13,9 @@ plotDensity <- function(counts,
                         features,
                         file = NULL) {
 
-  p = list()
+  p <- list()
 
-  for (i in 1:length(features)) {
+  for (i in seq_along(features)) {
     feature <- features[i]
 
 
@@ -95,9 +95,9 @@ plotBoxByCluster <- function(counts,
                              cell_type,
                              features,
                              file = NULL) {
-  p = list()
+  p <- list()
 
-  for (i in 1:length(features)) {
+  for (i in seq_along(features)) {
     feature <- features[i]
 
 
@@ -141,7 +141,7 @@ plotBoxByCluster <- function(counts,
 
 
 
-    p[[i]] = p1
+    p[[i]] <- p1
 
   }
 
