@@ -4,8 +4,10 @@
 #'
 #' @param object Data matrix NxM (feature x droplet).
 #' @param cell_type 1xM vector of cell type. 1-based.
-#' @param delta_sd Prior variance for ambient contamination level. Default to 2e-5.
-#' @param background_sd Prior variance for background contamination level. Default to 2e-6.
+#' @param delta_sd Prior variance for ambient contamination level.
+#' Default to 2e-5.
+#' @param background_sd Prior variance for background contamination level.
+#' Default to 2e-6.
 #' @param ... Additional arguments for generics.
 #'
 #' @return A list containing decontaminated counts, and estimated parameters.
@@ -82,10 +84,10 @@ setMethod("decontPro", "ANY", function(object,
   N <- nrow(counts)
   M <- ncol(counts)
 
-  p <- rowSums(counts)
+  p <- Matrix::rowSums(counts)
   p <- p / sum(p)
 
-  OC <- colSums(counts)
+  OC <- Matrix::colSums(counts)
 
   counts <- as.matrix(counts)
 

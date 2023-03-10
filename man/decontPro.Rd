@@ -22,9 +22,11 @@ decontPro(object, cell_type, ...)
 
 \item{...}{Additional arguments for generics.}
 
-\item{delta_sd}{Prior variance for ambient contamination level. Default to 2e-5.}
+\item{delta_sd}{Prior variance for ambient contamination level.
+Default to 2e-5.}
 
-\item{background_sd}{Prior variance for background contamination level. Default to 2e-6.}
+\item{background_sd}{Prior variance for background contamination level.
+Default to 2e-6.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.
