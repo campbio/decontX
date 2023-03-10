@@ -3,13 +3,11 @@
 #' @param counts original count matrix of nADT x nDroplet.
 #' @param decontaminated_counts decontaminated count matrix.
 #' @param features names of ADT to plot
-#' @param file file name to save plot into a pdf. If omit, return ggplot obj.
+#' @param file file name to save plot into a pdf. If omit, return \code{ggplot}
+#' object.
 #'
-#' @return ggplot obj or pdf in working directory
+#' @return Return a pdf file named \code{file} or a \code{ggplot} object.
 #' @export
-#'
-#' @examples
-#'
 plotDensity <- function(counts,
                         decontaminated_counts,
                         features,
@@ -87,12 +85,11 @@ plotDensity <- function(counts,
 #' @param decontaminated_counts decontaminated count matrix.
 #' @param cell_type 1xnDroplet vector of cell_type.
 #' @param features names of ADT to plot
-#' @param file file name to save plot into a pdf. If omit, return ggplot obj.
+#' @param file file name to save plot into a pdf. If omit, return \code{ggplot}
+#' object.
 #'
-#' @return
+#' @return Return a pdf file named \code{file} or a \code{ggplot} object.
 #' @export
-#'
-#' @examples
 plotBoxByCluster <- function(counts,
                              decontaminated_counts,
                              cell_type,

@@ -7,16 +7,17 @@
 plotDensity(counts, decontaminated_counts, features, file = NULL)
 }
 \arguments{
-\item{counts}{raw count matrix}
+\item{counts}{original count matrix of nADT x nDroplet.}
 
-\item{decontaminated_counts}{decontaminated count matrix}
+\item{decontaminated_counts}{decontaminated count matrix.}
 
 \item{features}{names of ADT to plot}
 
-\item{file}{file name to save plot into a pdf. If omit, return ggplot obj.}
+\item{file}{file name to save plot into a pdf. If omit, return \code{ggplot}
+object.}
 }
 \value{
-ggplot obj or pdf in working directory
+Return a pdf file named \code{file} or a \code{ggplot} object.
 }
 \description{
 Density of each ADT, raw counts overlapped with decontaminated counts

@@ -13,15 +13,19 @@ plotBoxByCluster(
 )
 }
 \arguments{
-\item{counts}{raw count matrix}
+\item{counts}{original count matrix of nADT x nDroplet.}
 
-\item{decontaminated_counts}{decontaminated count matrix}
+\item{decontaminated_counts}{decontaminated count matrix.}
 
-\item{cell_type}{1xM vector of cell_type. Could be vector of cell type names.}
+\item{cell_type}{1xnDroplet vector of cell_type.}
 
 \item{features}{names of ADT to plot}
 
-\item{file}{file name to save plot into a pdf. If omit, print plot in console.}
+\item{file}{file name to save plot into a pdf. If omit, return \code{ggplot}
+object.}
+}
+\value{
+Return a pdf file named \code{file} or a \code{ggplot} object.
 }
 \description{
 Boxplot of features grouped by cell type
