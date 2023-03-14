@@ -26,6 +26,7 @@ setGeneric("decontPro", function(object,
 
 #' @export
 #' @rdname decontPro
+#' @importClassesFrom SingleCellExperiment SingleCellExperiment
 setMethod("decontPro", "SingleCellExperiment", function(object,
                                                         cell_type,
                                                         delta_sd = 2e-5,
@@ -43,6 +44,7 @@ setMethod("decontPro", "SingleCellExperiment", function(object,
 
 #' @export
 #' @rdname decontPro
+#' @importClassesFrom Seurat Seurat
 setMethod("decontPro", "Seurat", function(object,
                                           cell_type,
                                           delta_sd = 2e-5,
