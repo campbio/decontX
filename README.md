@@ -37,6 +37,6 @@ install_github("campbio/decontX", build_vignettes = TRUE)
 Vignettes can be accessed through:
 
 ``` r
-vignette('decontX')
-vignette('decontPro')
+vignette('decontX', package = 'decontX')
+vignette('decontPro', package = 'decontX')
 ```
