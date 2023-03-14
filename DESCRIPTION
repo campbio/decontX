@@ -17,7 +17,6 @@ Suggests:
     knitr,
     rmarkdown,
     scran,
-    Seurat,
     SingleCellMultiModal,
     TENxPBMCData,
     testthat (>= 3.0.0)
@@ -39,6 +38,7 @@ Imports:
     rstantools (>= 2.2.0),
     S4Vectors,
     scater,
+    Seurat,
     SingleCellExperiment,
     SummarizedExperiment,
     withr
