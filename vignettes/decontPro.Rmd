@@ -88,7 +88,15 @@ clusters <- as.integer(Idents(adt_seurat))
 
 # Run DecontPro
 
-Priors (`delta_sd` and `background_sd`) may need tuning with the help of plotting the decontaminated results. The two priors encode belief if a more spread-out count should be considered contamination vs. native. We tested the default values on datasets ranging 5k to 10k droplets and 10 to 30 ADTs and the results are reasonable. A more contaminated or a smaller dataset (such as this subsampled one) may need larger priors. 
+You can run `DecontPro` by simply:
+
+``` {r eval=FALSE}
+counts <- as.matrix(counts_sample)
+out <- deconPro(counts,
+                clusters)
+```
+
+Priors (`delta_sd` and `background_sd`) may need tuning with the help of plotting the decontaminated results. The two priors encode belief if a more spread-out count should be considered contamination vs. native. We tested the default values on datasets ranging 5k to 10k droplets and 10 to 30 ADTs and the results are reasonable. A more contaminated or a smaller dataset may need larger priors. In this tutorial, since we sampled only 1k droplets from the original 10k droplets, we use slightly larger priors:
 
 ```{r message=FALSE}
 counts <- as.matrix(counts_sample)
