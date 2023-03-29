@@ -91,6 +91,13 @@ setMethod("decontPro", "ANY", function(object,
 
   OC <- Matrix::colSums(counts)
 
+  if (any(OC == 0)) {
+    stop(
+      "Droplets with 0 total counts detected.",
+      " Remove them and try again."
+    )
+  }
+
   counts <- as.matrix(counts)
 
   dat <- list(
