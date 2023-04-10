@@ -54,3 +54,4 @@ LinkingTo:
     StanHeaders (>= 2.18.0)
 SystemRequirements: GNU make
 VignetteBuilder: knitr
+biocViews: SingleCell, Bayesian
