@@ -22,3 +22,23 @@ Return a pdf file named \code{file} or a \code{ggplot} object.
 \description{
 Density of each ADT, raw counts overlapped with decontaminated counts
 }
+\examples{
+# Simulate a dataset with 3 cells and 2 ADTs
+counts <- matrix(c(60, 72, 52, 49, 89, 112),
+                 nrow = 2,
+                 dimnames = list(c('CD3', 'CD4'),
+                                 c('CTGTTTACACCGCTAG',
+                                   'CTCTACGGTGTGGCTC',
+                                   'AGCAGCCAGGCTCATT')))
+
+decontaminated_counts <- matrix(c(58, 36, 26, 45, 88, 110),
+                                nrow = 2,
+                                dimnames = list(c('CD3', 'CD4'),
+                                                c('CTGTTTACACCGCTAG',
+                                                  'CTCTACGGTGTGGCTC',
+                                                  'AGCAGCCAGGCTCATT')))
+
+plotDensity(counts,
+            decontaminated_counts,
+            c('CD3', 'CD4'))
+}

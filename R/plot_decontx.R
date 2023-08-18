@@ -12,6 +12,7 @@
 #' @param size Numeric. Size of points in the scatterplot. Default 1.
 #' @return Returns a \code{ggplot} object.
 #' @author Shiyi Yang, Joshua Campbell
+#' @example man/examples/decontX.R
 #' @seealso See \code{\link{decontX}} for a full example of how to estimate
 #' and plot contamination.
 #' @export
@@ -148,6 +149,7 @@ plotDecontXContamination <- function(x,
 #' Default 3.
 #' @return Returns a \code{ggplot} object.
 #' @author Shiyi Yang, Joshua Campbell
+#' @example man/examples/decontX.R
 #' @seealso See \code{\link{decontX}} for a full example of how to estimate
 #' and plot contamination.
 #' @export
@@ -328,6 +330,7 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
 #' Default \code{0.1}.
 #' @return Returns a \code{ggplot} object.
 #' @author Shiyi Yang, Joshua Campbell
+#' @example man/examples/decontX.R
 #' @seealso See \code{\link{decontX}} for a full example of how to estimate
 #' and plot contamination.
 #' @export

@@ -34,3 +34,19 @@ A list containing decontaminated counts, and estimated parameters.
 \description{
 Decontaminate using decontPro
 }
+\examples{
+# Simulated count matrix
+counts <- matrix(sample(1:10,
+                        1000,
+                        replace = TRUE),
+                 ncol = 10)
+
+# Cell type indicator
+k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
+
+# Decontamination
+out <- decontPro(counts, k, 1e-2, 1e-2)
+
+# Decontaminated counts
+decontaminated_counts <- out$decontaminated_counts
+}

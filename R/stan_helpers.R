@@ -4,8 +4,6 @@
 #' @param initial_condition Initial values for Stan params.
 #'
 #' @return Stan output
-#'
-#'
 .call_stan_vb <- function(data, initial_condition) {
 
   out <- rstan::vb(object = stanmodels$shrinkage,
@@ -25,8 +23,6 @@
 #' @param dat List of data input to stan vb
 #'
 #' @return Decomposed counts based on Stan estimate.
-#'
-#'
 .process_stan_vb_out <- function(stan_vb_output, dat) {
 
   val <- stan_vb_output@sim$est
