@@ -8,7 +8,7 @@
 #' @useDynLib decontX, .registration = TRUE
 #' @import methods
 #' @import Rcpp
-#' @import RcppParallel
+#' @importFrom RcppParallel RcppParallelLibs
 #' @import rstantools
 #' @importFrom rstan sampling
 #'
