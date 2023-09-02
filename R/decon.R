@@ -651,7 +651,6 @@ setMethod(
   .checkCountsDecon(counts)
   .checkDelta(delta)
 
-  # nG <- nrow(counts)
   nC <- ncol(counts)
   deconMethod <- "clustering"
 
@@ -848,8 +847,6 @@ setMethod(
 # populations
 # theta Numeric vector. Proportion of truely expressed transcripts
 .deconCalcLL <- function(counts, z, phi, eta, theta) {
-  # ll = sum( t(counts) * log( (1-conP )*geneDist[z,] + conP * conDist[z, ] +
-  # 1e-20 ) )  # when dist_mat are K x G matrices
   ll <- sum(Matrix::t(counts) * log(theta * t(phi)[z, ] +
     (1 - theta) * t(eta)[z, ] + 1e-20))
   return(ll)
@@ -861,8 +858,6 @@ setMethod(
 # bgDist Numeric matrix. Rows represent feature and columns are the times that
 # the background-distribution has been replicated.
 .bgCalcLL <- function(counts, globalZ, cbZ, phi, eta, theta) {
-  # ll <- sum(t(counts) * log(theta * t(cellDist) +
-  #        (1 - theta) * t(bgDist) + 1e-20))
   ll <- sum(t(counts) * log(theta * t(phi)[cbZ, ] +
     (1 - theta) * t(eta)[globalZ, ] + 1e-20))
   return(ll)
