@@ -48,7 +48,7 @@ Imports:
     withr
 Biarch: true
 Depends: 
-    R (>= 3.4.0)
+    R (>= 4.3.0)
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
