@@ -49,6 +49,8 @@ Then the package can be loaded in R using the following command:
 library(decontX)
 ```
 
+To see the latest updates and releases or to post a bug, see our GitHub page at https://github.com/campbio/decontX.
+
 # Importing data
 
 Here we use an example dataset from `SingleCellMultiModal` package.
