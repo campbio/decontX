@@ -27,12 +27,24 @@ knitr::opts_chunk$set(echo = TRUE, dev = "png")
 # Introduction
 Droplet-based microfluidic devices have become widely used to perform single-cell RNA sequencing (scRNA-seq). However, ambient RNA present in the cell suspension can be aberrantly counted along with a cell’s native mRNA and result in cross-contamination of transcripts between different cell populations. DecontX is a Bayesian method to estimate and remove contamination in individual cells. DecontX assumes the observed expression of a cell is a mixture of counts from two multinomial distributions: (1) a distribution of native transcript counts from the cell’s actual population and (2) a distribution of contaminating transcript counts from all other cell populations captured in the assay. Overall, computational decontamination of single cell counts can aid in downstream clustering and visualization. 
 
-The package can be loaded using the `library` command.
+# Installation
 
-```{r load, eval=TRUE, message=FALSE}
-library(decontX)
-library(celda) # To use plotting functions in celda
+DecontX Package can be installed from Bioconductor:
+
+```{r install, eval= FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+}
+BiocManager::install("decontX")
 ```
+
+Then the package can be loaded in R using the following command:
+
+```{r load, message=FALSE}
+library(decontX)
+```
+
+To see the latest updates and releases or to post a bug, see our GitHub page at https://github.com/campbio/decontX.
 
 # Importing data
 
@@ -95,6 +107,7 @@ Only empty droplets in the background matrix should be used to estimate the ambi
 DecontX creates a UMAP which we can use to plot the cluster labels automatically identified in the analysis. Note that the clustering approach used here is designed to find "broad" cell types rather than individual cell subpopulations within a cell type. 
 
 ```{r UMAP_Clusters}
+library(celda) # To use plotting functions in celda
 umap <- reducedDim(sce, "decontX_UMAP")
 plotDimReduceCluster(x = sce$decontX_clusters,
     dim1 = umap[, 1], dim2 = umap[, 2])

@@ -32,11 +32,24 @@ three matrices, the native, the ambient and the background that represent the
 contribution from the true protein expression on cells, the ambient material and
 other non-specific background contamination.
 
-The package can be loaded using the `library` command.
+# Installation
 
-```{r load, eval=TRUE, message=FALSE}
+DecontX Package can be installed from Bioconductor:
+
+```{r install, eval= FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+}
+BiocManager::install("decontX")
+```
+
+Then the package can be loaded in R using the following command:
+
+```{r load, message=FALSE}
 library(decontX)
 ```
+
+To see the latest updates and releases or to post a bug, see our GitHub page at https://github.com/campbio/decontX.
 
 # Importing data
 
