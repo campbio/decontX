@@ -16,7 +16,8 @@
           append = append
       )
     } else {
-      message(paste(..., sep = sep))
+      m <- paste(..., sep = sep)
+      message(m)
     }
   }
 }

@@ -50,7 +50,7 @@ plotDensity <- function(counts,
                           ggplot2::aes_string("value", fill = "variable")) +
       ggplot2::geom_density(alpha = 0.7) +
       ggplot2::scale_x_continuous(trans = "pseudo_log",
-                                  breaks = c(1, 5, 10 ^ (1:4))) +
+                                  breaks = c(1, 5, 10 ^ seq(1, 4))) +
       ggplot2::scale_fill_manual(values = c("#E64B35B2", "#4DBBD5B2"),
                                  labels = c("Original", "Decontaminated")) +
       ggplot2::ggtitle(feature) +
@@ -159,7 +159,7 @@ plotBoxByCluster <- function(counts,
                             outlier.size = 0.5,
                             alpha = 0.7) +
       ggplot2::scale_y_continuous(trans = "pseudo_log",
-                                  breaks = c(1, 5, 10 ^ (1:4))) +
+                                  breaks = c(1, 5, 10 ^ seq(1, 4))) +
       ggplot2::scale_fill_manual(values = c("#E64B35B2", "#4DBBD5B2"),
                                  labels = c("Original", "Decontaminated")) +
       ggplot2::theme_bw() +
