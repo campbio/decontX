@@ -38,14 +38,14 @@ devtools::install_github("campbio/decontX")
 
 Vignettes are available on [Bioconductor](https://bioconductor.org/packages/decontX).
 
-To build vignette when installing from GitHub:
+To build vignette when installing from GitHub, add the flag `build_vignettes = TRUE`:
 
 ``` r
 library(devtools)
 install_github("campbio/decontX", build_vignettes = TRUE)
 ```
 
-Vignettes can be accessed through:
+Then vignettes can be accessed through:
 
 ``` r
 vignette('decontX', package = 'decontX')
