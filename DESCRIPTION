@@ -3,7 +3,11 @@ Title: Decontamination of single cell genomics data
 Version: 0.99.5
 Authors@R: 
     person("Yuan", "Yin", , "yuan_yin@outlook.com", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0001-9261-6061"))
+           comment = c(ORCID = "0000-0001-9261-6061")),
+    person("Masanao", "Yajima", , "yajima@bu.edu", role = c("aut"),
+           comment = c(ORCID = "0000-0002-7583-3707")),
+    person("Joshua", "Campbell", , "camp@bu.edu", role = c("aut"),
+           comment = c(ORCID = "0000-0003-0780-8662"))
 Description: This package contains implementation of DecontX (Yang et al. 2020),
     a decontamination algorithm for single-cell RNA-seq, and DecontPro (Yin et al. 
     2023), a decontamination algorithm for single cell protein expression data. 
