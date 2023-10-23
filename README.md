@@ -17,8 +17,17 @@ single-cell protein expression data.
 
 ## Installation Instructions
 
-You can install the development version of `decontX` from
-[GitHub](https://github.com/) with:
+You can install the package through [Bioconductor](https://bioconductor.org/packages/decontX) with:
+
+``` r
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("decontX")
+```
+
+Alternatively, install the development version through
+[GitHub](https://github.com/campbio/decontX) using `devtools` package:
 
 ``` r
 # install.packages("devtools")
@@ -26,6 +35,8 @@ devtools::install_github("campbio/decontX")
 ```
 
 ## Vignettes
+
+Vignettes are available on [Bioconductor](https://bioconductor.org/packages/decontX).
 
 To build vignette when installing from GitHub:
 
