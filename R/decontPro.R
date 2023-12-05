@@ -2,7 +2,7 @@
 #'
 #' @name decontPro
 #'
-#' @param object Data matrix NxM (feature x droplet).
+#' @param filtered_counts Data matrix NxM (feature x droplet).
 #' @param cell_type 1xM vector of cell type. 1-based.
 #' @param delta_sd Prior variance for ambient contamination level.
 #' Default to 2e-5.
@@ -31,7 +31,7 @@ NULL
 #' NULL
 
 
-setGeneric("decontPro", function(object,
+setGeneric("decontPro", function(filtered_counts,
                                  cell_type,
                                  ...)
   standardGeneric("decontPro"))
@@ -40,12 +40,12 @@ setGeneric("decontPro", function(object,
 #' @export
 #' @rdname decontPro
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
-setMethod("decontPro", "SingleCellExperiment", function(object,
+setMethod("decontPro", "SingleCellExperiment", function(filtered_counts,
                                                         cell_type,
                                                         delta_sd = 2e-5,
                                                         background_sd = 2e-6,
                                                         ...) {
-  counts <- SummarizedExperiment::assay(object, 'counts')
+  counts <- SummarizedExperiment::assay(filtered_counts, 'counts')
   output <- .decontPro(counts = counts,
                        cell_type = cell_type,
                        delta_sd = delta_sd,
@@ -58,12 +58,12 @@ setMethod("decontPro", "SingleCellExperiment", function(object,
 #' @export
 #' @rdname decontPro
 #' @importClassesFrom Seurat Seurat
-setMethod("decontPro", "Seurat", function(object,
+setMethod("decontPro", "Seurat", function(filtered_counts,
                                           cell_type,
                                           delta_sd = 2e-5,
                                           background_sd = 2e-6,
                                           ...) {
-  counts <- Seurat::GetAssayData(object, slot = 'counts')
+  counts <- Seurat::GetAssayData(filtered_counts, slot = 'counts')
   output <- .decontPro(counts = counts,
                        cell_type = cell_type,
                        delta_sd = delta_sd,
@@ -75,12 +75,12 @@ setMethod("decontPro", "Seurat", function(object,
 
 #' @export
 #' @rdname decontPro
-setMethod("decontPro", "ANY", function(object,
+setMethod("decontPro", "ANY", function(filtered_counts,
                                        cell_type,
                                        delta_sd = 2e-5,
                                        background_sd = 2e-6,
                                        ...) {
-  output <- .decontPro(counts = object,
+  output <- .decontPro(counts = filtered_counts,
                        cell_type = cell_type,
                        delta_sd = delta_sd,
                        background_sd = background_sd)
