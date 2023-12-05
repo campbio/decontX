@@ -28,6 +28,7 @@
   val <- stan_vb_output@sim$est
 
   r_est <- val$r
+  p_est <- dat$p
   delta_est <- t(val$delta)
   delta_mean_est <- val$delta_mean
   background_est <- val$background
@@ -43,6 +44,7 @@
   parameters[["delta_sd"]] <- dat$delta_sd
   parameters[["background_sd"]] <- dat$background_sd
   parameters[["r_est"]] <- r_est
+  parameters[["p_est"]] <- p_est
   parameters[["delta_est"]] <- delta_est
   parameters[["delta_mean_est"]] <- delta_mean_est
   parameters[["background_est"]] <- background_est
