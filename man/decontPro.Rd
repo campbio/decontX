@@ -14,6 +14,7 @@ decontPro(filtered_counts, cell_type, ...)
   cell_type,
   delta_sd = 2e-05,
   background_sd = 2e-06,
+  ambient_counts = NULL,
   ...
 )
 
@@ -22,6 +23,7 @@ decontPro(filtered_counts, cell_type, ...)
   cell_type,
   delta_sd = 2e-05,
   background_sd = 2e-06,
+  ambient_counts = NULL,
   ...
 )
 
@@ -30,13 +32,18 @@ decontPro(filtered_counts, cell_type, ...)
   cell_type,
   delta_sd = 2e-05,
   background_sd = 2e-06,
+  ambient_counts = NULL,
   ...
 )
 }
 \arguments{
-\item{filtered_counts}{Data matrix NxM (feature x droplet).}
+\item{filtered_counts}{Count matrix NxM (feature x droplet) with only
+filtered droplets after cell calling. If this is a
+\linkS4class{SingleCellExperiment} or a \linkS4class{Seurat} object,
+expect \code{counts} in the assay slot.}
 
-\item{cell_type}{1xM vector of cell type. 1-based.}
+\item{cell_type}{1xM 1-based integer vector indicating cell type of each
+droplet.}
 
 \item{...}{Additional arguments for generics.}
 
@@ -45,6 +52,10 @@ Default to 2e-5.}
 
 \item{background_sd}{Prior variance for background contamination level.
 Default to 2e-6.}
+
+\item{ambient_counts}{Count matrix NxM (feature x droplet) with only ambient
+droplets. Similar to \code{filtered_counts} param, if it is a wrapper object,
+expect \code{counts} in the assay slot. Default to NULL.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.
@@ -53,7 +64,7 @@ A list containing decontaminated counts, and estimated parameters.
 Decontaminate using decontPro
 }
 \examples{
-# Simulated count matrix
+# Simulated count matrix with 100 features x 10 droplets
 counts <- matrix(sample(1:10,
                         1000,
                         replace = TRUE),
@@ -62,8 +73,14 @@ counts <- matrix(sample(1:10,
 # Cell type indicator
 k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
 
+# Simulated ambient count matrix (optional input)
+ambient_counts <- matrix(sample(1:2,
+                        1000,
+                        replace = TRUE),
+                 ncol = 10)
+
 # Decontamination
-out <- decontPro(counts, k, 1e-2, 1e-2)
+out <- decontPro(counts, k, 1e-2, 1e-2, ambient_counts)
 
 # Decontaminated counts
 decontaminated_counts <- out$decontaminated_counts
