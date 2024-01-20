@@ -4,11 +4,11 @@ data {
   int M; // Num of samples
   int K; // Num of cell types
 
-  int<lower = 1> cell_type[M]; // Cell type label
+  array[M] int<lower = 1> cell_type; // Cell type label
 
-  int<lower = 0> counts[N, M];
+  array[N, M] int<lower = 0> counts;
 
-  int<lower = 1> OC[M];
+  array[M] int<lower = 1> OC;
 
   int<lower = 0, upper = 1> run_estimation; // estimate model vs. generate prior predictive
 
@@ -22,11 +22,11 @@ data {
 
 parameters {
 
-  simplex[N] r[K]; // Native count rate
+  array[K] simplex[N] r; // Native count rate
 
-  vector<lower = 0, upper = 0.5>[M] background[N];
+  array[N] vector<lower = 0, upper = 0.5>[M] background;
 
-  vector<lower = 0, upper = 1>[N] delta[M];
+  array[M] vector<lower = 0, upper = 1>[N] delta;
 
   vector<lower = 0, upper = 1>[M] delta_mean;
   vector<lower = 0, upper = 0.5>[N] background_mean;
