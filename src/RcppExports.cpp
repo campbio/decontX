@@ -181,8 +181,8 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _colSumByGroup(void *, void *);
-RcppExport SEXP _colSumByGroup_numeric(void *, void *);
+RcppExport SEXP _colSumByGroup(SEXP, SEXP);
+RcppExport SEXP _colSumByGroup_numeric(SEXP, SEXP);
 RcppExport SEXP _rcpp_module_boot_stan_fit4shrinkage_mod();
 
 static const R_CallMethodDef CallEntries[] = {
