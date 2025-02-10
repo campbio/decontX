@@ -105,7 +105,7 @@ You can run `DecontPro` by simply:
 
 ``` {r eval=FALSE}
 counts <- as.matrix(counts_sample)
-out <- deconPro(counts,
+out <- decontPro(counts,
                 clusters)
 ```
 
