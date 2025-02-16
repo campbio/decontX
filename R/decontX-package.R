@@ -1,8 +1,7 @@
 #' The 'decontX' package.
 #'
-#' @description A DESCRIPTION OF THE PACKAGE
+#' @description DecontX is a decontamination algorithm for single-cell RNA-seq data. DecontPro is a decontamination and background removal algorithm for single cell protein expression data such as CITE-seq or Total-seq.
 #'
-#' @docType package
 #' @name decontX-package
 #' @aliases decontX-package
 #' @useDynLib decontX, .registration = TRUE
