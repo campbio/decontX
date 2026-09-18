@@ -5,3 +5,11 @@
 ^\.github$
 ^doc$
 ^Meta$
+^Makefile$
+^AGENTS\.md$
+^CLAUDE\.md$
+^GEMINI\.md$
+^dev$
+^docs$
+^\.claude$
+^\.lintr$

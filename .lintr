@@ -1,0 +1,9 @@
+linters: linters_with_defaults(
+    line_length_linter(80),
+    object_name_linter = NULL
+  )
+exclusions: list(
+    "R/RcppExports.R",
+    "R/stanmodels.R"
+  )
+encoding: "UTF-8"
