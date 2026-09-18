@@ -1,10 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make:*)",
-      "Bash(Rscript:*)",
-      "Bash(R CMD build:*)",
-      "Bash(R CMD check:*)",
+      "Bash(make test)",
+      "Bash(make check)",
+      "Bash(make bioccheck)",
+      "Bash(make docs)",
+      "Bash(make lint)",
+      "Bash(make build)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
@@ -28,7 +30,10 @@
       "Edit(src/stanExports_*)",
       "Write(src/stanExports_*)",
       "Bash(git push --force:*)",
-      "Bash(git push -f:*)"
+      "Bash(git push -f:*)",
+      "Bash(git clean:*)",
+      "Bash(rm -rf:*)",
+      "Bash(rm -r:*)"
     ]
   },
   "hooks": {
@@ -38,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/style-r.sh"
+            "command": "bash dev/hooks/lint-changed.sh"
           }
         ]
       }
