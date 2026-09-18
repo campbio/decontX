@@ -15,6 +15,33 @@ which is the canonical instruction file for automated work in this repo.
    `devtools::install_dev_deps()`. The first build compiles the Stan
    model and takes several minutes.
 
+## Repository layout
+
+Beyond the standard R package structure (`R/`, `src/`, `man/`, `tests/`,
+`vignettes/`, `inst/`), the repo carries scaffolding for AI-guided
+development. None of it ships in the built package (see `.Rbuildignore`).
+
+```
+AGENTS.md              # canonical instructions for AI agents (CLAUDE.md and
+CLAUDE.md, GEMINI.md   #   GEMINI.md are one-line pointers to it)
+Makefile               # sanctioned dev commands: make test/check/bioccheck/...
+.claude/settings.json  # shared agent harness config: permissions, lint hook
+.lintr                 # lintr config (80-char lines; generated files excluded)
+.github/               # this file, SECURITY.md, PR template, CI workflows
+dev/                   # maintainer-facing material:
+  adr/                 #   architecture decision records (see adr/README.md)
+  hooks/               #   harness hook scripts (report-only lint on edits)
+  RELEASE.md           #   Bioconductor release checklist
+  ROADMAP.md           #   where the package is going
+  AUDIT.md             #   periodic dependency/deprecation audit procedure
+docs/                  # RESERVED for pkgdown build output — never hand-edit
+```
+
+Rules of thumb: agents read `AGENTS.md`; humans read this file; decisions
+that are hard to reverse get an ADR in `dev/adr/`; and generated files
+(`man/`, `NAMESPACE`, `R/RcppExports.R`, `R/stanmodels.R`,
+`src/stanExports_*`, anything in `docs/`) are never edited by hand.
+
 ## Development workflow
 
 All sanctioned commands live in the `Makefile`:
