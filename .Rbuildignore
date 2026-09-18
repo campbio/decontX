@@ -5,3 +5,16 @@
 ^\.github$
 ^doc$
 ^Meta$
+^Makefile$
+^AGENTS\.md$
+^CLAUDE\.md$
+^GEMINI\.md$
+^CONTRIBUTING\.md$
+^SECURITY\.md$
+^ROADMAP\.md$
+^RELEASE\.md$
+^AUDIT\.md$
+^agent-log\.md$
+^docs$
+^\.claude$
+^\.lintr$

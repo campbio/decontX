@@ -1,0 +1,48 @@
+# BiocCheck early-warning job.
+#
+# - Runs in the bioconductor/bioconductor_docker:devel container so the
+#   BiocCheck / R / Bioc versions match the Bioconductor build machines.
+# - Mirrors the build system's procedure: R CMD build, then BiocCheck on
+#   the TARBALL, plus BiocCheckGitClone on the raw checkout.
+# - The weekly cron catches Bioconductor devel drift (deprecations, new
+#   check rules) between commits, months before the release freeze.
+# - Non-blocking (continue-on-error) until the package is clean; then
+#   remove continue-on-error and mark the check required.
+# - The nightly report at bioconductor.org/checkResults remains the
+#   authoritative status; this job is the early-warning system.
+on:
+  pull_request:
+    branches: [main, master, devel]
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+name: BiocCheck
+
+permissions:
+  contents: read
+
+jobs:
+  bioccheck:
+    runs-on: ubuntu-latest
+    container: bioconductor/bioconductor_docker:devel
+    continue-on-error: true
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          BiocManager::install(c("BiocCheck", "remotes"), update = FALSE, ask = FALSE)
+          remotes::install_deps(dependencies = TRUE, upgrade = "never")
+        shell: Rscript {0}
+
+      - name: Build tarball
+        run: R CMD build .
+
+      - name: BiocCheck (tarball) and BiocCheckGitClone (checkout)
+        run: |
+          BiocCheck::BiocCheck(Sys.glob("decontX_*.tar.gz"))
+          BiocCheck::BiocCheckGitClone(".")
+        shell: Rscript {0}

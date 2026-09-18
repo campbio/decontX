@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(Rscript:*)",
+      "Bash(R CMD build:*)",
+      "Bash(R CMD check:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git blame:*)"
+    ],
+    "deny": [
+      "Edit(man/**)",
+      "Write(man/**)",
+      "Edit(NAMESPACE)",
+      "Write(NAMESPACE)",
+      "Edit(R/RcppExports.R)",
+      "Write(R/RcppExports.R)",
+      "Edit(src/RcppExports.cpp)",
+      "Write(src/RcppExports.cpp)",
+      "Edit(R/stanmodels.R)",
+      "Write(R/stanmodels.R)",
+      "Edit(src/stanExports_*)",
+      "Write(src/stanExports_*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/style-r.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "_R_CHECK_FORCE_SUGGESTS_": "false"
+  }
+}
