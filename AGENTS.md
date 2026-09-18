@@ -1,6 +1,6 @@
 # AGENTS.md
 
-## Campbell Lab Playbook (common across lab packages — v1.0, do not edit per-repo)
+## Campbell Lab Playbook (common across lab packages — v2.0, do not edit per-repo)
 
 ### Common commands
 `make test` / `make check` / `make bioccheck` / `make docs` / `make lint`
@@ -42,13 +42,15 @@ Run `make test` after every change; `make check` before opening a PR.)
 
 ### Versioning and releases
 - Bioconductor even/odd x.y.z scheme; releases ~April and ~October.
-- Follow RELEASE.md for the release checklist.
+- Follow dev/RELEASE.md for the release checklist.
 
 ### Safety rules
 - No structural refactors (file splits, DESCRIPTION dependency changes,
   class redesign) without an approved ADR — propose via a GitHub issue.
 - Never commit secrets, tokens, or absolute local paths.
-- Architectural decisions are recorded in docs/adr/ (see template there).
+- Architectural decisions are recorded in dev/adr/ (see template and index
+  there). Never store anything in docs/ — that is pkgdown build output.
+- Maintainer docs (release, roadmap, audits) live in dev/, not the root.
 
 ## This package: decontX
 
@@ -98,7 +100,7 @@ labels in `colData(sce)$decontX_clusters`, and the UMAP in
 
 ### Package-specific notes
 - No Shiny app and no pkgdown site currently — the Shiny and pkgdown
-  sections of the common playbook do not apply yet (see ROADMAP.md).
+  sections of the common playbook do not apply yet (see dev/ROADMAP.md).
 - GENERATED files — never hand-edit: `R/RcppExports.R`,
   `src/RcppExports.cpp` (Rcpp), `R/stanmodels.R`, `src/stanExports_*`
   (rstantools). Edit `inst/stan/shrinkage.stan` and re-generate instead;

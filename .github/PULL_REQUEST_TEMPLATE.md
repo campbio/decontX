@@ -12,7 +12,7 @@
 - [ ] Code review run (`/code-review` or equivalent) before requesting
       human review
 - [ ] ADR linked if this changes structure, dependencies, the S4
-      interface, or the Stan model: <!-- docs/adr/NNNN -->
+      interface, or the Stan model: <!-- dev/adr/NNNN -->
 - [ ] **Human judgment**: scientific correctness of any change to the
       DecontX/DecontPro algorithms or their defaults has been reviewed
       by a maintainer (not delegated to tests or agents)

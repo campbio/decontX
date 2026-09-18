@@ -10,7 +10,7 @@ itself changes no code.
 > Run `BiocCheck::BiocCheck()` and `BiocManager::valid()` on this
 > package. Use r-lib lifecycle practices to find deprecated functions or
 > S4 methods and report replacements compatible with the current
-> Bioconductor release. Write findings to `agent-log.md`. Do not change
+> Bioconductor release. Write findings to `dev/agent-log.md`. Do not change
 > code — findings become GitHub issues (and ADRs where structural).
 
 ## decontX-specific areas to watch
@@ -30,6 +30,6 @@ itself changes no code.
 
 ## Output
 
-Append a dated section to `agent-log.md` with: tool versions used,
+Append a dated section to `dev/agent-log.md` with: tool versions used,
 findings (grouped: errors / warnings / deprecations / drift), and the
 list of issues opened.

@@ -9,12 +9,7 @@
 ^AGENTS\.md$
 ^CLAUDE\.md$
 ^GEMINI\.md$
-^CONTRIBUTING\.md$
-^SECURITY\.md$
-^ROADMAP\.md$
-^RELEASE\.md$
-^AUDIT\.md$
-^agent-log\.md$
+^dev$
 ^docs$
 ^\.claude$
 ^\.lintr$

@@ -37,7 +37,7 @@ Ground rules:
   `NEWS.md` entry for anything user-facing.
 - Style: <= 80-character lines; lintr config is in `.lintr`.
 - Structural changes (new dependencies, file reorganization, changes to
-  the Stan model or the S4 interface) require an ADR in `docs/adr/` —
+  the Stan model or the S4 interface) require an ADR in `dev/adr/` —
   open a GitHub issue to propose one first.
 
 ## Pull requests
@@ -49,4 +49,4 @@ by a maintainer.
 
 ## Questions and bugs
 
-Open a GitHub issue. For security concerns, see `SECURITY.md`.
+Open a GitHub issue. For security concerns, see `.github/SECURITY.md`.

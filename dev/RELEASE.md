@@ -48,4 +48,4 @@ git remote add upstream git@git.bioconductor.org:packages/decontX
   only the early-warning system.
 - Confirm the landing page shows the new version:
   https://bioconductor.org/packages/decontX
-- Run the AUDIT.md dependency/deprecation audit for the new devel cycle.
+- Run the dev/AUDIT.md dependency/deprecation audit for the new devel cycle.

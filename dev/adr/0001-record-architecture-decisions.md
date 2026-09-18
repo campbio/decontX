@@ -15,18 +15,22 @@ why, so they don't re-litigate settled questions or silently reverse them.
 ## Decision
 
 We record every structural or dependency decision as a numbered
-Architecture Decision Record in `docs/adr/`, using `template.md`
-(MADR-style: Context / Decision / Consequences / Status). ADRs are
-proposed via GitHub issues, reviewed like code, and merged via PR.
-Existing ADRs are immutable history — a change of course gets a new ADR
-that supersedes the old one.
+Architecture Decision Record in `dev/adr/`, using `template.md`
+(MADR-style: Context / Decision / Consequences / Status). What requires
+one: dependency changes, module/file structure, S4 interface or class
+design, Stan model changes, build/deploy machinery (see `README.md` for
+the granularity rule). ADRs are proposed via GitHub issues, reviewed
+like code, merged via PR, and approved by the maintainer. Numbering is
+sequential (0001, 0002, ...), tracked in the README index. Existing ADRs
+are immutable history — a change of course gets a new ADR that marks the
+old one superseded.
 
 ## Consequences
 
 - Structural changes have a required first step (write the ADR), which
   slows them down slightly and deliberately.
-- Agents can be pointed at `docs/adr/` for authoritative context; the
+- Agents can be pointed at `dev/adr/` for authoritative context; the
   safety rule "no structural refactors without an approved ADR" in
   AGENTS.md is enforceable.
 - The directory is part of the repo but excluded from the built package
-  via `.Rbuildignore`.
+  via the `^dev$` entry in `.Rbuildignore`.

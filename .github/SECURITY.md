@@ -23,4 +23,4 @@ connections at runtime.
   to external services.
 - Do not add dependencies or download code/data from unvetted sources;
   dependency changes require an approved ADR.
-- Run `/security-review` before releases (see RELEASE.md).
+- Run `/security-review` before releases (see dev/RELEASE.md).

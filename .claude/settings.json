@@ -17,6 +17,8 @@
       "Write(man/**)",
       "Edit(NAMESPACE)",
       "Write(NAMESPACE)",
+      "Edit(docs/**)",
+      "Write(docs/**)",
       "Edit(R/RcppExports.R)",
       "Write(R/RcppExports.R)",
       "Edit(src/RcppExports.cpp)",
