@@ -33,9 +33,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
+        # Resolve everything through BiocManager so versions stay coherent
+        # with the container's Bioc devel; remotes only LISTS the deps
+        # (remotes::install_deps compiles mismatched source versions and
+        # breaks, e.g. S4Vectors lazy-load failures)
         run: |
           BiocManager::install(c("BiocCheck", "remotes"), update = FALSE, ask = FALSE)
-          remotes::install_deps(dependencies = TRUE, upgrade = "never")
+          deps <- remotes::local_package_deps(dependencies = TRUE)
+          BiocManager::install(deps, update = FALSE, ask = FALSE)
         shell: Rscript {0}
 
       - name: Build tarball
