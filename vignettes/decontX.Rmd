@@ -140,12 +140,24 @@ plotDimReduceFeature(as.matrix(logcounts(sce)),
 ## Barplot of markers detected in cell clusters
 The percetage of cells within a cluster that have detectable expression of marker genes can be displayed in a barplot. Markers for cell types need to be supplied in a named list. First, the detection of marker genes in the original `counts` assay is shown:
 
+The cluster numbers produced by the heuristic clustering can change
+between decontX versions and platforms, so instead of hardcoding the
+cluster-to-cell-type mapping we derive it programmatically by assigning
+each cell type to the cluster in which its markers are detected most
+frequently:
+
 ```{r barplotCounts}
 markers <- list(Tcell_Markers = c("CD3E", "CD3D"),
     Bcell_Markers = c("CD79A", "CD79B", "MS4A1"),
     Monocyte_Markers = c("S100A8", "S100A9", "LYZ"),
     NKcell_Markers = "GNLY")
-cellTypeMappings <- list(Tcells = 2, Bcells = 5, Monocytes = 1, NKcells = 6)
+cellTypeMappings <- lapply(markers, function(g) {
+    detected <- Matrix::colMeans(counts(sce)[g, , drop = FALSE] > 0)
+    perCluster <- tapply(detected, sce$decontX_clusters, mean)
+    as.integer(names(which.max(perCluster)))
+})
+names(cellTypeMappings) <- c("Tcells", "Bcells", "Monocytes", "NKcells")
+unlist(cellTypeMappings)
 plotDecontXMarkerPercentage(sce,
     markers = markers,
     groupClusters = cellTypeMappings,
