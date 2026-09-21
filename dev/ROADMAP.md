@@ -116,6 +116,13 @@ user-facing changes.
   as an ADR when done.
 - **Community surface**: issue templates (sessionInfo + reprex), CODE_OF
   _CONDUCT link, NEWS checkbox in the PR template (D5-05, D6-14, D6-02).
+- **Expand the decontPro vignette**: it is bare-bones today. Beyond the
+  Wave-1 fixes (D6-13), grow it toward parity with the decontX vignette:
+  what the three output matrices mean and how to access them, prior
+  tuning guidance (`delta_sd`/`background_sd`) with visual before/after,
+  the `ambient_counts` empty-droplet workflow, cluster-granularity
+  advice (from the issue #40 discussion), reproducibility/`output_
+  samples` notes once Wave 4 lands, and the corrected #40 FAQ.
 
 ## Longer term / ideas
 
@@ -128,7 +135,14 @@ user-facing changes.
   latent parameters, so memory stays linear in cells even with one draw;
   hierarchical/low-rank background structure is the real lever —
   methods-level, needs a methods review first (D7-02).
-- Better interoperability helpers (Seurat/anndata round-tripping).
+- **Native Seurat and AnnData support**: S4 methods/accessors so
+  `decontX()` and `decontPro()` run directly on Seurat and AnnData-backed
+  objects and write results back in place, sparing users the manual
+  SCE round-trip. Today only `decontPro` has a Seurat method (input
+  only); `decontX` has none, and neither supports AnnData (likely via
+  zellkonverter/anndata — dependency choice is part of the design).
+  New exported methods on the generics → ADR first; builds on the
+  Wave-4 SeuratObject migration (ADR-D2).
 - Keep `R/celda_functions.R` in sync with celda; coordinate upstream so
   celda re-exports decontX's functions instead of shipping a 5-year-old
   duplicate under the same names (D3-02) — ADR territory.
