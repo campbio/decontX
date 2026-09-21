@@ -1,6 +1,6 @@
 Package: decontX
 Title: Decontamination of single cell genomics data
-Version: 1.11.0
+Version: 1.11.1
 Authors@R: 
     c(person("Yuan", "Yin", , "yuan_yin@outlook.com", role = c("aut"),
            comment = c(ORCID = "0000-0001-9261-6061")),
@@ -18,12 +18,13 @@ Description: This package contains implementation of DecontX (Yang et al. 2020),
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
-Suggests: 
+RoxygenNote: 7.3.3
+Suggests:
     BiocStyle,
     dplyr,
     knitr,
     rmarkdown,
+    scater,
     scran,
     SingleCellMultiModal,
     TENxPBMCData,
@@ -45,7 +46,7 @@ Imports:
     rstan (>= 2.18.1),
     rstantools (>= 2.2.0),
     S4Vectors,
-    scater,
+    scrapper (>= 1.2.0),
     Seurat,
     SingleCellExperiment,
     SummarizedExperiment,

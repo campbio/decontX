@@ -24,6 +24,7 @@ decontX(x, ...)
   varGenes = 5000,
   dbscanEps = 1,
   seed = 12345,
+  legacyInit = FALSE,
   logfile = NULL,
   verbose = TRUE
 )
@@ -42,6 +43,7 @@ decontX(x, ...)
   varGenes = 5000,
   dbscanEps = 1,
   seed = 12345,
+  legacyInit = FALSE,
   logfile = NULL,
   verbose = TRUE
 )
@@ -117,17 +119,31 @@ current iterations is less than this. Default 0.001.}
 iteration. Default 10.}
 
 \item{varGenes}{Integer. The number of variable genes to use in
-dimensionality reduction before clustering. Variability is calcualted using
-\code{\link[scran]{modelGeneVar}} function from the 'scran' package.
-Used only when z is not provided. Default 5000.}
+dimensionality reduction before clustering. Variability is calculated
+using \code{\link[scrapper]{modelGeneVariances}} from the 'scrapper'
+package (or by the variance of the log-normalized counts when
+\code{legacyInit = TRUE}). Used only when z is not provided.
+Default 5000.}
 
 \item{dbscanEps}{Numeric. The clustering resolution parameter
 used in '\link[dbscan]{dbscan}' to estimate broad cell clusters.
 Used only when z is not provided. Default 1.}
 
-\item{seed}{Integer. Passed to \link[withr]{with_seed}. For reproducibility,
-a default value of 12345 is used. If NULL, no calls to
-\link[withr]{with_seed} are made.}
+\item{seed}{Integer. Seed for reproducibility: the estimation for each
+batch (including the EM algorithm) is wrapped in
+\link[withr]{with_seed}, and the 'scrapper' UMAP used for cell
+cluster initialization is seeded explicitly. A default value of 12345
+is used. If NULL, no seeding is performed and results are not
+reproducible between runs (only the scrapper UMAP itself, which has
+fixed internal default seeds, stays deterministic).}
+
+\item{legacyInit}{Logical. Use the original scater/scuttle-based
+initialization (log-normalization and UMAP) to reproduce results from
+decontX 1.11.0 and earlier. Those upstream functions are deprecated
+in favor of the 'scrapper' package, so this option requires the
+'scater' package, emits their deprecation warnings, and will be
+removed in a future release. Used only when z is not provided.
+Default FALSE.}
 
 \item{logfile}{Character. Messages will be redirected to a file named
 \code{logfile}. If NULL, messages will be printed to stdout.  Default NULL.}

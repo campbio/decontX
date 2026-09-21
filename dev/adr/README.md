@@ -22,3 +22,4 @@ Numbering is sequential, zero-padded to four digits.
 | # | Title | Status | Date |
 |---|---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | 2026-09-18 |
+| [0002](0002-migrate-initialization-to-scrapper.md) | Migrate cluster initialization from scater/scuttle to scrapper | Accepted | 2026-09-21 |

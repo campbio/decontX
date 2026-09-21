@@ -61,15 +61,28 @@
 #' @param estimateDelta Boolean. Whether to update \code{delta} at each
 #' iteration.
 #' @param varGenes Integer. The number of variable genes to use in
-#' dimensionality reduction before clustering. Variability is calcualted using
-#' \code{\link[scran]{modelGeneVar}} function from the 'scran' package.
-#' Used only when z is not provided. Default 5000.
+#' dimensionality reduction before clustering. Variability is calculated
+#' using \code{\link[scrapper]{modelGeneVariances}} from the 'scrapper'
+#' package (or by the variance of the log-normalized counts when
+#' \code{legacyInit = TRUE}). Used only when z is not provided.
+#' Default 5000.
 #' @param dbscanEps Numeric. The clustering resolution parameter
 #' used in '\link[dbscan]{dbscan}' to estimate broad cell clusters.
 #' Used only when z is not provided. Default 1.
-#' @param seed Integer. Passed to \link[withr]{with_seed}. For reproducibility,
-#'  a default value of 12345 is used. If NULL, no calls to
-#'  \link[withr]{with_seed} are made.
+#' @param seed Integer. Seed for reproducibility: the estimation for each
+#'  batch (including the EM algorithm) is wrapped in
+#'  \link[withr]{with_seed}, and the 'scrapper' UMAP used for cell
+#'  cluster initialization is seeded explicitly. A default value of 12345
+#'  is used. If NULL, no seeding is performed and results are not
+#'  reproducible between runs (only the scrapper UMAP itself, which has
+#'  fixed internal default seeds, stays deterministic).
+#' @param legacyInit Logical. Use the original scater/scuttle-based
+#'  initialization (log-normalization and UMAP) to reproduce results from
+#'  decontX 1.11.0 and earlier. Those upstream functions are deprecated
+#'  in favor of the 'scrapper' package, so this option requires the
+#'  'scater' package, emits their deprecation warnings, and will be
+#'  removed in a future release. Used only when z is not provided.
+#'  Default FALSE.
 #' @param logfile Character. Messages will be redirected to a file named
 #'  `logfile`. If NULL, messages will be printed to stdout.  Default NULL.
 #' @param verbose Logical. Whether to print log messages. Default TRUE.
@@ -133,6 +146,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
                                                       varGenes = 5000,
                                                       dbscanEps = 1,
                                                       seed = 12345,
+                                                      legacyInit = FALSE,
                                                       logfile = NULL,
                                                       verbose = TRUE) {
   countsBackground <- NULL
@@ -170,6 +184,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
     seed = seed,
+    legacyInit = legacyInit,
     logfile = logfile,
     verbose = verbose
   )
@@ -223,6 +238,7 @@ setMethod("decontX", "ANY", function(x,
                                      varGenes = 5000,
                                      dbscanEps = 1,
                                      seed = 12345,
+                                     legacyInit = FALSE,
                                      logfile = NULL,
                                      verbose = TRUE) {
 
@@ -257,6 +273,7 @@ setMethod("decontX", "ANY", function(x,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
     seed = seed,
+    legacyInit = legacyInit,
     logfile = logfile,
     verbose = verbose
   )
@@ -340,6 +357,7 @@ setMethod(
                      varGenes = NULL,
                      dbscanEps = NULL,
                      seed = 12345,
+                     legacyInit = FALSE,
                      logfile = NULL,
                      verbose = TRUE) {
   startTime <- Sys.time()
@@ -369,6 +387,7 @@ setMethod(
     convergence = convergence,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
+    legacyInit = legacyInit,
     logfile = logfile,
     verbose = verbose
   )
@@ -487,7 +506,8 @@ setMethod(
         verbose = verbose,
         varGenes = varGenes,
         dbscanEps = dbscanEps,
-        seed = seed
+        seed = seed,
+        legacyInit = legacyInit
       )
     } else {
       withr::with_seed(
@@ -506,7 +526,8 @@ setMethod(
           verbose = verbose,
           varGenes = varGenes,
           dbscanEps = dbscanEps,
-          seed = seed
+          seed = seed,
+          legacyInit = legacyInit
         )
       )
     }
@@ -647,7 +668,8 @@ setMethod(
                              verbose = TRUE,
                              varGenes = NULL,
                              dbscanEps = NULL,
-                             seed = 12345) {
+                             seed = 12345,
+                             legacyInit = FALSE) {
   .checkCountsDecon(counts)
   .checkDelta(delta)
 
@@ -675,11 +697,12 @@ setMethod(
   dbscanEps <- .processdbscanEps(dbscanEps)
 
   celda.init <- .decontxInitializeZ(
-    object = counts,
+    counts = counts,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
     estimateCellTypes = estimateCellTypes,
-    seed = seed
+    seed = seed,
+    legacyInit = legacyInit
   )
   if (is.null(z)) {
     z <- celda.init$z
@@ -1017,30 +1040,21 @@ addLogLikelihood <- function(llA, llB) {
   return(ll)
 }
 
-.decontxInitializeZ <- function(object,
+.decontxInitializeZ <- function(counts,
                                 varGenes = 2000,
                                 dbscanEps = 1,
                                 estimateCellTypes = TRUE,
-                                seed = 12345) {
-  if (!is(object, "SingleCellExperiment")) {
-    sce <- SingleCellExperiment::SingleCellExperiment(
-      assays = list(counts = object)
-    )
-  }
-  sce <- scater::logNormCounts(sce, log = TRUE)
-
-  if (!is.null(seed)) {
-    with_seed(
-      seed,
-      resUmap <- scater::calculateUMAP(sce, ntop = varGenes,
-                                       n_threads = 1,
-                                       exprs_values = "logcounts")
-    )
+                                seed = 12345,
+                                legacyInit = FALSE) {
+  if (isTRUE(legacyInit)) {
+    init <- .decontxInitializeZLegacy(counts, varGenes = varGenes,
+                                      seed = seed)
   } else {
-    resUmap <- scater::calculateUMAP(sce, ntop = varGenes,
-                                     n_threads = 1,
-                                     exprs_values = "logcounts")
+    init <- .decontxInitializeZScrapper(counts, varGenes = varGenes,
+                                        seed = seed)
   }
+  normed <- init$normed
+  resUmap <- init$umap
 
   z <- NULL
   if (isTRUE(estimateCellTypes)) {
@@ -1057,7 +1071,8 @@ addLogLikelihood <- function(llA, llB) {
     # If dbscan was not able to get more than 2 clusters,
     # use kmeans to force 2 clusters as a last resort
     if (totalClusters == 1) {
-      cl <- stats::kmeans(t(SingleCellExperiment::logcounts(sce)), 2)
+      ## transpose before realizing so only one dense copy is allocated
+      cl <- stats::kmeans(as.matrix(t(normed)), 2)
       z <- cl$cluster
     } else {
       z <- resDbscan$cluster
@@ -1068,6 +1083,88 @@ addLogLikelihood <- function(llA, llB) {
     "z" = z,
     "umap" = resUmap
   ))
+}
+
+## Default initialization: log-normalization, feature selection, PCA, and
+## UMAP via the 'scrapper' package. scrapper does not use R's RNG; the
+## UMAP is seeded explicitly, so results are deterministic for a given
+## seed (and with scrapper's own default seeds when seed = NULL).
+.decontxInitializeZScrapper <- function(counts, varGenes, seed) {
+  libSizes <- Matrix::colSums(counts)
+  if (any(libSizes == 0)) {
+    stop("All cells must have at least one count to estimate cell ",
+         "clusters. Remove empty cells or droplets before running ",
+         "decontX, or supply cluster labels with the 'z' parameter.")
+  }
+  sf <- scrapper::centerSizeFactors(libSizes)
+  normed <- scrapper::normalizeCounts(counts, size.factors = sf)
+
+  ## scrapper::modelGeneVariances errors on duplicated gene names (common
+  ## in 10x data labeled with gene symbols); names are not needed here
+  ## because variable genes are selected by index
+  rownames(normed) <- NULL
+
+  ## mean.filter = FALSE ranks all genes like the previous scater-based
+  ## selection did; the default abundance filter (min.mean = 0.1) can
+  ## remove every gene in very sparse datasets and abort
+  geneVar <- scrapper::modelGeneVariances(normed, mean.filter = FALSE,
+                                          num.threads = 1)
+  hvg <- scrapper::chooseHighlyVariableGenes(geneVar$statistics$residuals,
+                                             top = varGenes)
+
+  ## 50 PCs matches the internal default of scater::calculateUMAP,
+  ## which this pipeline replaces
+  pca <- scrapper::runPca(normed[hvg, , drop = FALSE],
+                          number = 50,
+                          num.threads = 1)
+
+  ## scrapper >= 1.5 split runUmap's 'seed' into 'initialize.seed' and
+  ## 'optimize.seed'; support both APIs
+  umapArgs <- list(pca$components, num.threads = 1)
+  if (!is.null(seed)) {
+    if ("seed" %in% names(formals(scrapper::runUmap))) {
+      umapArgs$seed <- seed
+    } else {
+      umapArgs$initialize.seed <- seed
+      umapArgs$optimize.seed <- seed
+    }
+  }
+  resUmap <- do.call(scrapper::runUmap, umapArgs)
+
+  list(normed = normed, umap = resUmap)
+}
+
+## Original scater/scuttle-based initialization, kept temporarily so
+## results from decontX 1.11.0 and earlier can be reproduced with
+## legacyInit = TRUE.
+## logNormCounts/normalizeCounts are deprecated upstream in favor of
+## 'scrapper'; remove this path (and the legacyInit argument) once they
+## are defunct.
+.decontxInitializeZLegacy <- function(counts, varGenes, seed) {
+  if (!requireNamespace("scater", quietly = TRUE)) {
+    stop("'legacyInit = TRUE' requires the 'scater' package. Install it ",
+         "with BiocManager::install(\"scater\") or use the default ",
+         "initialization (legacyInit = FALSE).")
+  }
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = counts)
+  )
+  sce <- scater::logNormCounts(sce, log = TRUE)
+
+  if (!is.null(seed)) {
+    with_seed(
+      seed,
+      resUmap <- scater::calculateUMAP(sce, ntop = varGenes,
+                                       n_threads = 1,
+                                       exprs_values = "logcounts")
+    )
+  } else {
+    resUmap <- scater::calculateUMAP(sce, ntop = varGenes,
+                                     n_threads = 1,
+                                     exprs_values = "logcounts")
+  }
+
+  list(normed = SingleCellExperiment::logcounts(sce), umap = resUmap)
 }
 
 

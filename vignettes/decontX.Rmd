@@ -124,8 +124,8 @@ plotDecontXContamination(sce)
 Known marker genes can also be plotted on the UMAP to identify the cell types for each cluster. We will use CD3D and CD3E for T-cells, LYZ, S100A8, and S100A9 for monocytes, CD79A, CD79B, and MS4A1 for B-cells, GNLY for NK-cells, and PPBP for megakaryocytes.
 
 ```{r plot_feature, message=FALSE}
-library(scater)
-sce <- logNormCounts(sce)
+logcounts(sce) <- scrapper::normalizeCounts(counts(sce),
+    size.factors = scrapper::centerSizeFactors(Matrix::colSums(counts(sce))))
 plotDimReduceFeature(as.matrix(logcounts(sce)),
     dim1 = umap[, 1],
     dim2 = umap[, 2],
@@ -194,10 +194,10 @@ Some helpful hints when using `plotDecontXMarkerExpression`:
 
 
 ```{r plot_norm_counts, eval = TRUE}
-library(scater)
-sce <- logNormCounts(sce,
-    exprs_values = "decontXcounts",
-    name = "decontXlogcounts")
+assay(sce, "decontXlogcounts") <- scrapper::normalizeCounts(
+    decontXcounts(sce),
+    size.factors = scrapper::centerSizeFactors(
+        Matrix::colSums(decontXcounts(sce))))
 
 plotDecontXMarkerExpression(sce,
     markers = markers[["Monocyte_Markers"]],

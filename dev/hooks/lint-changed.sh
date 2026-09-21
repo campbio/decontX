@@ -30,8 +30,10 @@ case "$file" in
   *) exit 0 ;;
 esac
 
-lints=$(Rscript --no-init-file -e \
-  "if (requireNamespace('lintr', quietly = TRUE)) { l <- lintr::lint('$file'); if (length(l) > 0) print(l) }" \
+# pass the path via the environment, not string interpolation, so paths
+# with quotes cannot break out of (or into) the R expression
+lints=$(LINT_FILE="$file" Rscript --no-init-file -e \
+  "if (requireNamespace('lintr', quietly = TRUE)) { l <- lintr::lint(Sys.getenv('LINT_FILE')); if (length(l) > 0) print(l) }" \
   2>/dev/null)
 
 if [ -n "$lints" ]; then

@@ -13,6 +13,77 @@ batchDecontX <- decontX(cbind(deconSim$observedCounts,
         batch = rep(seq(2), each = ncol(deconSim$observedCounts)),
         maxIter = 2)
 
+test_that(desc = "decontX does not call deprecated normalization functions", {
+  # Regression guard for the Bioc 3.24 scuttle deprecations
+  # (logNormCounts/normalizeCounts -> scrapper): decontX initialization
+  # must not emit these deprecation warnings, which R CMD check flags
+  # and which become errors when upstream turns them defunct. Scoped to
+  # the functions decontX calls so unrelated upstream deprecations
+  # cannot fail this test.
+  expect_no_warning(
+    decontX(deconSim$observedCounts, seed = 1, maxIter = 2),
+    message = "'(normalizeCounts|logNormCounts)' is deprecated"
+  )
+})
+
+test_that(desc = "decontX initialization without z returns valid results", {
+  res <- decontX(deconSim$observedCounts, seed = 1, maxIter = 2)
+  expect_true(all(res$contamination >= 0 & res$contamination <= 1))
+  expect_equal(length(res$z), ncol(deconSim$observedCounts))
+  expect_gt(length(unique(res$z)), 1)
+  umap <- res$estimates$all_cells$UMAP
+  expect_equal(dim(umap), c(ncol(deconSim$observedCounts), 2))
+
+  # Same seed twice gives identical results
+  res2 <- decontX(deconSim$observedCounts, seed = 1, maxIter = 2)
+  expect_equal(res$contamination, res2$contamination)
+  expect_equal(res$z, res2$z)
+})
+
+test_that(desc = "decontX initialization handles very sparse data", {
+  # Regression test: scrapper::modelGeneVariances' default abundance
+  # filter can drop every gene in low-count data (e.g. shallow
+  # sequencing); initialization must rank all genes instead of erroring.
+  set.seed(7)
+  lowCounts <- matrix(stats::rbinom(400 * 100, size = 1, prob = 0.05),
+                      nrow = 400, ncol = 100,
+                      dimnames = list(paste0("g", seq_len(400)),
+                                      paste0("c", seq_len(100))))
+  lowCounts[1, Matrix::colSums(lowCounts) == 0] <- 1
+  res <- decontX(lowCounts, seed = 1, maxIter = 2)
+  expect_true(all(res$contamination >= 0 & res$contamination <= 1))
+})
+
+test_that(desc = "decontX initialization handles duplicated gene names", {
+  # Regression test: real 10x data labeled with gene symbols often has
+  # duplicated rownames, which scrapper::modelGeneVariances rejects.
+  counts <- deconSim$observedCounts
+  rownames(counts) <- c("DUP", "DUP",
+                        paste0("g", seq_len(nrow(counts) - 2)))
+  res <- decontX(counts, seed = 1, maxIter = 2)
+  expect_true(all(res$contamination >= 0 & res$contamination <= 1))
+})
+
+test_that(desc = "decontX gives an informative error for empty cells", {
+  counts <- deconSim$observedCounts
+  counts[, 1] <- 0
+  expect_error(decontX(counts, seed = 1, maxIter = 2),
+               regexp = "at least one count")
+})
+
+test_that(desc = "legacyInit reproduces the scater-based initialization", {
+  skip_if_not_installed("scater")
+  # The legacy path calls upstream functions that are deprecated on
+  # Bioconductor devel (by design -- it exists to reproduce old results
+  # while they still work), so warnings are suppressed here.
+  res <- suppressWarnings(
+    decontX(deconSim$observedCounts, seed = 1, maxIter = 2,
+            legacyInit = TRUE)
+  )
+  expect_true(all(res$contamination >= 0 & res$contamination <= 1))
+  expect_equal(length(res$z), ncol(deconSim$observedCounts))
+})
+
 test_that(desc = "Testing simulateContamination", {
     expect_equivalent(object = colSums(deconSim$observedCounts),
         expected = deconSim$NByC)
