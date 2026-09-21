@@ -93,6 +93,9 @@ labels in `colData(sce)$decontX_clusters`, and the UMAP in
 ### Environment setup
 - R >= 4.3.0 plus a working C++ toolchain and GNU make (SystemRequirements);
   macOS needs Xcode CLT, Windows needs Rtools.
+- `make check` needs the `checkbashisms` script to fully check the
+  rstantools `configure` scripts (`brew install checkbashisms` on macOS);
+  without it R CMD check emits a WARNING.
 - Install: `BiocManager::install("decontX", dependencies = TRUE)` or
   `devtools::install_dev_deps()` in a clone.
 - First build compiles the Stan model and Rcpp code — expect several
