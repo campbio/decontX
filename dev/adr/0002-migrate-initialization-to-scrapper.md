@@ -30,11 +30,13 @@ Imports to Suggests (still used by vignettes and the legacy path).
 
 Because the new pipeline produces a slightly different embedding (HVG
 selection by variance-model residuals instead of raw variance; umappp
-instead of uwot), a transitional `legacyInit = TRUE` argument keeps the
-original scater/scuttle path available so published analyses can be
-reproduced. The legacy path loads scater on demand, emits the upstream
-deprecation warnings by design, and is documented for removal once
-scuttle makes the functions defunct.
+instead of uwot), a `legacyInit = TRUE` argument keeps the original
+scater/scuttle path available so published analyses can be reproduced.
+The legacy path loads scater on demand and may emit the upstream
+deprecation warnings by design. It is a permanent backwards-compatibility
+option, maintained for as long as scater/scuttle continue to provide the
+underlying functions (its lifetime is therefore bounded by upstream, not
+by us).
 
 Alternatives considered: (a) inlining the log-normalization formula and
 keeping `scater::calculateUMAP` — no new dependency and bit-identical
@@ -49,9 +51,12 @@ warnings — rejected, breaks when the functions go defunct.
   data in the migration PR). Users passing `z` are unaffected.
 - Install footprint shrinks: scater and its dependency tree leave the
   hard requirements; scrapper brings beachmat/BiocNeighbors/SparseArray.
-- `seed = NULL` becomes deterministic on the default path.
-- Follow-up: remove `legacyInit` and the scater code path after
-  scuttle's functions go defunct (target: one to two release cycles).
+- The UMAP step becomes deterministic on the default path even when
+  `seed = NULL`.
+- `legacyInit` is kept indefinitely for backwards compatibility. If
+  scuttle ever makes the deprecated functions defunct, the legacy path
+  will fail with upstream's defunct error — an accepted risk outside our
+  control; the option is only removed if that happens.
 - The `runUmap` seed-argument API differs between scrapper <= 1.4
   (`seed`) and >= 1.5 (`initialize.seed`/`optimize.seed`); the code
   supports both via a formals check until old versions age out.

@@ -139,11 +139,12 @@ fixed internal default seeds, stays deterministic).}
 
 \item{legacyInit}{Logical. Use the original scater/scuttle-based
 initialization (log-normalization and UMAP) to reproduce results from
-decontX 1.11.0 and earlier. Those upstream functions are deprecated
-in favor of the 'scrapper' package, so this option requires the
-'scater' package, emits their deprecation warnings, and will be
-removed in a future release. Used only when z is not provided.
-Default FALSE.}
+decontX 1.11.0 and earlier. This option requires the 'scater' package
+and may emit deprecation warnings from scater/scuttle, whose
+normalization functions were deprecated in favor of the 'scrapper'
+package. It is kept for backwards compatibility and will remain
+available as long as the upstream functions are still provided by
+scater/scuttle. Used only when z is not provided. Default FALSE.}
 
 \item{logfile}{Character. Messages will be redirected to a file named
 \code{logfile}. If NULL, messages will be printed to stdout.  Default NULL.}

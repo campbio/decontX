@@ -8,9 +8,9 @@ scuttle deprecated `logNormCounts()`/`normalizeCounts()` in Bioconductor
 * Results of `decontX()` without `z` may differ slightly from previous
 versions (same workflow and parameters; different variable-gene
 criterion and UMAP implementation). A new `legacyInit = TRUE` argument
-reproduces the previous behavior while the deprecated upstream functions
-still exist; it requires the scater package (now in Suggests) and will
-be removed in a future release. Users supplying their own `z` are
+reproduces the previous behavior; it requires the scater package (now in
+Suggests) and is kept for backwards compatibility for as long as the
+upstream functions remain available. Users supplying their own `z` are
 unaffected.
 * With the default initialization, the UMAP step itself is deterministic
 even when `seed = NULL` (scrapper seeds it explicitly), but overall

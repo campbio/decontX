@@ -78,11 +78,12 @@
 #'  fixed internal default seeds, stays deterministic).
 #' @param legacyInit Logical. Use the original scater/scuttle-based
 #'  initialization (log-normalization and UMAP) to reproduce results from
-#'  decontX 1.11.0 and earlier. Those upstream functions are deprecated
-#'  in favor of the 'scrapper' package, so this option requires the
-#'  'scater' package, emits their deprecation warnings, and will be
-#'  removed in a future release. Used only when z is not provided.
-#'  Default FALSE.
+#'  decontX 1.11.0 and earlier. This option requires the 'scater' package
+#'  and may emit deprecation warnings from scater/scuttle, whose
+#'  normalization functions were deprecated in favor of the 'scrapper'
+#'  package. It is kept for backwards compatibility and will remain
+#'  available as long as the upstream functions are still provided by
+#'  scater/scuttle. Used only when z is not provided. Default FALSE.
 #' @param logfile Character. Messages will be redirected to a file named
 #'  `logfile`. If NULL, messages will be printed to stdout.  Default NULL.
 #' @param verbose Logical. Whether to print log messages. Default TRUE.
@@ -1134,12 +1135,11 @@ addLogLikelihood <- function(llA, llB) {
   list(normed = normed, umap = resUmap)
 }
 
-## Original scater/scuttle-based initialization, kept temporarily so
-## results from decontX 1.11.0 and earlier can be reproduced with
-## legacyInit = TRUE.
-## logNormCounts/normalizeCounts are deprecated upstream in favor of
-## 'scrapper'; remove this path (and the legacyInit argument) once they
-## are defunct.
+## Original scater/scuttle-based initialization, kept for backwards
+## compatibility so results from decontX 1.11.0 and earlier can be
+## reproduced with legacyInit = TRUE. logNormCounts/normalizeCounts are
+## deprecated upstream in favor of 'scrapper'; this path keeps working
+## for as long as scater/scuttle continue to export them.
 .decontxInitializeZLegacy <- function(counts, varGenes, seed) {
   if (!requireNamespace("scater", quietly = TRUE)) {
     stop("'legacyInit = TRUE' requires the 'scater' package. Install it ",
