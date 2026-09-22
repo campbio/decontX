@@ -436,6 +436,10 @@ setMethod(
     }
 
   }
+  batch <- as.character(batch)
+  if (!is.null(batchBackground)) {
+    batchBackground <- as.character(batchBackground)
+  }
   runParams$batch <- batch
   runParams$batchBackground <- batchBackground
   batchIndex <- unique(batch)

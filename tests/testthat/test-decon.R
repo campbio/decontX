@@ -84,6 +84,30 @@ test_that(desc = "legacyInit reproduces the scater-based initialization", {
   expect_equal(length(res$z), ncol(deconSim$observedCounts))
 })
 
+test_that("numeric batch labels are not used as positional indices", {
+  sim1 <- simulateContamination(K = 5, delta = c(1, 5))
+  sim2 <- simulateContamination(K = 5, delta = c(1, 5))
+  combined <- cbind(sim1$observedCounts, sim2$observedCounts)
+  z <- c(sim1$z, sim2$z)
+  n1 <- ncol(sim1$observedCounts)
+  n2 <- ncol(sim2$observedCounts)
+
+  numBatch <- c(rep(3, n1), rep(5, n2))
+  charBatch <- c(rep("3", n1), rep("5", n2))
+
+  resNum <- decontX(combined, z = z, batch = numBatch,
+                    maxIter = 2, seed = 12345)
+  resChar <- decontX(combined, z = z, batch = charBatch,
+                     maxIter = 2, seed = 12345)
+
+  expect_equal(resNum$contamination, resChar$contamination)
+  expect_equal(resNum$decontXcounts, resChar$decontXcounts)
+  expect_true(all(resNum$contamination >= 0 &
+                    resNum$contamination <= 1))
+  expect_false(is.null(resNum$estimates[["3"]]))
+  expect_false(is.null(resNum$estimates[["5"]]))
+})
+
 test_that(desc = "Testing simulateContamination", {
     expect_equivalent(object = colSums(deconSim$observedCounts),
         expected = deconSim$NByC)

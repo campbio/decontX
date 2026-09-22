@@ -75,16 +75,16 @@ setMethod("decontPro", "SingleCellExperiment", function(filtered_counts,
 
 #' @export
 #' @rdname decontPro
-#' @importClassesFrom Seurat Seurat
+#' @importClassesFrom SeuratObject Seurat
 setMethod("decontPro", "Seurat", function(filtered_counts,
                                           cell_type,
                                           delta_sd = 2e-5,
                                           background_sd = 2e-6,
                                           ambient_counts = NULL,
                                           ...) {
-  counts <- Seurat::GetAssayData(filtered_counts, slot = 'counts')
-  if (!is.null(ambient_counts)){
-    ambient_counts <- Seurat::GetAssayData(ambient_counts, slot = 'counts')
+  counts <- SeuratObject::LayerData(filtered_counts, layer = "counts")
+  if (!is.null(ambient_counts)) {
+    ambient_counts <- SeuratObject::LayerData(ambient_counts, layer = "counts")
   }
   output <- .decontPro(counts = counts,
                        cell_type = cell_type,
