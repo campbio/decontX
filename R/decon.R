@@ -660,6 +660,14 @@ setMethod(
 # This function updates decontamination for one batch
 # seed passed to this function is to be furhter passed to
 # function .decontxInitializeZ()
+#
+# Do not remove the @importFrom below: fit_dirichlet is fetched from the
+# MCMCprecision namespace by the C++ EM step (src/DecontX.cpp, via
+# Environment::namespace_env), which R's static analysis cannot see.
+# Dropping the import triggers an R CMD check NOTE and can leave
+# MCMCprecision unloaded when decontXEM() runs.
+#' @importFrom MCMCprecision fit_dirichlet
+#' @noRd
 .decontXoneBatch <- function(counts,
                              z = NULL,
                              batch = NULL,
@@ -861,138 +869,6 @@ setMethod(
 }
 
 
-
-
-
-# This function calculates the log-likelihood
-#
-# counts Numeric/Integer matrix. Observed count matrix, rows represent features
-# and columns represent cells
-# z Integer vector. Cell population labels
-# phi Numeric matrix. Rows represent features and columns represent cell
-# populations
-# eta Numeric matrix. Rows represent features and columns represent cell
-# populations
-# theta Numeric vector. Proportion of truely expressed transcripts
-.deconCalcLL <- function(counts, z, phi, eta, theta) {
-  ll <- sum(Matrix::t(counts) * log(theta * t(phi)[z, ] +
-    (1 - theta) * t(eta)[z, ] + 1e-20))
-  return(ll)
-}
-
-# DEPRECATED. This is not used, but is kept as it might be useful in the future
-# This function calculates the log-likelihood of background distribution
-# decontamination
-# bgDist Numeric matrix. Rows represent feature and columns are the times that
-# the background-distribution has been replicated.
-.bgCalcLL <- function(counts, globalZ, cbZ, phi, eta, theta) {
-  ll <- sum(t(counts) * log(theta * t(phi)[cbZ, ] +
-    (1 - theta) * t(eta)[globalZ, ] + 1e-20))
-  return(ll)
-}
-
-
-# This function updates decontamination
-#  phi Numeric matrix. Rows represent features and columns represent cell
-# populations
-#  eta Numeric matrix. Rows represent features and columns represent cell
-# populations
-#  theta Numeric vector. Proportion of truely expressed transctripts
-#' @importFrom MCMCprecision fit_dirichlet
-.cDCalcEMDecontamination <- function(counts,
-                                     phi,
-                                     eta,
-                                     theta,
-                                     z,
-                                     K,
-                                     delta) {
-  ## Notes: use fix-point iteration to update prior for theta, no need
-  ## to feed delta anymore
-
-  logPr <- log(t(phi)[z, ] + 1e-20) + log(theta + 1e-20)
-  logPc <- log(t(eta)[z, ] + 1e-20) + log(1 - theta + 1e-20)
-  Pr.e <- exp(logPr)
-  Pc.e <- exp(logPc)
-  Pr <- Pr.e / (Pr.e + Pc.e)
-
-  estRmat <- t(Pr) * counts
-  rnGByK <- .colSumByGroupNumeric(estRmat, z, K)
-  cnGByK <- rowSums(rnGByK) - rnGByK
-
-  counts.cs <- colSums(counts)
-  estRmat.cs <- colSums(estRmat)
-  estRmat.cs.n <- estRmat.cs / counts.cs
-  estCmat.cs.n <- 1 - estRmat.cs.n
-  temp <- cbind(estRmat.cs.n, estCmat.cs.n)
-  deltaV2 <- MCMCprecision::fit_dirichlet(temp)$alpha
-
-  ## Update parameters
-  theta <-
-    (estRmat.cs + deltaV2[1]) / (counts.cs + sum(deltaV2))
-  phi <- celda::normalizeCounts(rnGByK,
-    normalize = "proportion",
-    pseudocountNormalize = 1e-20
-  )
-  eta <- celda::normalizeCounts(cnGByK,
-    normalize = "proportion",
-    pseudocountNormalize = 1e-20
-  )
-
-  return(list(
-    "estRmat" = estRmat,
-    "theta" = theta,
-    "phi" = phi,
-    "eta" = eta,
-    "delta" = deltaV2
-  ))
-}
-
-# DEPRECATED. This is not used, but is kept as it might be useful in the
-# feature.
-# This function updates decontamination using background distribution
-.cDCalcEMbgDecontamination <-
-  function(counts, globalZ, cbZ, trZ, phi, eta, theta) {
-    logPr <- log(t(phi)[cbZ, ] + 1e-20) + log(theta + 1e-20)
-    logPc <-
-      log(t(eta)[globalZ, ] + 1e-20) + log(1 - theta + 1e-20)
-
-    Pr <- exp(logPr) / (exp(logPr) + exp(logPc))
-    Pc <- 1 - Pr
-    deltaV2 <-
-      MCMCprecision::fit_dirichlet(matrix(c(Pr, Pc), ncol = 2))$alpha
-
-    estRmat <- t(Pr) * counts
-    phiUnnormalized <-
-      .colSumByGroupNumeric(estRmat, cbZ, max(cbZ))
-    etaUnnormalized <-
-      rowSums(phiUnnormalized) - .colSumByGroupNumeric(
-        phiUnnormalized,
-        trZ, max(trZ)
-      )
-
-    ## Update paramters
-    theta <-
-      (colSums(estRmat) + deltaV2[1]) / (colSums(counts) + sum(deltaV2))
-    phi <-
-      celda::normalizeCounts(phiUnnormalized,
-        normalize = "proportion",
-        pseudocountNormalize = 1e-20
-      )
-    eta <-
-      celda::normalizeCounts(etaUnnormalized,
-        normalize = "proportion",
-        pseudocountNormalize = 1e-20
-      )
-
-    return(list(
-      "estRmat" = estRmat,
-      "theta" = theta,
-      "phi" = phi,
-      "eta" = eta,
-      "delta" = deltaV2
-    ))
-  }
-
 ## Make sure provided count matrix is the right type
 .checkCountsDecon <- function(counts) {
   if (sum(is.na(counts)) > 0) {
@@ -1028,22 +904,6 @@ setMethod(
   return(z)
 }
 
-
-## Add two (veried-length) vectors of logLikelihood
-addLogLikelihood <- function(llA, llB) {
-  lengthA <- length(llA)
-  lengthB <- length(llB)
-
-  if (lengthA >= lengthB) {
-    llB <- c(llB, rep(llB[lengthB], lengthA - lengthB))
-    ll <- llA + llB
-  } else {
-    llA <- c(llA, rep(llA[lengthA], lengthB - lengthA))
-    ll <- llA + llB
-  }
-
-  return(ll)
-}
 
 .decontxInitializeZ <- function(counts,
                                 varGenes = 2000,
