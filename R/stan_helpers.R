@@ -5,16 +5,16 @@
 #'
 #' @return Stan output
 .call_stan_vb <- function(data, initial_condition) {
+  out <- rstan::vb(
+    object = stanmodels$shrinkage,
+    init = initial_condition,
+    data = data,
+    seed = 12345,
+    iter = 50000
+  )
 
-  out <- rstan::vb(object = stanmodels$shrinkage,
-                   init = initial_condition,
-                   data = data,
-                   seed = 12345,
-                   iter = 50000)
-
-  return(out)
+  out
 }
-
 
 
 #' Process Stan output.
@@ -24,7 +24,6 @@
 #'
 #' @return Decomposed counts based on Stan estimate.
 .process_stan_vb_out <- function(stan_vb_output, dat) {
-
   val <- stan_vb_output@sim$est
 
   r_est <- val$r
@@ -33,7 +32,6 @@
   delta_mean_est <- val$delta_mean
   background_est <- val$background
   background_mean_est <- val$background_mean
-
 
 
   processed_stan <- list()
@@ -53,17 +51,18 @@
   processed_stan[["parameters"]] <- parameters
 
 
-
   ## Decontaminated matrix
   #  Ambient
   unscaled_rates <- matrix(dat$p,
-                          nrow = dat$N,
-                          ncol = dat$M)
+    nrow = dat$N,
+    ncol = dat$M
+  )
 
   scaling_factor <- matrix(dat$OC,
-                          nrow = dat$N,
-                          ncol = dat$M,
-                          byrow = TRUE)
+    nrow = dat$N,
+    ncol = dat$M,
+    byrow = TRUE
+  )
 
   ambient_rate_est <- scaling_factor *
     unscaled_rates *
@@ -75,7 +74,7 @@
 
   cell_rate_est <- scaling_factor *
     unscaled_rates *
-    (1-delta_est) *
+    (1 - delta_est) *
     (1 - background_est)
 
   #  Background
@@ -87,13 +86,13 @@
 
   # Decontaminated counts
   counts <- dat$counts
-  decontaminated_counts <- counts * cell_rate_est/
+  decontaminated_counts <- counts * cell_rate_est /
     (ambient_rate_est + cell_rate_est + background_rate_est)
 
-  ambient_counts <- counts * ambient_rate_est/
+  ambient_counts <- counts * ambient_rate_est /
     (ambient_rate_est + cell_rate_est + background_rate_est)
 
-  background_counts <- counts * background_rate_est/
+  background_counts <- counts * background_rate_est /
     (ambient_rate_est + cell_rate_est + background_rate_est)
 
 
@@ -101,6 +100,5 @@
   processed_stan[["ambient_counts"]] <- ambient_counts
   processed_stan[["background_counts"]] <- background_counts
 
-  return(processed_stan)
-
+  processed_stan
 }

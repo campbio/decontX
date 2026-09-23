@@ -84,7 +84,7 @@ plotDecontXContamination <- function(x,
       axis.text = ggplot2::element_text(size = 15),
       axis.title = ggplot2::element_text(size = 15)
     )
-  return(gg)
+  gg
 }
 
 
@@ -203,7 +203,6 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
       df.list[[i]] <- cbind(df, assay = assayName[i])
     }
     df <- do.call(rbind, df.list)
-    assay <- as.factor(df$assay)
     if (length(assayName) > 1) {
       legend <- "right"
     }
@@ -216,7 +215,6 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
       geneMarkerCellTypeIndex,
       threshold
     )
-    assay <- "red3"
     legend <- "none"
   }
 
@@ -264,16 +262,17 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
     )
 
   if (isTRUE(labelBars)) {
-    plt <- plt + ggplot2::geom_text(ggplot2::aes(
-      x = cellTypeLabels,
-      y = percent + 2.5,
-      label = percent
-    ),
-    position = ggplot2::position_dodge2(width = 0.9, preserve = "single"),
-    size = labelSize
+    plt <- plt + ggplot2::geom_text(
+      ggplot2::aes(
+        x = cellTypeLabels,
+        y = percent + 2.5,
+        label = percent
+      ),
+      position = ggplot2::position_dodge2(width = 0.9, preserve = "single"),
+      size = labelSize
     )
   }
-  return(plt)
+  plt
 }
 
 
@@ -356,7 +355,6 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   z <- temp$z
   geneMarkerIndex <- temp$geneMarkerIndex
   groupClusters <- temp$groupClusters
-  xlab <- temp$xlab
 
   if (inherits(x, "SingleCellExperiment")) {
     # If 'x' is SingleCellExperiment, then get percentage
@@ -374,7 +372,6 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
       df.list[[i]] <- cbind(df, assay = assayName[i])
     }
     df <- do.call(rbind, df.list)
-    assay <- factor(df$assay, levels = assayName)
     if (length(assayName) > 1) {
       legend <- "right"
     }
@@ -385,7 +382,6 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
       varnames = c("Marker", "Cell"),
       value.name = "Expression"
     )
-    assay <- "red3"
     legend <- "none"
   }
 
@@ -399,7 +395,6 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     ylab <- "Expression (log1p)"
   }
   Expression <- df$Expression
-  Marker <- df$Marker
   Assay <- factor(df$assay, levels = assayName)
   Cluster <- df$Cluster
   if (!is.null(groupClusters)) {
@@ -427,52 +422,52 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
         ncol = ncol
       )
   }
-  plt <- plt + ggplot2::geom_violin(
-    trim = TRUE,
-    scale = "width"
-  ) +
-    ggplot2::theme_bw() + ggplot2::theme(
+  plt <- plt +
+    ggplot2::geom_violin(trim = TRUE, scale = "width") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(
       axis.text.x = ggplot2::element_blank(),
       axis.ticks.x = ggplot2::element_blank(),
       axis.title.x = ggplot2::element_blank(),
       strip.text = ggplot2::element_text(size = 8),
       panel.grid = ggplot2::element_blank(),
       legend.position = legend
-    ) + ggplot2::ylab(ylab)
+    ) +
+    ggplot2::ylab(ylab)
 
 
   if (isTRUE(plotDots)) {
     plt <- plt + ggplot2::geom_jitter(height = 0, size = dotSize)
   }
 
-  return(plt)
+  plt
 }
-
 
 
 .processPlotDecontXMarkerInupt <- function(x, z, markers, groupClusters,
                                            by, exactMatch) {
-
   # Process z and convert to a factor
-  if (is.null(z) & inherits(x, "SingleCellExperiment")) {
+  if (is.null(z) && inherits(x, "SingleCellExperiment")) {
     cn <- colnames(SummarizedExperiment::colData(x))
     if (!("decontX_clusters" %in% cn)) {
       stop("'decontX_clusters' not found in 'colData(x)'. Make sure you have
            run 'decontX' or supply 'z' directly.")
     }
     z <- SummarizedExperiment::colData(x)$decontX_clusters
-  } else if (length(z) == 1 & inherits(x, "SingleCellExperiment")) {
+  } else if (length(z) == 1 && inherits(x, "SingleCellExperiment")) {
     if (!(z %in% colnames(SummarizedExperiment::colData(x)))) {
       stop("'", z, "' not found in 'colData(x)'.")
     }
     z <- SummarizedExperiment::colData(x)[, z]
   } else if (length(z) != ncol(x)) {
-    stop("If 'x' is a SingleCellExperiment, then 'z' needs to be",
-          " a single character or integer specifying the column in",
-          " 'colData(x)'. Alternatively to specify the cell cluster",
-          " labels directly as a vector, the length of 'z' needs to",
-          " be the same as the number of columns in 'x'. This is",
-          " required if 'x' is a matrix.")
+    stop(
+      "If 'x' is a SingleCellExperiment, then 'z' needs to be",
+      " a single character or integer specifying the column in",
+      " 'colData(x)'. Alternatively to specify the cell cluster",
+      " labels directly as a vector, the length of 'z' needs to",
+      " be the same as the number of columns in 'x'. This is",
+      " required if 'x' is a matrix."
+    )
   }
   if (!is.factor(z)) {
     z <- as.factor(z)
@@ -497,9 +492,11 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     ta <- table(unlist(groupClusters))
     if (any(ta > 1)) {
       dup <- names(ta)[ta > 1]
-      stop("'groupClusters' had duplicate values for the following clusters: ",
-           paste(dup, collapse = ","), ". Clusters need be assigned to a",
-           "single group.")
+      stop(
+        "'groupClusters' had duplicate values for the following clusters: ",
+        paste(dup, collapse = ","), ". Clusters need be assigned to a",
+        "single group."
+      )
     }
 
     labels <- rep(NA, ncol(x))
@@ -520,7 +517,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
 
   # Find index of each feature in 'x'
   geneMarkerCellTypeIndex <- rep(
-    seq(length(markers)),
+    seq_along(markers),
     lapply(markers, length)
   )
   geneMarkerIndex <- retrieveFeatureIndex(unlist(markers),
@@ -535,14 +532,14 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   geneMarkerCellTypeIndex <- geneMarkerCellTypeIndex[!na.ix]
   geneMarkerIndex <- geneMarkerIndex[!na.ix]
 
-  return(list(
+  list(
     x = x,
     z = z,
     geneMarkerIndex = geneMarkerIndex,
     geneMarkerCellTypeIndex = geneMarkerCellTypeIndex,
     groupClusters = groupClusters,
     xlab = xlab
-  ))
+  )
 }
 
 
@@ -550,7 +547,6 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
                                             z,
                                             geneMarkerCellTypeIndex,
                                             threshold) {
-
   # Get counts matrix and convert to DelayedMatrix
   counts <- DelayedArray::DelayedArray(counts)
 
@@ -568,5 +564,5 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     value.name = "percent"
   )
 
-  return(df)
+  df
 }

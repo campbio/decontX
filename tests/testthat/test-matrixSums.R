@@ -10,21 +10,21 @@ label4[seq(2)] <- 2
 label5 <- as.factor(rep(seq(5), each = 2))
 
 test_that(desc = "Testing .colSumByGroup", {
-    expect_error(.Call("_colSumByGroup", mat, label1))
-    expect_error(.Call("_colSumByGroup", mat, label2))
-    res <- .Call("_colSumByGroup", mat, label3)
-    expect_true(all(res == t(rowsum(t(mat), label3))))
-    res <- .colSumByGroup(mat, label3, 2)
-    expect_true(all(res == t(rowsum(t(mat), label3))))
+  expect_error(.Call("_colSumByGroup", mat, label1))
+  expect_error(.Call("_colSumByGroup", mat, label2))
+  res <- .Call("_colSumByGroup", mat, label3)
+  expect_true(all(res == t(rowsum(t(mat), label3))))
+  res <- .colSumByGroup(mat, label3, 2)
+  expect_true(all(res == t(rowsum(t(mat), label3))))
 })
 
 storage.mode(mat) <- "numeric"
 
 test_that(desc = "Testing .colSumByGroupNumeric", {
-    expect_error(.Call("_colSumByGroup_numeric", mat, label1))
-    expect_error(.Call("_colSumByGroup_numeric", mat, label2))
-    res <- .Call("_colSumByGroup_numeric", mat, label3)
-    expect_true(all(res == t(rowsum(t(mat), label3))))
-    res <- .colSumByGroupNumeric(mat, label3, 2)
-    expect_true(all(res == t(rowsum(t(mat), label3))))
+  expect_error(.Call("_colSumByGroup_numeric", mat, label1))
+  expect_error(.Call("_colSumByGroup_numeric", mat, label2))
+  res <- .Call("_colSumByGroup_numeric", mat, label3)
+  expect_true(all(res == t(rowsum(t(mat), label3))))
+  res <- .colSumByGroupNumeric(mat, label3, 2)
+  expect_true(all(res == t(rowsum(t(mat), label3))))
 })

@@ -65,19 +65,25 @@ Decontaminate using decontPro
 }
 \examples{
 # Simulated count matrix with 100 features x 10 droplets
-counts <- matrix(sample(1:10,
-                        1000,
-                        replace = TRUE),
-                 ncol = 10)
+counts <- matrix(
+  sample(1:10,
+    1000,
+    replace = TRUE
+  ),
+  ncol = 10
+)
 
 # Cell type indicator
 k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
 
 # Simulated ambient count matrix (optional input)
-ambient_counts <- matrix(sample(1:2,
-                        1000,
-                        replace = TRUE),
-                 ncol = 10)
+ambient_counts <- matrix(
+  sample(1:2,
+    1000,
+    replace = TRUE
+  ),
+  ncol = 10
+)
 
 # Decontamination
 out <- decontPro(counts, k, 1e-2, 1e-2, ambient_counts)

@@ -35,9 +35,12 @@ test_that(desc = "decontX initialization handles very sparse data", {
   # sequencing); initialization must rank all genes instead of erroring.
   set.seed(7)
   lowCounts <- matrix(stats::rbinom(400 * 100, size = 1, prob = 0.05),
-                      nrow = 400, ncol = 100,
-                      dimnames = list(paste0("g", seq_len(400)),
-                                      paste0("c", seq_len(100))))
+    nrow = 400, ncol = 100,
+    dimnames = list(
+      paste0("g", seq_len(400)),
+      paste0("c", seq_len(100))
+    )
+  )
   lowCounts[1, Matrix::colSums(lowCounts) == 0] <- 1
   res <- decontX(lowCounts, seed = 1, maxIter = 2)
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
@@ -47,8 +50,10 @@ test_that(desc = "decontX initialization handles duplicated gene names", {
   # Regression test: real 10x data labeled with gene symbols often has
   # duplicated rownames, which scrapper::modelGeneVariances rejects.
   counts <- deconSim$observedCounts
-  rownames(counts) <- c("DUP", "DUP",
-                        paste0("g", seq_len(nrow(counts) - 2)))
+  rownames(counts) <- c(
+    "DUP", "DUP",
+    paste0("g", seq_len(nrow(counts) - 2))
+  )
   res <- decontX(counts, seed = 1, maxIter = 2)
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
 })
@@ -57,7 +62,8 @@ test_that(desc = "decontX gives an informative error for empty cells", {
   counts <- deconSim$observedCounts
   counts[, 1] <- 0
   expect_error(decontX(counts, seed = 1, maxIter = 2),
-               regexp = "at least one count")
+    regexp = "at least one count"
+  )
 })
 
 test_that(desc = "legacyInit reproduces the scater-based initialization", {
@@ -66,8 +72,10 @@ test_that(desc = "legacyInit reproduces the scater-based initialization", {
   # Bioconductor devel (by design -- it exists to reproduce old results
   # while they still work), so warnings are suppressed here.
   res <- suppressWarnings(
-    decontX(deconSim$observedCounts, seed = 1, maxIter = 2,
-            legacyInit = TRUE)
+    decontX(deconSim$observedCounts,
+      seed = 1, maxIter = 2,
+      legacyInit = TRUE
+    )
   )
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
   expect_equal(length(res$z), ncol(deconSim$observedCounts))
@@ -84,27 +92,34 @@ test_that("numeric batch labels are not used as positional indices", {
   numBatch <- c(rep(3, n1), rep(5, n2))
   charBatch <- c(rep("3", n1), rep("5", n2))
 
-  resNum <- decontX(combined, z = z, batch = numBatch,
-                    maxIter = 2, seed = 12345)
-  resChar <- decontX(combined, z = z, batch = charBatch,
-                     maxIter = 2, seed = 12345)
+  resNum <- decontX(combined,
+    z = z, batch = numBatch,
+    maxIter = 2, seed = 12345
+  )
+  resChar <- decontX(combined,
+    z = z, batch = charBatch,
+    maxIter = 2, seed = 12345
+  )
 
   expect_equal(resNum$contamination, resChar$contamination)
   expect_equal(resNum$decontXcounts, resChar$decontXcounts)
-  expect_true(all(resNum$contamination >= 0 &
-                    resNum$contamination <= 1))
+  expect_true(all(resNum$contamination >= 0 & resNum$contamination <= 1))
   expect_false(is.null(resNum$estimates[["3"]]))
   expect_false(is.null(resNum$estimates[["5"]]))
 })
 
 test_that(desc = "Testing simulateContamination", {
-    expect_equivalent(object = colSums(deconSim$observedCounts),
-        expected = deconSim$NByC)
-    expect_equal(object = dim(deconSim$phi),
-        expected = dim(deconSim$eta))
-    expect_equal(typeof(deconSim$observedCounts), "integer")
-    expect_warning(simulateContamination(K = 101, C = 10))
-    expect_error(simulateContamination(K = 3, G = 2, numMarkers = 10))
+  expect_equivalent(
+    object = colSums(deconSim$observedCounts),
+    expected = deconSim$NByC
+  )
+  expect_equal(
+    object = dim(deconSim$phi),
+    expected = dim(deconSim$eta)
+  )
+  expect_equal(typeof(deconSim$observedCounts), "integer")
+  expect_warning(simulateContamination(K = 101, C = 10))
+  expect_error(simulateContamination(K = 3, G = 2, numMarkers = 10))
 })
 
 test_that(desc = "decontX recovers simulated contamination (oracle)", {
@@ -144,16 +159,19 @@ test_that(desc = "Testing DecontX on counts matrix", {
   expect_equal(length(res$z), ncol(s$observedCounts))
 
   p <- plotDecontXMarkerPercentage(s$observedCounts,
-                                   z = res$z,
-                                   markers = s$markers)
+    z = res$z,
+    markers = s$markers
+  )
   expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerPercentage(res$decontXcounts,
-                                   z = res$z,
-                                   markers = s$markers)
+    z = res$z,
+    markers = s$markers
+  )
   expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerExpression(s$observedCounts,
-                                   s$markers[[1]],
-                                   z = s$z)
+    s$markers[[1]],
+    z = s$z
+  )
   expect_s3_class(p, "ggplot")
   p <- plotDecontXContamination(res)
   expect_s3_class(p, "ggplot")
@@ -162,7 +180,8 @@ test_that(desc = "Testing DecontX on counts matrix", {
   b <- s$observedCounts[, 1:5]
   colnames(b) <- paste(colnames(b), "_", sep = "")
   resBg <- decontX(s$observedCounts,
-                   background = b)
+    background = b
+  )
   expect_equal(dim(resBg$decontXcounts), dim(s$observedCounts))
   expect_true(all(resBg$contamination >= 0 & resBg$contamination <= 1))
 })
@@ -170,7 +189,8 @@ test_that(desc = "Testing DecontX on counts matrix", {
 test_that(desc = "Testing DecontX on SCE", {
   s <- simulateContamination()
   sce <- SingleCellExperiment::SingleCellExperiment(
-                               list(counts = s$observedCounts))
+    list(counts = s$observedCounts)
+  )
   sce <- decontX(sce)
   expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
   expect_equal(dim(decontXcounts(sce)), dim(s$observedCounts))
@@ -178,24 +198,28 @@ test_that(desc = "Testing DecontX on SCE", {
   expect_equal(length(contam), ncol(sce))
   expect_true(all(contam >= 0 & contam <= 1))
   expect_equal(length(sce$decontX_clusters), ncol(sce))
-  expect_equal(dim(SingleCellExperiment::reducedDim(sce, "decontX_UMAP")),
-               c(ncol(sce), 2))
+  expect_equal(
+    dim(SingleCellExperiment::reducedDim(sce, "decontX_UMAP")),
+    c(ncol(sce), 2)
+  )
 
   p <- plotDecontXContamination(sce)
   expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerPercentage(sce,
-                                   z = s$z,
-                                   markers = s$markers,
-                                   assayName = "decontXcounts")
+    z = s$z,
+    markers = s$markers,
+    assayName = "decontXcounts"
+  )
   expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerExpression(sce, s$markers[[1]])
   expect_s3_class(p, "ggplot")
   newz <- paste0("X", s$z)
   sce$newz2 <- newz
   p <- plotDecontXMarkerPercentage(sce,
-                                   z = "newz2",
-                                   markers = s$markers,
-                                   assayName = "decontXcounts")
+    z = "newz2",
+    markers = s$markers,
+    assayName = "decontXcounts"
+  )
   expect_s3_class(p, "ggplot")
   sce <- decontX(sce, estimateDelta = FALSE)
 
@@ -209,20 +233,37 @@ test_that(desc = "Testing DecontX on SCE", {
 
 ## .decontXoneBatch
 test_that(desc = "Testing .decontXoneBatch", {
-    expect_error(decontX(x = deconSim$observedCounts,
-        z = deconSim$z, delta = c(1, -1)))
-    expect_error(decontX(x = deconSim$observedCounts,
-        z = deconSim$z, delta = c(1, 1, 1)))
-    expect_error(decontX(x = deconSim$observedCounts,
-        z = c(deconSim$z, 1)),
-        paste0("'z' must be of the same length as the number of cells in the",
-            " 'counts' matrix."))
-    expect_error(.decontXoneBatch(counts = deconSim$observedCounts,
-        z = rep(1, ncol(
-            deconSim$observedCounts))),
-        "No need to decontaminate when only one cluster is in the dataset.")
-    countsNA <- deconSim$observedCounts
-    countsNA[1, 1] <- NA
-    expect_error(.decontXoneBatch(counts = countsNA, z = deconSim$z),
-        "Missing value in 'counts' matrix.")
+  expect_error(decontX(
+    x = deconSim$observedCounts,
+    z = deconSim$z, delta = c(1, -1)
+  ))
+  expect_error(decontX(
+    x = deconSim$observedCounts,
+    z = deconSim$z, delta = c(1, 1, 1)
+  ))
+  expect_error(
+    decontX(
+      x = deconSim$observedCounts,
+      z = c(deconSim$z, 1)
+    ),
+    paste0(
+      "'z' must be of the same length as the number of cells in the",
+      " 'counts' matrix."
+    )
+  )
+  expect_error(
+    .decontXoneBatch(
+      counts = deconSim$observedCounts,
+      z = rep(1, ncol(
+        deconSim$observedCounts
+      ))
+    ),
+    "No need to decontaminate when only one cluster is in the dataset."
+  )
+  countsNA <- deconSim$observedCounts
+  countsNA[1, 1] <- NA
+  expect_error(
+    .decontXoneBatch(counts = countsNA, z = deconSim$z),
+    "Missing value in 'counts' matrix."
+  )
 })
