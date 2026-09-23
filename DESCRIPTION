@@ -9,13 +9,15 @@ Authors@R:
       person("Joshua", "Campbell", , "camp@bu.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0780-8662")))
 Description: This package contains implementation of DecontX (Yang et al. 2020),
-    a decontamination algorithm for single-cell RNA-seq, and DecontPro (Yin et al. 
-    2023), a decontamination algorithm for single cell protein expression data. 
+    a decontamination algorithm for single-cell RNA-seq, and DecontPro (Yin et al.
+    2024), a decontamination algorithm for single cell protein expression data.
     DecontX is a novel Bayesian method to computationally estimate and remove RNA 
     contamination in individual cells without empty droplet information. DecontPro 
     is a Bayesian method that estimates the level of contamination from ambient 
     and background sources in CITE-seq ADT dataset and decontaminate the dataset. 
 License: MIT + file LICENSE
+URL: https://github.com/campbio/decontX
+BugReports: https://github.com/campbio/decontX/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
@@ -66,4 +68,5 @@ LinkingTo:
     StanHeaders (>= 2.18.0)
 SystemRequirements: GNU make
 VignetteBuilder: knitr
-biocViews: SingleCell, Bayesian
+biocViews: SingleCell, Bayesian, GeneExpression, RNASeq, Proteomics,
+    Preprocessing, Normalization, QualityControl

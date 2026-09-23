@@ -16,8 +16,8 @@
 #' \linkS4class{SingleCellExperiment}.
 #' @param z Numeric or character vector. Cell cluster labels. If NULL,
 #' PCA will be used to reduce the dimensionality of the dataset initially,
-#' '\link[uwot]{umap}' from the 'uwot' package
-#' will be used to further reduce the dataset to 2 dimenions and
+#' '\link[scrapper]{runUmap}' from the 'scrapper' package
+#' will be used to further reduce the dataset to 2 dimensions and
 #' the '\link[dbscan]{dbscan}' function from the 'dbscan' package
 #' will be used to identify clusters of broad cell types. Default NULL.
 #' @param batch Numeric or character vector. Batch labels for cells.
