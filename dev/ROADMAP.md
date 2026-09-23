@@ -11,13 +11,14 @@ user-facing changes.
 
 ## Near term
 
-### Wave 1 — Make devel green + quick wins (no ADR needed except D1)
+### Wave 1 — Make devel green + quick wins (no ADR needed)
 
-- **Drop the celda dependency** (ADR-D1, the one ADR gating this wave):
-  replace the single live `celda::normalizeCounts` call with an internal
-  wrapper over the package's own `fastNormProp`, delete the dead
-  `.cDCalcEM*` functions, drop celda from Imports. This fixes the
-  R-CMD-check failures on 3/4 CI platforms at the root (D3-01, CI-01).
+- **celda dependency: keep it.** The deprecated-`normalizeCounts` warnings
+  (D3-01, CI-01) that surface in decontX's examples originate in celda and
+  are being fixed upstream in celda separately — decontX does not drop
+  celda or work around the deprecation. No ADR-D1. (The dead `.cDCalcEM*`
+  functions are still removed as ordinary dead-code cleanup below; that is
+  independent of the dependency.)
 - Fix the defunct Seurat call: `GetAssayData(slot=)` →
   `SeuratObject::LayerData(layer=)` (D3-03) + a mocked regression test.
 - Fix the P0 numeric-`batch` indexing bug (`as.character(batch)`) with a
