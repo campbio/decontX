@@ -23,3 +23,4 @@ Numbering is sequential, zero-padded to four digits.
 |---|---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | 2026-09-18 |
 | [0002](0002-migrate-initialization-to-scrapper.md) | Migrate cluster initialization from scater/scuttle to scrapper | Accepted | 2026-09-21 |
+| [0003](0003-remove-celda-dependency.md) | Remove the celda dependency and invert the celda/decontX relationship | Proposed | 2026-09-22 |

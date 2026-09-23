@@ -18,7 +18,9 @@ user-facing changes.
   are being fixed upstream in celda separately — decontX does not drop
   celda or work around the deprecation. No ADR-D1. (The dead `.cDCalcEM*`
   functions are still removed as ordinary dead-code cleanup below; that is
-  independent of the dependency.)
+  independent of the dependency.) This "keep it" is only about not
+  *reacting* to the deprecation — a deliberate, coordinated removal of
+  celda is planned separately under ADR-0003 (Wave 4 / longer term).
 - Fix the defunct Seurat call: `GetAssayData(slot=)` →
   `SeuratObject::LayerData(layer=)` (D3-03) + a mocked regression test.
 - Fix the P0 numeric-`batch` indexing bug (`as.character(batch)`) with a
@@ -76,6 +78,15 @@ user-facing changes.
 - **ADR-D2:** Seurat → SeuratObject in Imports (45 → 13 transitive).
 - **ADR-D3:** drop plyr (`match(z, unique(z))`) and reshape2 (two small
   base-R helpers) — gated on Wave 3's plotting tests.
+- **ADR-0003 (Stage 1):** drop celda from Imports. Its only live use is
+  a single `celda::normalizeCounts(..., normalize = "proportion")` call
+  in `.simulateContaminatedMatrix()`; replace with a local
+  proportion-normalize helper (base R or a thin `fastNormProp` wrapper),
+  verified identical on the simulation path, then remove `celda` from
+  DESCRIPTION. Self-contained — depends on nothing in celda. This is a
+  *planned* removal, distinct from the Wave-1 "keep celda" decision,
+  which only declined to react to the upstream `normalizeCounts`
+  deprecation. See `dev/adr/0003-remove-celda-dependency.md`.
 - **ADR-D5:** DESCRIPTION floors (drop Matrix pin, verify scrapper pin,
   R >= 4.5.0 on devel); drop dead scran Suggest; resolve the undeclared
   HDF5Array use (prefer deleting the redundant special case).
@@ -146,7 +157,13 @@ user-facing changes.
   Wave-4 SeuratObject migration (ADR-D2).
 - Keep `R/celda_functions.R` in sync with celda; coordinate upstream so
   celda re-exports decontX's functions instead of shipping a 5-year-old
-  duplicate under the same names (D3-02) — ADR territory.
+  duplicate under the same names (D3-02). This is **Stage 2 of
+  ADR-0003** — inverting the dependency so celda references decontX
+  rather than the reverse, retiring the name masking. Cross-package and
+  coordinated with the parallel celda update; must be sequenced across
+  both packages' Bioconductor releases so that no release of either
+  package ever fails for users, masks the other's exports, or forms a
+  circular Imports edge. See `dev/adr/0003-remove-celda-dependency.md`.
 
 ## Non-goals (for now)
 
