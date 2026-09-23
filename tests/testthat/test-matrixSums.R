@@ -1,5 +1,4 @@
 library(decontX)
-context("Testing error checking in C-level matrix sum functions")
 
 ## Test internal error checking
 mat <- matrix(seq(5), ncol = 10, nrow = 10)

@@ -1,17 +1,6 @@
 library(decontX)
-context("Testing DecontX functions")
 
 deconSim <- simulateContamination(K = 10, delta = c(1, 5))
-modelDecontXoneBatch <- decontX(deconSim$observedCounts,
-        z = deconSim$z,
-        maxIter = 2)
-
-deconSim2 <- simulateContamination(K = 10, delta = c(1, 5))
-batchDecontX <- decontX(cbind(deconSim$observedCounts,
-    deconSim2$observedCounts),
-        z = c(deconSim$z, deconSim2$z),
-        batch = rep(seq(2), each = ncol(deconSim$observedCounts)),
-        maxIter = 2)
 
 test_that(desc = "decontX does not call deprecated normalization functions", {
   # Regression guard for the Bioc 3.24 scuttle deprecations
@@ -118,26 +107,64 @@ test_that(desc = "Testing simulateContamination", {
     expect_error(simulateContamination(K = 3, G = 2, numMarkers = 10))
 })
 
+test_that(desc = "decontX recovers simulated contamination (oracle)", {
+  # Behavioral oracle: without this, a no-op decontX (returning its input
+  # unchanged) would pass the suite. Uses the simulator's ground truth to
+  # assert decontX actually estimates and removes contamination. Clusters
+  # (z) are supplied so this isolates the EM/decontamination from the
+  # stochastic clustering step.
+  sim <- simulate_oracle()
+  # iterLogLik = 1 records the log-likelihood every iteration so the
+  # monotonicity check below sees the full EM sequence.
+  res <- decontX(sim$observedCounts, z = sim$z, seed = 12345, iterLogLik = 1)
+
+  # (a) Estimated per-cell contamination tracks the true fraction.
+  expect_gt(stats::cor(res$contamination, sim$contamination), 0.7)
+
+  # (b) Decontaminated counts are closer to the native (true) counts than
+  #     the observed counts are, and never exceed the observed counts.
+  decont <- as.matrix(res$decontXcounts)
+  observed <- as.matrix(sim$observedCounts)
+  native <- as.matrix(sim$nativeCounts)
+  expect_lt(sum(abs(decont - native)), sum(abs(observed - native)))
+  expect_true(all(decont <= observed + 1e-6))
+
+  # (c) EM log-likelihood is non-decreasing across iterations.
+  ll <- res$estimates$all_cells$logLikelihood
+  expect_gt(length(ll), 1)
+  expect_true(all(diff(ll) >= -1e-6))
+})
+
 ## DecontX
 test_that(desc = "Testing DecontX on counts matrix", {
   s <- simulateContamination()
   res <- decontX(s$observedCounts)
+  expect_equal(dim(res$decontXcounts), dim(s$observedCounts))
+  expect_true(all(res$contamination >= 0 & res$contamination <= 1))
+  expect_equal(length(res$z), ncol(s$observedCounts))
+
   p <- plotDecontXMarkerPercentage(s$observedCounts,
                                    z = res$z,
                                    markers = s$markers)
+  expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerPercentage(res$decontXcounts,
                                    z = res$z,
                                    markers = s$markers)
+  expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerExpression(s$observedCounts,
                                    s$markers[[1]],
                                    z = s$z)
+  expect_s3_class(p, "ggplot")
   p <- plotDecontXContamination(res)
+  expect_s3_class(p, "ggplot")
 
   # test with background input
   b <- s$observedCounts[, 1:5]
   colnames(b) <- paste(colnames(b), "_", sep = "")
-  res <- decontX(s$observedCounts,
-                 background = b)
+  resBg <- decontX(s$observedCounts,
+                   background = b)
+  expect_equal(dim(resBg$decontXcounts), dim(s$observedCounts))
+  expect_true(all(resBg$contamination >= 0 & resBg$contamination <= 1))
 })
 
 test_that(desc = "Testing DecontX on SCE", {
@@ -145,24 +172,38 @@ test_that(desc = "Testing DecontX on SCE", {
   sce <- SingleCellExperiment::SingleCellExperiment(
                                list(counts = s$observedCounts))
   sce <- decontX(sce)
+  expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
+  expect_equal(dim(decontXcounts(sce)), dim(s$observedCounts))
+  contam <- sce$decontX_contamination
+  expect_equal(length(contam), ncol(sce))
+  expect_true(all(contam >= 0 & contam <= 1))
+  expect_equal(length(sce$decontX_clusters), ncol(sce))
+  expect_equal(dim(SingleCellExperiment::reducedDim(sce, "decontX_UMAP")),
+               c(ncol(sce), 2))
+
   p <- plotDecontXContamination(sce)
+  expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerPercentage(sce,
                                    z = s$z,
                                    markers = s$markers,
                                    assayName = "decontXcounts")
+  expect_s3_class(p, "ggplot")
   p <- plotDecontXMarkerExpression(sce, s$markers[[1]])
+  expect_s3_class(p, "ggplot")
   newz <- paste0("X", s$z)
   sce$newz2 <- newz
   p <- plotDecontXMarkerPercentage(sce,
                                    z = "newz2",
                                    markers = s$markers,
                                    assayName = "decontXcounts")
+  expect_s3_class(p, "ggplot")
   sce <- decontX(sce, estimateDelta = FALSE)
 
   # test with background input
   bg <- sce[, 1:5]
   colnames(bg) <- paste(colnames(bg), "_", sep = "")
   sce <- decontX(sce, background = bg)
+  expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
 })
 
 
