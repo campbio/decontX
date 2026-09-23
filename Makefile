@@ -4,10 +4,13 @@
 # decontX has no Shiny app and no pkgdown site, so there are no app/site
 # targets (see AGENTS.md).
 
-.PHONY: test check bioccheck docs lint build clean
+.PHONY: test check bioccheck docs lint coverage build clean
 
 test:        ## fast loop — run after every change
 	Rscript -e 'devtools::test()'
+
+coverage:    ## local package coverage report (paths ignored via codecov.yml on CI)
+	Rscript -e 'covr::report(covr::package_coverage())'
 
 check:       ## full check — run before opening a PR
 	_R_CHECK_FORCE_SUGGESTS_=false Rscript -e 'rcmdcheck::rcmdcheck(args = c("--no-manual"), error_on = "warning")'

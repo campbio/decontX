@@ -22,14 +22,21 @@ jobs:
           - {os: windows-latest, r: 'release'}
           - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
           - {os: ubuntu-latest,   r: 'release'}
-          # - {os: ubuntu-latest,   r: 'oldrel-1'}
+          # No oldrel-1 line: decontX is distributed through Bioconductor,
+          # which supports only the R versions bundled with the current
+          # Bioc release and devel (see the DESCRIPTION R >= floor). The
+          # matrix mirrors that policy rather than CRAN's oldrel window.
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      # Heavy Suggests (TENxPBMCData, SingleCellMultiModal, scran) are only
+      # needed for the vignettes; match `make check` and do not fail the
+      # check when a suggested package is unavailable on a platform.
+      _R_CHECK_FORCE_SUGGESTS_: false
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-pandoc@v2
 
