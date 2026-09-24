@@ -15,7 +15,7 @@
       "Bash(git blame:*)"
     ],
     "deny": [
-      "Edit(man/**)",
+      "Edit(man/*.Rd)",
       "Write(man/**)",
       "Edit(NAMESPACE)",
       "Write(NAMESPACE)",
