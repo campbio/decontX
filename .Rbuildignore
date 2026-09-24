@@ -13,3 +13,4 @@
 ^docs$
 ^\.claude$
 ^\.lintr$
+^codecov\.yml$

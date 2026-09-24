@@ -39,7 +39,8 @@ decontPro(filtered_counts, cell_type, ...)
 \arguments{
 \item{filtered_counts}{Count matrix NxM (feature x droplet) with only
 filtered droplets after cell calling. If this is a
-\linkS4class{SingleCellExperiment} or a \linkS4class{Seurat} object,
+\linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
+\linkS4class[SeuratObject]{Seurat} object,
 expect \code{counts} in the assay slot.}
 
 \item{cell_type}{1xM 1-based integer vector indicating cell type of each

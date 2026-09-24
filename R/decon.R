@@ -5,15 +5,17 @@
 #'
 #' @name decontX
 #'
-#' @param x A numeric matrix of counts or a \linkS4class{SingleCellExperiment}
-#' with the matrix located in the assay slot under \code{assayName}.
+#' @param x A numeric matrix of counts or a
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
+#' located in the assay slot under \code{assayName}.
 #' Cells in each batch will be subsetted and converted to a sparse matrix
-#' of class \code{dgCMatrix} from package \link{Matrix} before analysis. This
+#' of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
+#' analysis. This
 #' object should only contain filtered cells after cell calling. Empty
 #' cell barcodes (low expression droplets before cell calling) are not needed
 #' to run DecontX.
 #' @param assayName Character. Name of the assay to use if \code{x} is a
-#' \linkS4class{SingleCellExperiment}.
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment}.
 #' @param z Numeric or character vector. Cell cluster labels. If NULL,
 #' PCA will be used to reduce the dimensionality of the dataset initially,
 #' '\link[scrapper]{runUmap}' from the 'scrapper' package
@@ -25,13 +27,15 @@
 #' batch separately. Cells run in different channels or assays
 #' should be considered different batches. Default NULL.
 #' @param background A numeric matrix of counts or a
-#' \linkS4class{SingleCellExperiment} with the matrix located in the assay
-#' slot under \code{assayName}. It should have the same data format as \code{x}
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
+#' located in the assay slot under \code{assayName}. It should have the same
+#' data format as \code{x}
 #' except it contains the empty droplets instead of cells. When supplied,
 #' empirical distribution of transcripts from these empty droplets
 #' will be used as the contamination distribution. Default NULL.
 #' @param bgAssayName Character. Name of the assay to use if \code{background}
-#' is a \linkS4class{SingleCellExperiment}. Default to same as
+#' is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
+#' same as
 #' \code{assayName}.
 #' @param bgBatch Numeric or character vector. Batch labels for
 #' \code{background}. Its unique values should be the same as those in
@@ -104,7 +108,8 @@
 #' \item{\code{runParams}:}{List of arguments used in the function call.}
 #' }
 #'
-#' If \code{x} is a \linkS4class{SingleCellExperiment}, then the decontaminated
+#' If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment},
+#' then the decontaminated
 #' counts will be stored as an assay and can be accessed with
 #' \code{decontXcounts(x)}. The contamination values and cluster labels
 #' will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
@@ -303,16 +308,19 @@ SET_FUN <- function(exprs_values, ...) {
 #' @title Get or set decontaminated counts matrix
 #'
 #' @description Gets or sets the decontaminated counts matrix from a
-#' a \linkS4class{SingleCellExperiment} object.
+#' a \linkS4class[SingleCellExperiment]{SingleCellExperiment} object.
 #' @name decontXcounts
-#' @param object A \linkS4class{SingleCellExperiment} object.
+#' @param object A
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} object.
 #' @param value A matrix to save as an assay called \code{decontXcounts}
 #' @param ... For the generic, further arguments to pass to each method.
 #' @return If getting, the assay from \code{object} with the name
 #' \code{decontXcounts} will be returned. If setting, a
-#' \linkS4class{SingleCellExperiment} object will be returned with
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} object will be
+#' returned with
 #' \code{decontXcounts} listed in the \code{assay} slot.
-#' @seealso \code{\link{assay}} and \code{\link{assay<-}}
+#' @seealso \code{\link[SummarizedExperiment]{assay}} and
+#' \code{\link[SummarizedExperiment]{assay<-}}
 NULL
 
 #' @export

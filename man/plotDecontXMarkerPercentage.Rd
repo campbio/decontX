@@ -19,7 +19,7 @@ plotDecontXMarkerPercentage(
 )
 }
 \arguments{
-\item{x}{Either a \linkS4class{SingleCellExperiment} or
+\item{x}{Either a \linkS4class[SingleCellExperiment]{SingleCellExperiment} or
 a matrix-like object of counts.}
 
 \item{markers}{List. A named list indicating the marker genes
@@ -44,13 +44,14 @@ Default \code{NULL}.}
 
 \item{assayName}{Character vector. Name(s) of the assay(s) to
 plot if \code{x} is a
-\linkS4class{SingleCellExperiment}. If more than one assay
-is listed, then side-by-side barplots will be generated.
+\linkS4class[SingleCellExperiment]{SingleCellExperiment}. If more than one
+assay is listed, then side-by-side barplots will be generated.
 Default \code{c("counts", "decontXcounts")}.}
 
 \item{z}{Character, Integer, or Vector. Indicates the cluster labels
 for each cell.
-If \code{x} is a \linkS4class{SingleCellExperiment} and \code{z = NULL},
+If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}
+and \code{z = NULL},
 then the cluster labels from \code{\link{decontX}} will be retived from the
 \code{colData} of \code{x} (i.e. \code{colData(x)$decontX_clusters}).
 If \code{z} is a single character or integer,
@@ -70,7 +71,8 @@ for the markers or to identify partial matches using \code{\link{grep}}. See
 \code{\link{retrieveFeatureIndex}} for more details. Default \code{TRUE}.}
 
 \item{by}{Character. Where to search for the markers if \code{x} is a
-\linkS4class{SingleCellExperiment}. See \code{\link{retrieveFeatureIndex}}
+\linkS4class[SingleCellExperiment]{SingleCellExperiment}. See
+\code{\link{retrieveFeatureIndex}}
 for more details. If \code{x} is a matrix,
 then this must be set to \code{"rownames"}.Default \code{"rownames"}.}
 
