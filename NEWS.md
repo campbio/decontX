@@ -1,5 +1,15 @@
 # decontX 1.11.1
 
+* `decontX` no longer depends on the `celda` package (ADR-0003 Stage 1).
+The one internal use of `celda::normalizeCounts()` (proportion
+normalization inside `simulateContamination()`) is replaced by the
+package's own `fastNormProp` routine, which produces identical results,
+and the example and vignette now plot cluster labels and marker-gene
+expression on the UMAP with `scater::plotReducedDim()` instead of celda's
+plotting functions. This drops `celda` (and its transitive dependencies)
+entirely and removes the `R CMD check` deprecation warnings that came from
+celda's masked, stale copy of `decontX` being invoked after
+`library(celda)` in the examples.
 * The cell cluster initialization used by `decontX()` when `z` is not
 supplied (log-normalization, variable gene selection, PCA, and UMAP) has
 been migrated from scater/scuttle to the scrapper package, because

@@ -120,6 +120,17 @@ test_that(desc = "Testing simulateContamination", {
   expect_equal(typeof(deconSim$observedCounts), "integer")
   expect_warning(simulateContamination(K = 101, C = 10))
   expect_error(simulateContamination(K = 3, G = 2, numMarkers = 10))
+
+  # ADR-0003 Stage 1: the contamination distribution eta is now normalized
+  # by the package's own fastNormProp instead of celda::normalizeCounts.
+  # Guard that (a) each cell-type column is a proper proportion and (b) the
+  # simulator no longer emits the celda/scuttle deprecation warning that
+  # R CMD check flags in examples.
+  expect_equal(colSums(deconSim$eta), rep(1, ncol(deconSim$eta)))
+  expect_no_warning(
+    simulateContamination(K = 3),
+    message = "'normalizeCounts' is deprecated"
+  )
 })
 
 test_that(desc = "decontX recovers simulated contamination (oracle)", {

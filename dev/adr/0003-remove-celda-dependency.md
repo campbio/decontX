@@ -2,7 +2,12 @@
 
 ## Status
 
-Proposed
+Accepted — Stage 1 implemented (celda removed from Imports; the single
+`celda::normalizeCounts(..., "proportion")` call in
+`.simulateContaminatedMatrix()` replaced by `fastNormProp(x, 0)`, verified
+bit-identical on the simulation path and covered by a test). Stage 2
+(inverting the celda/decontX relationship) remains a cross-package
+coordination item, tracked here.
 
 ## Context
 

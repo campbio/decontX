@@ -1227,7 +1227,12 @@ simulateContamination <- function(C = 300,
   ## sample contamination count matrix
   nGByK <-
     rowSums(cellRmat) - .colSumByGroup(cellRmat, group = z, K = K)
-  eta <- celda::normalizeCounts(counts = nGByK, normalize = "proportion")
+  ## Column-wise proportion normalization. This reproduces
+  ## celda::normalizeCounts(normalize = "proportion") exactly (verified to
+  ## the bit on the simulation path) via the package's own fastNormProp
+  ## C++ routine with a zero pseudocount, removing the celda dependency
+  ## (ADR-0003 Stage 1).
+  eta <- fastNormProp(nGByK, 0)
 
   cellCmat <- vapply(seq(C), function(i) {
     stats::rmultinom(1, size = cNbyC[i], prob = eta[, z[i]])

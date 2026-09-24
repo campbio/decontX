@@ -36,7 +36,6 @@ Suggests:
 Config/testthat/edition: 3
 Config/Needs/coverage: covr
 Imports:
-    celda,
     dbscan,
     DelayedArray,
     ggplot2,
