@@ -27,9 +27,16 @@ even when `seed = NULL` (scrapper seeds it explicitly), but overall
 `decontX()` results with `seed = NULL` remain non-reproducible because
 the EM initialization is unseeded — set a seed for full reproducibility.
 * The plotting functions (`plotDecontXContamination()`,
-`plotDecontXMarkerPercentage()`, `plotDensity()`, `plotBoxByCluster()`)
-no longer use the deprecated `ggplot2::aes_string()`, which removes the
-ggplot2 deprecation warnings they emitted. Plots are unchanged.
+`plotDecontXMarkerPercentage()`, `plotDecontXMarkerExpression()`,
+`plotDensity()`, `plotBoxByCluster()`) no longer use the deprecated
+`ggplot2::aes_string()` or `trans =` scale argument, which removes the
+ggplot2 deprecation warnings they emitted. decontX now requires
+ggplot2 (>= 3.5.0).
+* `plotDecontXMarkerPercentage()` and `plotDecontXMarkerExpression()` now
+work when `x` is a matrix (they previously failed with a ggplot2
+aesthetics error when the plot was drawn). The facets of
+`plotDecontXMarkerExpression()` now follow the order of `groupClusters`,
+matching the x-axis.
 
 # decontX 1.10.0
 

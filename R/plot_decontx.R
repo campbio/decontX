@@ -231,7 +231,7 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
 
   plt <- ggplot2::ggplot(df, ggplot2::aes(
     x = .data$cellTypeLabels,
-    y = .data$percent, fill = .data$assay
+    y = .data$percent
   )) +
     ggplot2::geom_bar(
       stat = "identity",
@@ -267,13 +267,18 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
   if (isTRUE(labelBars)) {
     plt <- plt + ggplot2::geom_text(
       ggplot2::aes(
-        x = cellTypeLabels,
-        y = percent + 2.5,
-        label = percent
+        x = .data$cellTypeLabels,
+        y = .data$percent + 2.5,
+        label = .data$percent
       ),
       position = ggplot2::position_dodge2(width = 0.9, preserve = "single"),
       size = labelSize
     )
+  }
+  ## Matrix input has no 'assay' column, so bars are only filled by
+  ## assay for SingleCellExperiment input
+  if ("assay" %in% colnames(df)) {
+    plt <- plt + ggplot2::aes(fill = .data$assay)
   }
   plt
 }
@@ -399,16 +404,16 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     df$Expression <- log1p(df$Expression)
     ylab <- "Expression (log1p)"
   }
-  Expression <- df$Expression
-  Assay <- factor(df$assay, levels = assayName)
-  Cluster <- df$Cluster
+  if ("assay" %in% colnames(df)) {
+    df$assay <- factor(df$assay, levels = assayName)
+  }
   if (!is.null(groupClusters)) {
-    df <- cbind(df, Cell_Type = names(groupClusters)[Cluster])
-    Cell_Type <- factor(df$Cell_Type, levels = names(groupClusters))
+    df$Cell_Type <- factor(names(groupClusters)[df$Cluster],
+      levels = names(groupClusters)
+    )
     plt <- ggplot2::ggplot(df, ggplot2::aes(
-      x = Cell_Type,
-      y = Expression,
-      fill = Assay
+      x = .data$Cell_Type,
+      y = .data$Expression
     )) +
       ggplot2::facet_wrap(~ Cell_Type + Marker,
         scales = "free",
@@ -417,15 +422,21 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
       )
   } else {
     plt <- ggplot2::ggplot(df, ggplot2::aes(
-      x = Cluster,
-      y = Expression,
-      fill = Assay
+      x = .data$Cluster,
+      y = .data$Expression
     )) +
       ggplot2::facet_wrap(~ Cluster + Marker,
         scales = "free",
         labeller = ggplot2::label_context,
         ncol = ncol
       )
+  }
+  ## Matrix input has no 'assay' column, so violins are only filled by
+  ## assay for SingleCellExperiment input
+  if ("assay" %in% colnames(df)) {
+    plt <- plt +
+      ggplot2::aes(fill = .data$assay) +
+      ggplot2::labs(fill = "Assay")
   }
   plt <- plt +
     ggplot2::geom_violin(trim = TRUE, scale = "width") +

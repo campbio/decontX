@@ -64,7 +64,7 @@ plotDensity <- function(counts,
     ) +
       ggplot2::geom_density(alpha = 0.7) +
       ggplot2::scale_x_continuous(
-        trans = "pseudo_log",
+        transform = "pseudo_log",
         breaks = c(1, 5, 10^seq(1, 4))
       ) +
       ggplot2::scale_fill_manual(
@@ -194,7 +194,7 @@ plotBoxByCluster <- function(counts,
         alpha = 0.7
       ) +
       ggplot2::scale_y_continuous(
-        trans = "pseudo_log",
+        transform = "pseudo_log",
         breaks = c(1, 5, 10^seq(1, 4))
       ) +
       ggplot2::scale_fill_manual(
