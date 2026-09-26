@@ -387,8 +387,8 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     }
   } else {
     ## If 'x' is matrix, then calculate percentages directly
-    counts <- x[geneMarkerIndex, ]
-    df <- reshape2::melt(counts,
+    counts <- x[geneMarkerIndex, , drop = FALSE]
+    df <- reshape2::melt(as.matrix(counts),
       varnames = c("Marker", "Cell"),
       value.name = "Expression"
     )

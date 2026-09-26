@@ -212,6 +212,13 @@ test_that("marker plots build for matrix and SCE input without warnings", {
   expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerExpression(
     s$observedCounts, s$markers[[1]], groups, z = s$z
   )))
+  sparse <- methods::as(s$observedCounts, "CsparseMatrix")
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerPercentage(
+    sparse, s$markers, z = s$z
+  )))
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerExpression(
+    sparse, s$markers[[1]], groups, z = s$z
+  )))
 
   p <- plotDecontXMarkerPercentage(sce, s$markers, groups,
     assayName = c("counts", "decontXcounts"), labelBars = TRUE
