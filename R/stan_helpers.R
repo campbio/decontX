@@ -10,7 +10,8 @@
   # background have one value per ADT x droplet, so rstan's default of 1000
   # draws can take hundreds of GB on large data (issue #46). Keep the minimum
   # rstan allows (2) and retain draws for a single scalar parameter only.
-  # rstan's Pareto k warning describes those unused draws, so it is dropped.
+  # rstan's Pareto k diagnostic is estimated from the draws; with 2 draws it
+  # is always Inf and carries no information, so its warning is dropped.
   withCallingHandlers(
     rstan::vb(
       object = stanmodels$shrinkage,

@@ -42,8 +42,9 @@ posterior. Only the mean of the approximation is used, but the draws
 scaled with the number of ADTs x droplets and could take hundreds of GB
 of disk and memory on large datasets (#46). On a 50 x 400 test dataset
 the temporary file shrank from 444 MB to 2 MB and peak memory from 3.0 GB
-to 1.2 GB. Results are unchanged. rstan's "Pareto k diagnostic" warning,
-which described those unused draws, is no longer shown.
+to 1.2 GB. Results are unchanged. rstan's "Pareto k diagnostic" warning
+is no longer shown: it is estimated from the draws and would always
+report `Inf` with the minimal number of draws now requested.
 
 # decontX 1.10.0
 

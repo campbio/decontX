@@ -33,7 +33,7 @@ test_that("decontPro does not keep posterior draws that scale with data", {
     fit <<- stan_vb_output
     process(stan_vb_output, dat)
   })
-  suppressWarnings(decontPro(counts, k, 1e-2, 1e-2))
+  decontPro(counts, k, 1e-2, 1e-2)
 
   # Fewer retained values than there are ADT x droplet entries (80)
   expect_lt(length(unlist(fit@sim$samples)), nrow(counts) * ncol(counts))
@@ -47,7 +47,9 @@ test_that("decontPro results match a Stan fit with default output draws", {
   counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8)
   k <- c(1, 1, 2, 2, 3, 3, 4, 4)
 
-  out <- suppressWarnings(decontPro(counts, k, 1e-2, 1e-2))
+  out <- decontPro(counts, k, 1e-2, 1e-2)
+  # Reference: rstan's default 1000 draws. Keep seed/iter in sync with
+  # .call_stan_vb() so only the draw settings differ.
   local_mocked_bindings(.call_stan_vb = function(data, initial_condition) {
     rstan::vb(stanmodels$shrinkage,
       init = initial_condition, data = data,
