@@ -113,5 +113,11 @@ labels in `colData(sce)$decontX_clusters`, and the UMAP in
 - Heavy Suggests (TENxPBMCData, SingleCellMultiModal, scran) are only
   needed for vignettes; `make check` runs with
   `_R_CHECK_FORCE_SUGGESTS_=false`.
+- User-facing code in examples and vignettes must stay SIMPLE — many
+  users are novice R programmers who copy it verbatim. Prefer
+  `library()` + plain function calls over `pkg::` prefixes, avoid
+  `lapply`/closures/clever idioms, and hide necessary plumbing in
+  non-echoed chunks (`echo = FALSE`) or package functions, showing only
+  the result the reader needs.
 - `R/celda_functions.R` mirrors helpers in the celda package — keep
   divergence minimal and coordinate cross-package changes via issues.
