@@ -1,0 +1,110 @@
+# Keeps the stable branch (main or master) identical to the current
+# Bioconductor release branch, and tags each release version.
+#
+# - The current release comes from https://bioconductor.org/config.yaml.
+# - The stable branch is updated with an ordinary commit, never a
+#   force-push, so it can be protected against force-pushes and deletion.
+# - If anyone commits to the stable branch by hand, the next run puts it
+#   back.
+# - Each new version on the release branch gets a tag (vX.Y.Z) and a GitHub
+#   Release whose notes are the top section of NEWS.md.
+
+name: Sync stable branch
+
+on:
+  push:
+    branches: ['RELEASE_*', main, master]
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-stable
+  cancel-in-progress: false
+
+env:
+  # The name of this repo's stable branch: main or master.
+  STABLE_BRANCH: main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find the current Bioconductor release
+        id: bioc
+        run: |
+          set -euo pipefail
+          rel=$(curl -fsSL https://bioconductor.org/config.yaml \
+            | awk -F'"' '/^release_version:/ {print $2; exit}')
+          if [ -z "$rel" ]; then
+            echo "::error::Could not read release_version from config.yaml"
+            exit 1
+          fi
+          echo "branch=RELEASE_${rel//./_}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Update the stable branch and tag the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BRANCH: ${{ steps.bioc.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git rev-parse --verify --quiet "origin/$RELEASE_BRANCH" > /dev/null; then
+            echo "::notice::$RELEASE_BRANCH is not on GitHub yet. Push it from Bioconductor first."
+            exit 0
+          fi
+          rel_sha=$(git rev-parse "origin/$RELEASE_BRANCH")
+          version=$(git show "$rel_sha:DESCRIPTION" | awk -F': *' '/^Version:/ {print $2; exit}')
+
+          # 1. Make the stable branch match the release branch.
+          if git rev-parse --verify --quiet "origin/$STABLE_BRANCH" > /dev/null; then
+            old=$(git rev-parse "origin/$STABLE_BRANCH")
+            if [ "$(git rev-parse "$old^{tree}")" = "$(git rev-parse "$rel_sha^{tree}")" ]; then
+              echo "$STABLE_BRANCH already matches $RELEASE_BRANCH ($version)."
+            else
+              new=$(git commit-tree "$rel_sha^{tree}" -p "$old" -p "$rel_sha" \
+                -m "Sync $STABLE_BRANCH with $RELEASE_BRANCH (version $version)")
+              git push origin "$new:refs/heads/$STABLE_BRANCH"
+              echo "Updated $STABLE_BRANCH to match $RELEASE_BRANCH ($version)."
+            fi
+          else
+            git push origin "$rel_sha:refs/heads/$STABLE_BRANCH"
+            echo "Created $STABLE_BRANCH from $RELEASE_BRANCH ($version)."
+          fi
+
+          # 2. Tag the release version and publish a GitHub Release.
+          #    Each half is skipped if already done, so a failed run can be
+          #    re-run safely.
+          tag="v$version"
+          if git rev-parse --verify --quiet "refs/tags/$tag" > /dev/null; then
+            echo "Tag $tag already exists."
+          else
+            git tag -a "$tag" "$rel_sha" -m "$tag (Bioconductor $RELEASE_BRANCH)"
+            git push origin "refs/tags/$tag"
+          fi
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag already exists."
+            exit 0
+          fi
+          # Release notes: the top NEWS.md section, up to the next heading
+          # of the same or higher level (subsections are kept).
+          if git cat-file -e "$rel_sha:NEWS.md" 2> /dev/null; then
+            git show "$rel_sha:NEWS.md" | awk '
+              /^#/ { match($0, /^#+/)
+                     if (!lvl) lvl = RLENGTH; else if (RLENGTH <= lvl) exit }
+              lvl' > notes.md
+          fi
+          if [ ! -s notes.md ]; then
+            echo "Bioconductor release version $version." > notes.md
+          fi
+          gh release create "$tag" --verify-tag --title "$tag" --notes-file notes.md
+          echo "Tagged and released $tag."
