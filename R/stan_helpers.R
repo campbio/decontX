@@ -5,15 +5,29 @@
 #'
 #' @return Stan output
 .call_stan_vb <- function(data, initial_condition) {
-  out <- rstan::vb(
-    object = stanmodels$shrinkage,
-    init = initial_condition,
-    data = data,
-    seed = 12345,
-    iter = 50000
+  # decontPro only uses the mean of the variational approximation
+  # (`@sim$est`), which does not depend on the posterior draws. delta and
+  # background have one value per ADT x droplet, so rstan's default of 1000
+  # draws can take hundreds of GB on large data (issue #46). Keep the minimum
+  # rstan allows (2) and retain draws for a single scalar parameter only.
+  # rstan's Pareto k diagnostic is estimated from the draws; with 2 draws it
+  # is always Inf and carries no information, so its warning is dropped.
+  withCallingHandlers(
+    rstan::vb(
+      object = stanmodels$shrinkage,
+      init = initial_condition,
+      data = data,
+      seed = 12345,
+      iter = 50000,
+      output_samples = 2,
+      pars = "tau_a"
+    ),
+    warning = function(w) {
+      if (startsWith(conditionMessage(w), "Pareto k diagnostic value")) {
+        invokeRestart("muffleWarning")
+      }
+    }
   )
-
-  out
 }
 
 

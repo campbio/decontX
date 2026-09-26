@@ -37,6 +37,14 @@ work when `x` is a dense or sparse matrix (they previously failed
 with a ggplot2 aesthetics error when the plot was drawn). The facets of
 `plotDecontXMarkerExpression()` now follow the order of `groupClusters`,
 matching the x-axis.
+* `decontPro()` no longer draws 1000 unused samples from the variational
+posterior. Only the mean of the approximation is used, but the draws
+scaled with the number of ADTs x droplets and could take hundreds of GB
+of disk and memory on large datasets (#46). On a 50 x 400 test dataset
+the temporary file shrank from 444 MB to 2 MB and peak memory from 3.0 GB
+to 1.2 GB. Results are unchanged. rstan's "Pareto k diagnostic" warning
+is no longer shown: it is estimated from the draws and would always
+report `Inf` with the minimal number of draws now requested.
 
 # decontX 1.10.0
 
