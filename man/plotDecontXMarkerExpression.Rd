@@ -19,7 +19,7 @@ plotDecontXMarkerExpression(
 )
 }
 \arguments{
-\item{x}{Either a \linkS4class{SingleCellExperiment}
+\item{x}{Either a \linkS4class[SingleCellExperiment]{SingleCellExperiment}
 or a matrix-like object of counts.}
 
 \item{markers}{Character Vector or List. A character vector
@@ -37,13 +37,14 @@ in \code{groupClusters} will be excluded. Default \code{NULL}.}
 
 \item{assayName}{Character vector. Name(s) of the assay(s) to
 plot if \code{x} is a
-\linkS4class{SingleCellExperiment}. If more than one assay is listed, then
-side-by-side violin plots will be generated.
+\linkS4class[SingleCellExperiment]{SingleCellExperiment}. If more than one
+assay is listed, then side-by-side violin plots will be generated.
 Default \code{c("counts", "decontXcounts")}.}
 
 \item{z}{Character, Integer, or Vector.
 Indicates the cluster labels for each cell.
-If \code{x} is a \linkS4class{SingleCellExperiment} and \code{z = NULL},
+If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}
+and \code{z = NULL},
 then the cluster labels from \code{\link{decontX}} will be retreived from the
 \code{colData} of \code{x} (i.e. \code{colData(x)$decontX_clusters}).
 If \code{z} is a single character or integer, then that column will be
@@ -58,7 +59,8 @@ See \code{\link{retrieveFeatureIndex}} for more details.
 Default \code{TRUE}.}
 
 \item{by}{Character. Where to search for the markers if \code{x} is a
-\linkS4class{SingleCellExperiment}. See \code{\link{retrieveFeatureIndex}}
+\linkS4class[SingleCellExperiment]{SingleCellExperiment}. See
+\code{\link{retrieveFeatureIndex}}
 for more details. If \code{x} is a matrix, then this must be set to
 \code{"rownames"}. Default \code{"rownames"}.}
 
@@ -90,17 +92,17 @@ decontamination with \code{\link{decontX}}.
 s <- simulateContamination(seed = 12345)
 
 library(SingleCellExperiment)
-library(celda)
+library(scater)
 sce <- SingleCellExperiment(list(counts = s$observedCounts))
 sce <- decontX(sce)
 
 # Plot contamination on UMAP
 plotDecontXContamination(sce)
 
-# Plot decontX cluster labels
-umap <- reducedDim(sce)
-celda::plotDimReduceCluster(x = sce$decontX_clusters,
-    dim1 = umap[, 1], dim2 = umap[, 2], )
+# Plot decontX cluster labels on the UMAP
+plotReducedDim(sce, dimred = "decontX_UMAP",
+               colour_by = "decontX_clusters",
+               text_by = "decontX_clusters")
 
 # Plot percentage of marker genes detected
 # in each cell cluster before decontamination

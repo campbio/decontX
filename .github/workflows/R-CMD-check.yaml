@@ -1,15 +1,90 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+# R CMD check.
+#
+# Fast feedback everywhere, full cross-platform matrix only on integration:
+#   - Linux (Bioc-devel and Bioc-release) runs on every push and pull
+#     request, inside the Bioconductor docker images so the R / Bioc
+#     versions and system libraries match the Bioconductor build machines
+#     -- and Bioc-devel dependencies come prebuilt in the image instead of
+#     compiling from source (the old ubuntu-devel job took ~90 min).
+#   - macOS and Windows run only on push to main/master/devel (i.e. when a
+#     branch is incorporated) or on manual dispatch. devel is what we push
+#     to Bioc devel, so that branch is where the full matrix must be clean.
+#
+# NOTE for branch protection: keep the Linux jobs (plus lint / coverage) as
+# the required status checks. macOS/Windows do not run on pull_request, so
+# they must NOT be required or PRs can never merge.
 on:
   push:
     branches: [main, master, devel]
   pull_request:
     branches: [main, master, devel]
+  workflow_dispatch:
 
 name: R-CMD-check
 
+concurrency:
+  group: R-CMD-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  R-CMD-check:
+  linux:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.bioc.name }}
+    container:
+      image: ${{ matrix.bioc.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        bioc:
+          # Bump the RELEASE tag each Bioconductor cycle (~April/October).
+          - {name: bioc-devel,   image: "bioconductor/bioconductor_docker:devel"}
+          - {name: bioc-release, image: "bioconductor/bioconductor_docker:RELEASE_3_23"}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+      # Heavy Suggests (TENxPBMCData, SingleCellMultiModal, scran) are only
+      # needed for the vignettes; match `make check` and do not fail the
+      # check when a suggested package is unavailable.
+      _R_CHECK_FORCE_SUGGESTS_: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        # Resolve everything through BiocManager so versions stay coherent
+        # with the container's Bioc (remotes only LISTS the deps).
+        run: |
+          BiocManager::install(c("rcmdcheck", "remotes"), update = FALSE, ask = FALSE)
+          deps <- remotes::local_package_deps(dependencies = TRUE)
+          BiocManager::install(deps, update = FALSE, ask = FALSE)
+        shell: Rscript {0}
+
+      - name: R CMD check
+        run: |
+          rcmdcheck::rcmdcheck(
+            args = c("--no-manual", "--as-cran"),
+            build_args = "--no-manual",
+            error_on = "warning",
+            check_dir = "check"
+          )
+        shell: Rscript {0}
+
+      - name: Upload check results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bioc.name }}-check-results
+          path: check
+
+  windows-macos:
+    # Full cross-platform matrix only when incorporating a branch (push to
+    # main/master/devel, which the trigger above restricts) or on manual
+    # dispatch -- never on pull_request, to keep PR feedback fast.
+    if: github.event_name != 'pull_request'
     runs-on: ${{ matrix.config.os }}
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
@@ -20,23 +95,20 @@ jobs:
         config:
           - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
-          - {os: ubuntu-latest,   r: 'release'}
-          # - {os: ubuntu-latest,   r: 'oldrel-1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      _R_CHECK_FORCE_SUGGESTS_: false
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-pandoc@v2
 
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2

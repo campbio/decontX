@@ -18,29 +18,41 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml)
 [![codecov](https://codecov.io/gh/campbio/decontX/graph/badge.svg?token=z5YnsXuWqh)](https://codecov.io/gh/campbio/decontX)
+[![Bioconductor build](https://bioconductor.org/shields/build/devel/bioc/decontX.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/decontX/)
 <!-- badges: end -->
 
-Methods for decontamination of single cell data. This package implements both DecontX (Yang et al., [2020](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-1950-6)) for single-cell RNA-seq data and DecontPro (Yin et al., [2023](https://www.biorxiv.org/content/10.1101/2023.01.27.525964v2)) for single-cell protein expression data.
+Methods for decontamination of single cell data. This package implements both DecontX (Yang et al., [2020](https://doi.org/10.1186/s13059-020-1950-6)) for single-cell RNA-seq data and DecontPro (Yin et al., [2024](https://doi.org/10.1093/nar/gkad1032)) for single-cell protein expression data.
 
 ## Installation Instructions
 
-You can install the development version of `decontX` from [GitHub](https://github.com/) with:
+You can install the package through [Bioconductor](https://bioconductor.org/packages/decontX) with:
 
-```r
+```{r eval=FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("decontX")
+```
+
+Alternatively, install the development version through [GitHub](https://github.com/campbio/decontX) using the `devtools` package:
+
+```{r eval=FALSE}
 # install.packages("devtools")
 devtools::install_github("campbio/decontX")
 ```
 
 ## Vignettes
 
-To build vignette when installing from GitHub:
+Vignettes are available on [Bioconductor](https://bioconductor.org/packages/decontX).
 
-``` {r eval=FALSE}
+To build the vignettes when installing from GitHub, add the flag `build_vignettes = TRUE`:
+
+```{r eval=FALSE}
 library(devtools)
 install_github("campbio/decontX", build_vignettes = TRUE)
 ```
 
-Vignettes can be accessed through:
+Then vignettes can be accessed through:
 
 ```{r eval=FALSE}
 vignette('decontX', package = 'decontX')

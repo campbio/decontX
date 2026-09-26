@@ -1,0 +1,37 @@
+citHeader("To cite the decontX package, please cite the method you used.")
+
+bibentry(
+  bibtype  = "Article",
+  title    = "Decontamination of ambient RNA in single-cell RNA-seq with DecontX",
+  author   = c(person("Shiyi", "Yang"),
+               person("Sean E.", "Corbett"),
+               person("Yusuke", "Koga"),
+               person("Zhe", "Wang"),
+               person("W. Evan", "Johnson"),
+               person("Masanao", "Yajima"),
+               person("Joshua D.", "Campbell")),
+  journal  = "Genome Biology",
+  year     = 2020,
+  volume   = 21,
+  number   = 1,
+  pages    = "57",
+  doi      = "10.1186/s13059-020-1950-6",
+  header   = "If you used decontX() for single-cell RNA-seq data, cite:"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = paste("Characterization and decontamination of background noise",
+                   "in droplet-based single-cell protein expression data",
+                   "with DecontPro"),
+  author   = c(person("Yuan", "Yin"),
+               person("Masanao", "Yajima"),
+               person("Joshua D.", "Campbell")),
+  journal  = "Nucleic Acids Research",
+  year     = 2024,
+  volume   = 52,
+  number   = 1,
+  pages    = "e4",
+  doi      = "10.1093/nar/gkad1032",
+  header   = "If you used decontPro() for single-cell protein expression data, cite:"
+)

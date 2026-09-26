@@ -1,5 +1,9 @@
 # Periodic Dependency / Deprecation Audit
 
+> Past audits live in `dev/audits/`. Most recent:
+> `dev/audits/2026-09-comprehensive-review.md` (full engineering review,
+> 2026-09-21; companion drafts in `dev/audits/2026-09-review-drafts.md`).
+
 Run once per Bioconductor devel cycle (after each release) or when the
 weekly CI BiocCheck job starts failing. This is a *read-only* audit:
 findings become GitHub issues (and ADRs where structural) — the audit

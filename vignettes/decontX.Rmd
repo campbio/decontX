@@ -109,10 +109,9 @@ Only empty droplets in the background matrix should be used to estimate the ambi
 DecontX creates a UMAP which we can use to plot the cluster labels automatically identified in the analysis. Note that the clustering approach used here is designed to find "broad" cell types rather than individual cell subpopulations within a cell type. 
 
 ```{r UMAP_Clusters}
-library(celda) # To use plotting functions in celda
-umap <- reducedDim(sce, "decontX_UMAP")
-plotDimReduceCluster(x = sce$decontX_clusters,
-    dim1 = umap[, 1], dim2 = umap[, 2])
+library(scater)
+plotReducedDim(sce, dimred = "decontX_UMAP",
+    colour_by = "decontX_clusters", text_by = "decontX_clusters")
 ```
 
 ## Contamination on UMAP
@@ -126,38 +125,66 @@ plotDecontXContamination(sce)
 Known marker genes can also be plotted on the UMAP to identify the cell types for each cluster. We will use CD3D and CD3E for T-cells, LYZ, S100A8, and S100A9 for monocytes, CD79A, CD79B, and MS4A1 for B-cells, GNLY for NK-cells, and PPBP for megakaryocytes.
 
 ```{r plot_feature, message=FALSE}
-logcounts(sce) <- scrapper::normalizeCounts(counts(sce),
-    size.factors = scrapper::centerSizeFactors(Matrix::colSums(counts(sce))))
-plotDimReduceFeature(as.matrix(logcounts(sce)),
-    dim1 = umap[, 1],
-    dim2 = umap[, 2],
-    features = c("CD3D", "CD3E", "GNLY",
-        "LYZ", "S100A8", "S100A9",
-        "CD79A", "CD79B", "MS4A1"),
-    exactMatch = TRUE)
+# Load scrapper after scater so that normalizeCounts() below refers to
+# scrapper's function and not the deprecated scuttle version that scater
+# attaches.
+library(Matrix)
+library(scrapper)
+library(patchwork)
+logcounts(sce) <- normalizeCounts(counts(sce),
+    size.factors = centerSizeFactors(colSums(counts(sce))))
+markers <- c("CD3D", "CD3E", "GNLY",
+    "LYZ", "S100A8", "S100A9",
+    "CD79A", "CD79B", "MS4A1")
+wrap_plots(
+    lapply(markers, function(g) {
+        plotReducedDim(sce, dimred = "decontX_UMAP", colour_by = g)
+    }),
+    ncol = 3)
 ```
 
 ## Barplot of markers detected in cell clusters
 The percetage of cells within a cluster that have detectable expression of marker genes can be displayed in a barplot. Markers for cell types need to be supplied in a named list. First, the detection of marker genes in the original `counts` assay is shown:
 
-The cluster numbers produced by the heuristic clustering can change
-between decontX versions and platforms, so instead of hardcoding the
-cluster-to-cell-type mapping we derive it programmatically by assigning
-each cell type to the cluster in which its markers are detected most
-frequently:
-
-```{r barplotCounts}
+```{r markers}
 markers <- list(Tcell_Markers = c("CD3E", "CD3D"),
     Bcell_Markers = c("CD79A", "CD79B", "MS4A1"),
     Monocyte_Markers = c("S100A8", "S100A9", "LYZ"),
     NKcell_Markers = "GNLY")
-cellTypeMappings <- lapply(markers, function(g) {
-    detected <- Matrix::colMeans(counts(sce)[g, , drop = FALSE] > 0)
-    perCluster <- tapply(detected, sce$decontX_clusters, mean)
-    as.integer(names(which.max(perCluster)))
+```
+
+To label the plots by cell type instead of by cluster number, the barplot
+functions take a `groupClusters` argument: a named list that maps each cell
+type to the cluster number(s) it corresponds to. The cluster numbers assigned
+by the heuristic clustering can differ between decontX versions and platforms,
+so here we let decontX figure out the mapping for us. The resulting
+`cellTypeMappings` looks like this:
+
+```{r deriveMapping, echo=FALSE}
+# The cluster numbers are not stable across decontX versions/platforms, so
+# rather than hardcoding them we assign each cell type to the cluster in which
+# its marker genes are detected most frequently.
+cellTypeMappings <- lapply(markers, function(genes) {
+    detectionRate <- tapply(colMeans(counts(sce)[genes, , drop = FALSE] > 0),
+        sce$decontX_clusters, mean)
+    as.integer(names(which.max(detectionRate)))
 })
 names(cellTypeMappings) <- c("Tcells", "Bcells", "Monocytes", "NKcells")
-unlist(cellTypeMappings)
+```
+
+```{r showMapping}
+cellTypeMappings
+```
+
+You can also build this list by hand: inspect `sce$decontX_clusters`, decide
+which cluster corresponds to each cell type, and write it out, e.g.
+`cellTypeMappings <- list(Tcells = 2, Bcells = 5, Monocytes = 1, NKcells = 6)`
+(your cluster numbers may differ). A single cell type can also span several
+clusters — just give it a vector of cluster numbers, for example
+`cellTypeMappings <- list(Tcells = c(2, 4), Bcells = 5, Monocytes = 1, NKcells = 6)`
+groups clusters 2 and 4 together as T-cells.
+
+```{r barplotCounts}
 plotDecontXMarkerPercentage(sce,
     markers = markers,
     groupClusters = cellTypeMappings,
@@ -208,10 +235,9 @@ Some helpful hints when using `plotDecontXMarkerExpression`:
 
 
 ```{r plot_norm_counts, eval = TRUE}
-assay(sce, "decontXlogcounts") <- scrapper::normalizeCounts(
+assay(sce, "decontXlogcounts") <- normalizeCounts(
     decontXcounts(sce),
-    size.factors = scrapper::centerSizeFactors(
-        Matrix::colSums(decontXcounts(sce))))
+    size.factors = centerSizeFactors(colSums(decontXcounts(sce))))
 
 plotDecontXMarkerExpression(sce,
     markers = markers[["Monocyte_Markers"]],

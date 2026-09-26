@@ -4,8 +4,12 @@
 \alias{decontX-package}
 \title{The 'decontX' package.}
 \description{
-DecontX is a decontamination algorithm for single-cell RNA-seq data. DecontPro is a decontamination and background removal algorithm for single cell protein expression data such as CITE-seq or Total-seq.
+DecontX is a decontamination algorithm for single-cell
+RNA-seq data. DecontPro is a decontamination and background removal
+algorithm for single cell protein expression data such as CITE-seq or
+Total-seq.
 }
 \references{
-Stan Development Team (2022). RStan: the R interface to Stan. R package version 2.21.7. https://mc-stan.org
+Stan Development Team (2022). RStan: the R interface to Stan. R package
+version 2.21.7. https://mc-stan.org
 }

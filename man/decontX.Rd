@@ -49,10 +49,12 @@ decontX(x, ...)
 )
 }
 \arguments{
-\item{x}{A numeric matrix of counts or a \linkS4class{SingleCellExperiment}
-with the matrix located in the assay slot under \code{assayName}.
+\item{x}{A numeric matrix of counts or a
+\linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
+located in the assay slot under \code{assayName}.
 Cells in each batch will be subsetted and converted to a sparse matrix
-of class \code{dgCMatrix} from package \link{Matrix} before analysis. This
+of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
+analysis. This
 object should only contain filtered cells after cell calling. Empty
 cell barcodes (low expression droplets before cell calling) are not needed
 to run DecontX.}
@@ -60,12 +62,12 @@ to run DecontX.}
 \item{...}{For the generic, further arguments to pass to each method.}
 
 \item{assayName}{Character. Name of the assay to use if \code{x} is a
-\linkS4class{SingleCellExperiment}.}
+\linkS4class[SingleCellExperiment]{SingleCellExperiment}.}
 
 \item{z}{Numeric or character vector. Cell cluster labels. If NULL,
 PCA will be used to reduce the dimensionality of the dataset initially,
-'\link[uwot]{umap}' from the 'uwot' package
-will be used to further reduce the dataset to 2 dimenions and
+'\link[scrapper]{runUmap}' from the 'scrapper' package
+will be used to further reduce the dataset to 2 dimensions and
 the '\link[dbscan]{dbscan}' function from the 'dbscan' package
 will be used to identify clusters of broad cell types. Default NULL.}
 
@@ -75,14 +77,16 @@ batch separately. Cells run in different channels or assays
 should be considered different batches. Default NULL.}
 
 \item{background}{A numeric matrix of counts or a
-\linkS4class{SingleCellExperiment} with the matrix located in the assay
-slot under \code{assayName}. It should have the same data format as \code{x}
+\linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
+located in the assay slot under \code{assayName}. It should have the same
+data format as \code{x}
 except it contains the empty droplets instead of cells. When supplied,
 empirical distribution of transcripts from these empty droplets
 will be used as the contamination distribution. Default NULL.}
 
 \item{bgAssayName}{Character. Name of the assay to use if \code{background}
-is a \linkS4class{SingleCellExperiment}. Default to same as
+is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
+same as
 \code{assayName}.}
 
 \item{bgBatch}{Numeric or character vector. Batch labels for
@@ -167,7 +171,8 @@ cluster labels will also be stored here.}
 \item{\code{runParams}:}{List of arguments used in the function call.}
 }
 
-If \code{x} is a \linkS4class{SingleCellExperiment}, then the decontaminated
+If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment},
+then the decontaminated
 counts will be stored as an assay and can be accessed with
 \code{decontXcounts(x)}. The contamination values and cluster labels
 will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
@@ -184,17 +189,17 @@ in single cell genomic datasets.
 s <- simulateContamination(seed = 12345)
 
 library(SingleCellExperiment)
-library(celda)
+library(scater)
 sce <- SingleCellExperiment(list(counts = s$observedCounts))
 sce <- decontX(sce)
 
 # Plot contamination on UMAP
 plotDecontXContamination(sce)
 
-# Plot decontX cluster labels
-umap <- reducedDim(sce)
-celda::plotDimReduceCluster(x = sce$decontX_clusters,
-    dim1 = umap[, 1], dim2 = umap[, 2], )
+# Plot decontX cluster labels on the UMAP
+plotReducedDim(sce, dimred = "decontX_UMAP",
+               colour_by = "decontX_clusters",
+               text_by = "decontX_clusters")
 
 # Plot percentage of marker genes detected
 # in each cell cluster before decontamination

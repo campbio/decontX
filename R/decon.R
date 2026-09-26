@@ -5,19 +5,21 @@
 #'
 #' @name decontX
 #'
-#' @param x A numeric matrix of counts or a \linkS4class{SingleCellExperiment}
-#' with the matrix located in the assay slot under \code{assayName}.
+#' @param x A numeric matrix of counts or a
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
+#' located in the assay slot under \code{assayName}.
 #' Cells in each batch will be subsetted and converted to a sparse matrix
-#' of class \code{dgCMatrix} from package \link{Matrix} before analysis. This
+#' of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
+#' analysis. This
 #' object should only contain filtered cells after cell calling. Empty
 #' cell barcodes (low expression droplets before cell calling) are not needed
 #' to run DecontX.
 #' @param assayName Character. Name of the assay to use if \code{x} is a
-#' \linkS4class{SingleCellExperiment}.
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment}.
 #' @param z Numeric or character vector. Cell cluster labels. If NULL,
 #' PCA will be used to reduce the dimensionality of the dataset initially,
-#' '\link[uwot]{umap}' from the 'uwot' package
-#' will be used to further reduce the dataset to 2 dimenions and
+#' '\link[scrapper]{runUmap}' from the 'scrapper' package
+#' will be used to further reduce the dataset to 2 dimensions and
 #' the '\link[dbscan]{dbscan}' function from the 'dbscan' package
 #' will be used to identify clusters of broad cell types. Default NULL.
 #' @param batch Numeric or character vector. Batch labels for cells.
@@ -25,13 +27,15 @@
 #' batch separately. Cells run in different channels or assays
 #' should be considered different batches. Default NULL.
 #' @param background A numeric matrix of counts or a
-#' \linkS4class{SingleCellExperiment} with the matrix located in the assay
-#' slot under \code{assayName}. It should have the same data format as \code{x}
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
+#' located in the assay slot under \code{assayName}. It should have the same
+#' data format as \code{x}
 #' except it contains the empty droplets instead of cells. When supplied,
 #' empirical distribution of transcripts from these empty droplets
 #' will be used as the contamination distribution. Default NULL.
 #' @param bgAssayName Character. Name of the assay to use if \code{background}
-#' is a \linkS4class{SingleCellExperiment}. Default to same as
+#' is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
+#' same as
 #' \code{assayName}.
 #' @param bgBatch Numeric or character vector. Batch labels for
 #' \code{background}. Its unique values should be the same as those in
@@ -104,7 +108,8 @@
 #' \item{\code{runParams}:}{List of arguments used in the function call.}
 #' }
 #'
-#' If \code{x} is a \linkS4class{SingleCellExperiment}, then the decontaminated
+#' If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment},
+#' then the decontaminated
 #' counts will be stored as an assay and can be accessed with
 #' \code{decontXcounts(x)}. The contamination values and cluster labels
 #' will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
@@ -154,11 +159,13 @@ setMethod("decontX", "SingleCellExperiment", function(x,
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
     # Also update bgBatch when background is updated and bgBatch is not null
-    temp <- .checkBackground(x = x,
-                             background = background,
-                             bgBatch = bgBatch,
-                             logfile = logfile,
-                             verbose = verbose)
+    temp <- .checkBackground(
+      x = x,
+      background = background,
+      bgBatch = bgBatch,
+      logfile = logfile,
+      verbose = verbose
+    )
 
     background <- temp$background
     bgBatch <- temp$bgBatch
@@ -198,7 +205,6 @@ setMethod("decontX", "SingleCellExperiment", function(x,
   batchIndex <- unique(result$runParams$batch)
   if (length(batchIndex) > 1) {
     for (i in batchIndex) {
-
       ## Each individual UMAP will only be for one batch so need
       ## to put NAs in for cells in other batches
       tempUMAP <- matrix(NA, ncol = 2, nrow = ncol(mat))
@@ -221,7 +227,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
   result$decontXcounts <- NULL
   S4Vectors::metadata(x)$decontX <- result
 
-  return(x)
+  x
 })
 
 #' @export
@@ -242,22 +248,22 @@ setMethod("decontX", "ANY", function(x,
                                      legacyInit = FALSE,
                                      logfile = NULL,
                                      verbose = TRUE) {
-
   countsBackground <- NULL
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
     # Also update bgBatch when background is updated and bgBatch is not null
-    temp <- .checkBackground(x = x,
-                             background = background,
-                             bgBatch = bgBatch,
-                             logfile = logfile,
-                             verbose = verbose)
+    temp <- .checkBackground(
+      x = x,
+      background = background,
+      bgBatch = bgBatch,
+      logfile = logfile,
+      verbose = verbose
+    )
 
     background <- temp$background
     countsBackground <- background
 
     bgBatch <- temp$bgBatch
-
   }
 
   .decontX(
@@ -299,20 +305,22 @@ SET_FUN <- function(exprs_values, ...) {
 }
 
 
-
 #' @title Get or set decontaminated counts matrix
 #'
 #' @description Gets or sets the decontaminated counts matrix from a
-#' a \linkS4class{SingleCellExperiment} object.
+#' a \linkS4class[SingleCellExperiment]{SingleCellExperiment} object.
 #' @name decontXcounts
-#' @param object A \linkS4class{SingleCellExperiment} object.
+#' @param object A
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} object.
 #' @param value A matrix to save as an assay called \code{decontXcounts}
 #' @param ... For the generic, further arguments to pass to each method.
 #' @return If getting, the assay from \code{object} with the name
 #' \code{decontXcounts} will be returned. If setting, a
-#' \linkS4class{SingleCellExperiment} object will be returned with
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} object will be
+#' returned with
 #' \code{decontXcounts} listed in the \code{assay} slot.
-#' @seealso \code{\link{assay}} and \code{\link{assay<-}}
+#' @seealso \code{\link[SummarizedExperiment]{assay}} and
+#' \code{\link[SummarizedExperiment]{assay<-}}
 NULL
 
 #' @export
@@ -337,8 +345,6 @@ setMethod(
   "decontXcounts<-", c("SingleCellExperiment", "ANY"),
   SET_FUN("decontXcounts")
 )
-
-
 
 
 ##########################
@@ -425,23 +431,24 @@ setMethod(
       batchBackground <- rep("all_cells", ncol(countsBackground))
     }
   } else {
-
     # If batch not null and countsBackground supplied,
     # user has to supply batchBackground as well
-    if (!is.null(countsBackground) & is.null(batchBackground)) {
+    if (!is.null(countsBackground) && is.null(batchBackground)) {
       stop(
         "Cell batch, and background are supplied. Please also ",
         "supply background batch."
       )
     }
-
+  }
+  batch <- as.character(batch)
+  if (!is.null(batchBackground)) {
+    batchBackground <- as.character(batchBackground)
   }
   runParams$batch <- batch
   runParams$batchBackground <- batchBackground
   batchIndex <- unique(batch)
 
   ## Set result lists upfront for all cells from different batches
-  logLikelihood <- c()
   estConp <- rep(NA, nC)
   returnZ <- rep(NA, nC)
   resBatch <- list()
@@ -598,7 +605,6 @@ setMethod(
 
 
   if (inherits(counts, c("DelayedMatrix", "DelayedArray"))) {
-
     .logMessages(
       date(),
       ".. Converting decontaminated matrix to", class(counts),
@@ -621,8 +627,9 @@ setMethod(
     returnResult$decontXcounts <-
       DelayedArray::DelayedArray(returnResult$decontXcounts)
   } else {
-    try({
-      if (methods::canCoerce(returnResult$decontXcounts, class(counts))) {
+    try(
+      {
+        if (methods::canCoerce(returnResult$decontXcounts, class(counts))) {
           returnResult$decontXcounts <-
             methods::as(returnResult$decontXcounts, class(counts))
         }
@@ -649,13 +656,21 @@ setMethod(
     verbose = verbose
   )
 
-  return(returnResult)
+  returnResult
 }
 
 
 # This function updates decontamination for one batch
 # seed passed to this function is to be furhter passed to
 # function .decontxInitializeZ()
+#
+# Do not remove the @importFrom below: fit_dirichlet is fetched from the
+# MCMCprecision namespace by the C++ EM step (src/DecontX.cpp, via
+# Environment::namespace_env), which R's static analysis cannot see.
+# Dropping the import triggers an R CMD check NOTE and can leave
+# MCMCprecision unloaded when decontXEM() runs.
+#' @importFrom MCMCprecision fit_dirichlet
+#' @noRd
 .decontXoneBatch <- function(counts,
                              z = NULL,
                              batch = NULL,
@@ -716,7 +731,6 @@ setMethod(
   rownames(umap) <- colnames(counts)
 
   z <- .processCellLabels(z, numCells = nC)
-  K <- length(unique(z))
 
   iter <- 1L
   numIterWithoutImprovement <- 0L
@@ -750,55 +764,47 @@ setMethod(
     # if countsBackground is not null, use empirical dist. to replace eta
     if (!is.null(countsBackground)) {
       # Add pseudocount to each gene in eta
-       eta_tilda <- Matrix::rowSums(countsBackground) + 1e-20
-       eta <- eta_tilda / sum(eta_tilda)
-       # Make eta a matrix same dimension as phi
-       eta <- matrix(eta, length(eta), dim(phi)[2])
+      eta_tilda <- Matrix::rowSums(countsBackground) + 1e-20
+      eta <- eta_tilda / sum(eta_tilda)
+      # Make eta a matrix same dimension as phi
+      eta <- matrix(eta, length(eta), dim(phi)[2])
     }
 
     ll <- c()
-    llRound <- decontXLogLik(
-      counts = counts,
-      z = z,
-      phi = phi,
-      eta = eta,
-      theta = theta,
-      pseudocount = 1e-20
-    )
 
     ## EM updates
     theta.previous <- theta
     converged <- FALSE
     counts.colsums <- Matrix::colSums(counts)
-    while (iter <= maxIter & !isTRUE(converged) &
-      numIterWithoutImprovement <= stopIter) {
-        if (is.null(countsBackground)) {
-          nextDecon <- decontXEM(
-            counts = counts,
-            counts_colsums = counts.colsums,
-            phi = phi,
-            estimate_eta = TRUE,
-            eta = eta,
-            theta = theta,
-            z = z,
-            estimate_delta = isTRUE(estimateDelta),
-            delta = delta,
-            pseudocount = 1e-20
-          )
-        } else {
-           nextDecon <- decontXEM(
-            counts = counts,
-            counts_colsums = counts.colsums,
-            phi = phi,
-            estimate_eta = FALSE,
-            eta = eta,
-            theta = theta,
-            z = z,
-            estimate_delta = isTRUE(estimateDelta),
-            delta = delta,
-            pseudocount = 1e-20
-          )
-        }
+    while (iter <= maxIter && !isTRUE(converged) &&
+             numIterWithoutImprovement <= stopIter) {
+      if (is.null(countsBackground)) {
+        nextDecon <- decontXEM(
+          counts = counts,
+          counts_colsums = counts.colsums,
+          phi = phi,
+          estimate_eta = TRUE,
+          eta = eta,
+          theta = theta,
+          z = z,
+          estimate_delta = isTRUE(estimateDelta),
+          delta = delta,
+          pseudocount = 1e-20
+        )
+      } else {
+        nextDecon <- decontXEM(
+          counts = counts,
+          counts_colsums = counts.colsums,
+          phi = phi,
+          estimate_eta = FALSE,
+          eta = eta,
+          theta = theta,
+          z = z,
+          estimate_delta = isTRUE(estimateDelta),
+          delta = delta,
+          pseudocount = 1e-20
+        )
+      }
 
 
       theta <- nextDecon$theta
@@ -843,7 +849,7 @@ setMethod(
   resConp <- nextDecon$contamination
   names(resConp) <- colnames(counts)
 
-  return(list(
+  list(
     "logLikelihood" = ll,
     "contamination" = resConp,
     "theta" = theta,
@@ -853,141 +859,9 @@ setMethod(
     "UMAP" = umap,
     "iteration" = iter - 1L,
     "z" = z
-  ))
-}
-
-
-
-
-
-# This function calculates the log-likelihood
-#
-# counts Numeric/Integer matrix. Observed count matrix, rows represent features
-# and columns represent cells
-# z Integer vector. Cell population labels
-# phi Numeric matrix. Rows represent features and columns represent cell
-# populations
-# eta Numeric matrix. Rows represent features and columns represent cell
-# populations
-# theta Numeric vector. Proportion of truely expressed transcripts
-.deconCalcLL <- function(counts, z, phi, eta, theta) {
-  ll <- sum(Matrix::t(counts) * log(theta * t(phi)[z, ] +
-    (1 - theta) * t(eta)[z, ] + 1e-20))
-  return(ll)
-}
-
-# DEPRECATED. This is not used, but is kept as it might be useful in the future
-# This function calculates the log-likelihood of background distribution
-# decontamination
-# bgDist Numeric matrix. Rows represent feature and columns are the times that
-# the background-distribution has been replicated.
-.bgCalcLL <- function(counts, globalZ, cbZ, phi, eta, theta) {
-  ll <- sum(t(counts) * log(theta * t(phi)[cbZ, ] +
-    (1 - theta) * t(eta)[globalZ, ] + 1e-20))
-  return(ll)
-}
-
-
-# This function updates decontamination
-#  phi Numeric matrix. Rows represent features and columns represent cell
-# populations
-#  eta Numeric matrix. Rows represent features and columns represent cell
-# populations
-#  theta Numeric vector. Proportion of truely expressed transctripts
-#' @importFrom MCMCprecision fit_dirichlet
-.cDCalcEMDecontamination <- function(counts,
-                                     phi,
-                                     eta,
-                                     theta,
-                                     z,
-                                     K,
-                                     delta) {
-  ## Notes: use fix-point iteration to update prior for theta, no need
-  ## to feed delta anymore
-
-  logPr <- log(t(phi)[z, ] + 1e-20) + log(theta + 1e-20)
-  logPc <- log(t(eta)[z, ] + 1e-20) + log(1 - theta + 1e-20)
-  Pr.e <- exp(logPr)
-  Pc.e <- exp(logPc)
-  Pr <- Pr.e / (Pr.e + Pc.e)
-
-  estRmat <- t(Pr) * counts
-  rnGByK <- .colSumByGroupNumeric(estRmat, z, K)
-  cnGByK <- rowSums(rnGByK) - rnGByK
-
-  counts.cs <- colSums(counts)
-  estRmat.cs <- colSums(estRmat)
-  estRmat.cs.n <- estRmat.cs / counts.cs
-  estCmat.cs.n <- 1 - estRmat.cs.n
-  temp <- cbind(estRmat.cs.n, estCmat.cs.n)
-  deltaV2 <- MCMCprecision::fit_dirichlet(temp)$alpha
-
-  ## Update parameters
-  theta <-
-    (estRmat.cs + deltaV2[1]) / (counts.cs + sum(deltaV2))
-  phi <- celda::normalizeCounts(rnGByK,
-    normalize = "proportion",
-    pseudocountNormalize = 1e-20
   )
-  eta <- celda::normalizeCounts(cnGByK,
-    normalize = "proportion",
-    pseudocountNormalize = 1e-20
-  )
-
-  return(list(
-    "estRmat" = estRmat,
-    "theta" = theta,
-    "phi" = phi,
-    "eta" = eta,
-    "delta" = deltaV2
-  ))
 }
 
-# DEPRECATED. This is not used, but is kept as it might be useful in the
-# feature.
-# This function updates decontamination using background distribution
-.cDCalcEMbgDecontamination <-
-  function(counts, globalZ, cbZ, trZ, phi, eta, theta) {
-    logPr <- log(t(phi)[cbZ, ] + 1e-20) + log(theta + 1e-20)
-    logPc <-
-      log(t(eta)[globalZ, ] + 1e-20) + log(1 - theta + 1e-20)
-
-    Pr <- exp(logPr) / (exp(logPr) + exp(logPc))
-    Pc <- 1 - Pr
-    deltaV2 <-
-      MCMCprecision::fit_dirichlet(matrix(c(Pr, Pc), ncol = 2))$alpha
-
-    estRmat <- t(Pr) * counts
-    phiUnnormalized <-
-      .colSumByGroupNumeric(estRmat, cbZ, max(cbZ))
-    etaUnnormalized <-
-      rowSums(phiUnnormalized) - .colSumByGroupNumeric(
-        phiUnnormalized,
-        trZ, max(trZ)
-      )
-
-    ## Update paramters
-    theta <-
-      (colSums(estRmat) + deltaV2[1]) / (colSums(counts) + sum(deltaV2))
-    phi <-
-      celda::normalizeCounts(phiUnnormalized,
-        normalize = "proportion",
-        pseudocountNormalize = 1e-20
-      )
-    eta <-
-      celda::normalizeCounts(etaUnnormalized,
-        normalize = "proportion",
-        pseudocountNormalize = 1e-20
-      )
-
-    return(list(
-      "estRmat" = estRmat,
-      "theta" = theta,
-      "phi" = phi,
-      "eta" = eta,
-      "delta" = deltaV2
-    ))
-  }
 
 ## Make sure provided count matrix is the right type
 .checkCountsDecon <- function(counts) {
@@ -1018,28 +892,12 @@ setMethod(
     # trustful
   }
   if (!is.factor(z)) {
-    z <- plyr::mapvalues(z, unique(z), seq(length(unique(z))))
+    z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
     z <- as.factor(z)
   }
-  return(z)
+  z
 }
 
-
-## Add two (veried-length) vectors of logLikelihood
-addLogLikelihood <- function(llA, llB) {
-  lengthA <- length(llA)
-  lengthB <- length(llB)
-
-  if (lengthA >= lengthB) {
-    llB <- c(llB, rep(llB[lengthB], lengthA - lengthB))
-    ll <- llA + llB
-  } else {
-    llA <- c(llA, rep(llA[lengthA], lengthB - lengthA))
-    ll <- llA + llB
-  }
-
-  return(ll)
-}
 
 .decontxInitializeZ <- function(counts,
                                 varGenes = 2000,
@@ -1048,11 +906,15 @@ addLogLikelihood <- function(llA, llB) {
                                 seed = 12345,
                                 legacyInit = FALSE) {
   if (isTRUE(legacyInit)) {
-    init <- .decontxInitializeZLegacy(counts, varGenes = varGenes,
-                                      seed = seed)
+    init <- .decontxInitializeZLegacy(counts,
+      varGenes = varGenes,
+      seed = seed
+    )
   } else {
-    init <- .decontxInitializeZScrapper(counts, varGenes = varGenes,
-                                        seed = seed)
+    init <- .decontxInitializeZScrapper(counts,
+      varGenes = varGenes,
+      seed = seed
+    )
   }
   normed <- init$normed
   resUmap <- init$umap
@@ -1062,7 +924,7 @@ addLogLikelihood <- function(llA, llB) {
     # Find clusters with dbSCAN
     totalClusters <- 1
     iter <- 1
-    while (totalClusters <= 1 & dbscanEps > 0 & iter < 10) {
+    while (totalClusters <= 1 && dbscanEps > 0 && iter < 10) {
       resDbscan <- dbscan::dbscan(resUmap, dbscanEps)
       dbscanEps <- dbscanEps - (0.25 * dbscanEps)
       totalClusters <- length(unique(resDbscan$cluster))
@@ -1080,10 +942,10 @@ addLogLikelihood <- function(llA, llB) {
     }
   }
 
-  return(list(
+  list(
     "z" = z,
     "umap" = resUmap
-  ))
+  )
 }
 
 ## Default initialization: log-normalization, feature selection, PCA, and
@@ -1093,9 +955,11 @@ addLogLikelihood <- function(llA, llB) {
 .decontxInitializeZScrapper <- function(counts, varGenes, seed) {
   libSizes <- Matrix::colSums(counts)
   if (any(libSizes == 0)) {
-    stop("All cells must have at least one count to estimate cell ",
-         "clusters. Remove empty cells or droplets before running ",
-         "decontX, or supply cluster labels with the 'z' parameter.")
+    stop(
+      "All cells must have at least one count to estimate cell ",
+      "clusters. Remove empty cells or droplets before running ",
+      "decontX, or supply cluster labels with the 'z' parameter."
+    )
   }
   sf <- scrapper::centerSizeFactors(libSizes)
   normed <- scrapper::normalizeCounts(counts, size.factors = sf)
@@ -1108,16 +972,20 @@ addLogLikelihood <- function(llA, llB) {
   ## mean.filter = FALSE ranks all genes like the previous scater-based
   ## selection did; the default abundance filter (min.mean = 0.1) can
   ## remove every gene in very sparse datasets and abort
-  geneVar <- scrapper::modelGeneVariances(normed, mean.filter = FALSE,
-                                          num.threads = 1)
+  geneVar <- scrapper::modelGeneVariances(normed,
+    mean.filter = FALSE,
+    num.threads = 1
+  )
   hvg <- scrapper::chooseHighlyVariableGenes(geneVar$statistics$residuals,
-                                             top = varGenes)
+    top = varGenes
+  )
 
   ## 50 PCs matches the internal default of scater::calculateUMAP,
   ## which this pipeline replaces
   pca <- scrapper::runPca(normed[hvg, , drop = FALSE],
-                          number = 50,
-                          num.threads = 1)
+    number = 50,
+    num.threads = 1
+  )
 
   ## scrapper >= 1.5 split runUmap's 'seed' into 'initialize.seed' and
   ## 'optimize.seed'; support both APIs
@@ -1142,9 +1010,11 @@ addLogLikelihood <- function(llA, llB) {
 ## for as long as scater/scuttle continue to export them.
 .decontxInitializeZLegacy <- function(counts, varGenes, seed) {
   if (!requireNamespace("scater", quietly = TRUE)) {
-    stop("'legacyInit = TRUE' requires the 'scater' package. Install it ",
-         "with BiocManager::install(\"scater\") or use the default ",
-         "initialization (legacyInit = FALSE).")
+    stop(
+      "'legacyInit = TRUE' requires the 'scater' package. Install it ",
+      "with BiocManager::install(\"scater\") or use the default ",
+      "initialization (legacyInit = FALSE)."
+    )
   }
   sce <- SingleCellExperiment::SingleCellExperiment(
     assays = list(counts = counts)
@@ -1154,115 +1024,22 @@ addLogLikelihood <- function(llA, llB) {
   if (!is.null(seed)) {
     with_seed(
       seed,
-      resUmap <- scater::calculateUMAP(sce, ntop = varGenes,
-                                       n_threads = 1,
-                                       exprs_values = "logcounts")
+      resUmap <- scater::calculateUMAP(sce,
+        ntop = varGenes,
+        n_threads = 1,
+        exprs_values = "logcounts"
+      )
     )
   } else {
-    resUmap <- scater::calculateUMAP(sce, ntop = varGenes,
-                                     n_threads = 1,
-                                     exprs_values = "logcounts")
+    resUmap <- scater::calculateUMAP(sce,
+      ntop = varGenes,
+      n_threads = 1,
+      exprs_values = "logcounts"
+    )
   }
 
   list(normed = SingleCellExperiment::logcounts(sce), umap = resUmap)
 }
-
-
-# ## Initialization of cell labels for DecontX when they are not given
-# .decontxInitializeZ_prevous <-
-#   function(object, # object is either a sce object or a count matrix
-#            varGenes = 5000,
-#            dbscanEps = 1.0,
-#            verbose = TRUE,
-#            seed = 12345,
-#            logfile = NULL) {
-#     if (!is(object, "SingleCellExperiment")) {
-#       sce <- SingleCellExperiment::SingleCellExperiment(
-#         assays =
-#           list(counts = object)
-#       )
-#     }
-#
-#     sce <- sce[Matrix::rowSums(SingleCellExperiment::counts(sce)) > 0, ]
-#     sce <- scater::logNormCounts(sce, log = TRUE)
-#     # sce <- scater::normalize(sce)
-#
-#
-#     if (nrow(sce) <= varGenes) {
-#       topVariableGenes <- seq_len(nrow(sce))
-#     } else if (nrow(sce) > varGenes) {
-#       sce.var <- scran::modelGeneVar(sce)
-#       topVariableGenes <- order(sce.var$bio,
-#         decreasing = TRUE
-#       )[seq(varGenes)]
-#     }
-#     countsFiltered <- as.matrix(SingleCellExperiment::counts(
-#       sce[topVariableGenes, ]
-#     ))
-#     storage.mode(countsFiltered) <- "integer"
-#
-#     .logMessages(
-#       date(),
-#       "...... Collapsing features into",
-#       L,
-#       "modules",
-#       logfile = logfile,
-#       append = TRUE,
-#       verbose = verbose
-#     )
-#     ## Celda clustering using recursive module splitting
-#     L <- min(L, nrow(countsFiltered))
-#     if (is.null(seed)) {
-#       initialModuleSplit <- recursiveSplitModule(countsFiltered,
-#         initialL = L, maxL = L, perplexity = FALSE, verbose = FALSE
-#       )
-#     } else {
-#       with_seed(seed,
-#                 initialModuleSplit <- recursiveSplitModule(countsFiltered,
-#         initialL = L, maxL = L, perplexity = FALSE, verbose = FALSE
-#       ))
-#     }
-#     initialModel <- subsetCeldaList(initialModuleSplit, list(L = L))
-#
-#     .logMessages(
-#       date(),
-#       "...... Reducing dimensionality with UMAP",
-#       logfile = logfile,
-#       append = TRUE,
-#       verbose = verbose
-#     )
-#     ## Louvan graph-based method to reduce dimension into 2 cluster
-#     nNeighbors <- min(15, ncol(countsFiltered))
-#     # resUmap <- uwot::umap(t(sqrt(fm)), n_neighbors = nNeighbors,
-#     #    min_dist = 0.01, spread = 1)
-#     # rm(fm)
-#     resUmap <- celdaUmap(countsFiltered, initialModel,
-#       minDist = 0.01, spread = 1, nNeighbors = nNeighbors, seed = seed
-#     )
-#
-#     .logMessages(
-#       date(),
-#       " ...... Determining cell clusters with DBSCAN (Eps=",
-#       dbscanEps,
-#       ")",
-#       sep = "",
-#       logfile = logfile,
-#       append = TRUE,
-#       verbose = verbose
-#     )
-#     # Use dbSCAN on the UMAP to identify broad cell types
-#     totalClusters <- 1
-#     while (totalClusters <= 1 & dbscanEps > 0) {
-#       resDbscan <- dbscan::dbscan(resUmap, dbscanEps)
-#       dbscanEps <- dbscanEps - (0.25 * dbscanEps)
-#       totalClusters <- length(unique(resDbscan$cluster))
-#     }
-#
-#     return(list(
-#       "z" = resDbscan$cluster,
-#       "umap" = resUmap
-#     ))
-#   }
 
 
 ## process varGenes
@@ -1270,11 +1047,11 @@ addLogLikelihood <- function(llA, llB) {
   if (is.null(varGenes)) {
     varGenes <- 5000
   } else {
-    if (varGenes < 2 | length(varGenes) > 1) {
+    if (varGenes < 2 || length(varGenes) > 1) {
       stop("Parameter 'varGenes' must be an integer larger than 1.")
     }
   }
-  return(varGenes)
+  varGenes
 }
 
 ## process dbscanEps for resolusion threshold using DBSCAN
@@ -1286,18 +1063,18 @@ addLogLikelihood <- function(llA, llB) {
       stop("Parameter 'dbscanEps' needs to be non-negative.")
     }
   }
-  return(dbscanEps)
+  dbscanEps
 }
 
 .checkDelta <- function(delta) {
-  if (!is.numeric(delta) | length(delta) != 2 | any(delta < 0)) {
-    stop("'delta' needs to be a numeric vector of length 2",
-         " containing positive values.")
+  if (!is.numeric(delta) || length(delta) != 2 || any(delta < 0)) {
+    stop(
+      "'delta' needs to be a numeric vector of length 2",
+      " containing positive values."
+    )
   }
-  return(delta)
+  delta
 }
-
-
 
 
 #########################
@@ -1368,7 +1145,7 @@ simulateContamination <- function(C = 300,
     )
   }
 
-  return(res)
+  res
 }
 
 
@@ -1402,7 +1179,7 @@ simulateContamination <- function(C = 300,
       " more clusters are needed"
     )
     K <- length(unique(z))
-    z <- plyr::mapvalues(z, unique(z), seq(length(unique(z))))
+    z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
   }
 
   NbyC <- sample(seq(min(NRange), max(NRange)),
@@ -1423,9 +1200,11 @@ simulateContamination <- function(C = 300,
   ## Select random genes to be markers in each cell population
   ## by setting their values to zero.
   if (K * numMarkers > G) {
-    stop("The number of markers ('numMarkers') times the number of cell",
-         " populations ('K') cannot be greater than the number of",
-         " genes ('G').")
+    stop(
+      "The number of markers ('numMarkers') times the number of cell",
+      " populations ('K') cannot be greater than the number of",
+      " genes ('G')."
+    )
   }
   markerKIndex <- rep(seq(K), each = numMarkers)
   markerRowIndex <- sample(seq(G), numMarkers * K)
@@ -1456,7 +1235,12 @@ simulateContamination <- function(C = 300,
   ## sample contamination count matrix
   nGByK <-
     rowSums(cellRmat) - .colSumByGroup(cellRmat, group = z, K = K)
-  eta <- celda::normalizeCounts(counts = nGByK, normalize = "proportion")
+  ## Column-wise proportion normalization. This reproduces
+  ## celda::normalizeCounts(normalize = "proportion") exactly (verified to
+  ## the bit on the simulation path) via the package's own fastNormProp
+  ## C++ routine with a zero pseudocount, removing the celda dependency
+  ## (ADR-0003 Stage 1).
+  eta <- fastNormProp(nGByK, 0)
 
   cellCmat <- vapply(seq(C), function(i) {
     stats::rmultinom(1, size = cNbyC[i], prob = eta[, z[i]])
@@ -1467,18 +1251,16 @@ simulateContamination <- function(C = 300,
   rownames(cellOmat) <- paste0("Gene_", seq(G))
   colnames(cellOmat) <- paste0("Cell_", seq(C))
 
-  return(
-    list(
-      "nativeCounts" = cellRmat,
-      "observedCounts" = cellOmat,
-      "NByC" = NbyC,
-      "z" = z,
-      "eta" = eta,
-      "phi" = t(phi),
-      "markers" = markerNames,
-      "numMarkers" = numMarkers,
-      "contamination" = contamination
-    )
+  list(
+    "nativeCounts" = cellRmat,
+    "observedCounts" = cellOmat,
+    "NByC" = NbyC,
+    "z" = z,
+    "eta" = eta,
+    "phi" = t(phi),
+    "markers" = markerNames,
+    "numMarkers" = numMarkers,
+    "contamination" = contamination
   )
 }
 
@@ -1491,11 +1273,13 @@ simulateContamination <- function(C = 300,
     dupBarcode <- colnames(background) %in% colnames(x)
   } else {
     dupBarcode <- FALSE
-    warning("No column names were found for the 'background' matrix. ",
-            "No checking was performed between the ids in the 'backgroud' ",
-            "matrix and 'x'.",
-            " Please ensure that no true cells are included in the background ",
-            "matrix. Otherwise, results will be incorrect.")
+    warning(
+      "No column names were found for the 'background' matrix. ",
+      "No checking was performed between the ids in the 'backgroud' ",
+      "matrix and 'x'.",
+      " Please ensure that no true cells are included in the background ",
+      "matrix. Otherwise, results will be incorrect."
+    )
   }
 
   if (any(dupBarcode)) {
@@ -1516,14 +1300,16 @@ simulateContamination <- function(C = 300,
         stop(
           "Length of bgBatch must be equal to the number of columns",
           "of background matrix."
-          )
+        )
       }
       bgBatch <- bgBatch[!(dupBarcode)]
     }
   }
 
-  re <- list(background = background,
-            bgBatch = bgBatch)
+  re <- list(
+    background = background,
+    bgBatch = bgBatch
+  )
 
-  return(re)
+  re
 }

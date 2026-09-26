@@ -7,18 +7,21 @@
 
 [![R-CMD-check](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/campbio/decontX/actions/workflows/R-CMD-check.yaml)
 [![codecov](https://codecov.io/gh/campbio/decontX/graph/badge.svg?token=z5YnsXuWqh)](https://codecov.io/gh/campbio/decontX)
+[![Bioconductor
+build](https://bioconductor.org/shields/build/devel/bioc/decontX.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/decontX/)
 <!-- badges: end -->
 
 Methods for decontamination of single cell data. This package implements
 both DecontX (Yang et al.,
-[2020](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-1950-6))
-for single-cell RNA-seq data and DecontPro (Yin et al.,
-[2023](https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkad1032/7420100)) for
-single-cell protein expression data.
+[2020](https://doi.org/10.1186/s13059-020-1950-6)) for single-cell
+RNA-seq data and DecontPro (Yin et al.,
+[2024](https://doi.org/10.1093/nar/gkad1032)) for single-cell protein
+expression data.
 
 ## Installation Instructions
 
-You can install the package through [Bioconductor](https://bioconductor.org/packages/decontX) with:
+You can install the package through
+[Bioconductor](https://bioconductor.org/packages/decontX) with:
 
 ``` r
 if (!require("BiocManager", quietly = TRUE))
@@ -28,7 +31,8 @@ BiocManager::install("decontX")
 ```
 
 Alternatively, install the development version through
-[GitHub](https://github.com/campbio/decontX) using `devtools` package:
+[GitHub](https://github.com/campbio/decontX) using the `devtools`
+package:
 
 ``` r
 # install.packages("devtools")
@@ -37,9 +41,11 @@ devtools::install_github("campbio/decontX")
 
 ## Vignettes
 
-Vignettes are available on [Bioconductor](https://bioconductor.org/packages/decontX).
+Vignettes are available on
+[Bioconductor](https://bioconductor.org/packages/decontX).
 
-To build vignette when installing from GitHub, add the flag `build_vignettes = TRUE`:
+To build the vignettes when installing from GitHub, add the flag
+`build_vignettes = TRUE`:
 
 ``` r
 library(devtools)

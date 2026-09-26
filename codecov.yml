@@ -1,0 +1,32 @@
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "60...90"
+  status:
+    project:
+      default:
+        target: 80%          # ratchet up as the test plan lands
+        threshold: 1%        # absorbs stochastic-suite jitter
+        if_ci_failed: error
+    patch:
+      default:
+        target: 80%
+        threshold: 5%
+        if_ci_failed: error
+
+ignore:
+  - "R/RcppExports.R"
+  - "R/stanmodels.R"
+  - "src/RcppExports.cpp"
+  - "src/stanExports_shrinkage.cc"
+  - "src/stanExports_shrinkage.h"
+  - "tests/**"
+  - "vignettes/**"
+  - "man/**"
+  - "dev/**"
+  - "inst/**"
