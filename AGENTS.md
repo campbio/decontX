@@ -62,6 +62,16 @@ upstream functions exist, so never describe it as transitional.
 - Optional-package skips: the Seurat method test needs SeuratObject, and
   the `legacyInit` test needs scater.
 
+## Extra make targets
+
+None are allow-listed, so each one prompts.
+
+- `coverage-report`: HTML coverage report (`covr::report()`); opens a
+  browser. Ask first.
+- `build`: builds the source tarball in the repo root. Ask first; the
+  standard targets build in a temporary directory instead.
+- `clean`: deletes compiled objects and tarballs. People only.
+
 ## Setup in a new worktree
 
 - Install every package in Suggests (`devtools::install_dev_deps()`);
