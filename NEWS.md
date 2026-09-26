@@ -26,6 +26,10 @@ unaffected.
 even when `seed = NULL` (scrapper seeds it explicitly), but overall
 `decontX()` results with `seed = NULL` remain non-reproducible because
 the EM initialization is unseeded — set a seed for full reproducibility.
+* The plotting functions (`plotDecontXContamination()`,
+`plotDecontXMarkerPercentage()`, `plotDensity()`, `plotBoxByCluster()`)
+no longer use the deprecated `ggplot2::aes_string()`, which removes the
+ggplot2 deprecation warnings they emitted. Plots are unchanged.
 
 # decontX 1.10.0
 

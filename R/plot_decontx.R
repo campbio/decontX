@@ -63,15 +63,15 @@ plotDecontXContamination <- function(x,
   ## Generate ggplot scatterplot
   gg <- ggplot2::ggplot(
     df,
-    ggplot2::aes_string(
-      x = colnames(umap)[1],
-      y = colnames(umap)[2]
+    ggplot2::aes(
+      x = .data[[colnames(umap)[1]]],
+      y = .data[[colnames(umap)[2]]]
     )
   ) +
     ggplot2::geom_point(
       stat = "identity",
       size = size,
-      ggplot2::aes_string(color = "Contamination")
+      ggplot2::aes(color = .data$Contamination)
     ) +
     ggplot2::theme_bw() +
     ggplot2::scale_colour_gradientn(
@@ -229,9 +229,9 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
   df <- cbind(df, markerLabels = names(markers)[df$markers])
   df$markerLabels <- factor(df$markerLabels, levels = names(markers))
 
-  plt <- ggplot2::ggplot(df, ggplot2::aes_string(
-    x = "cellTypeLabels",
-    y = "percent", fill = "assay"
+  plt <- ggplot2::ggplot(df, ggplot2::aes(
+    x = .data$cellTypeLabels,
+    y = .data$percent, fill = .data$assay
   )) +
     ggplot2::geom_bar(
       stat = "identity",
@@ -239,7 +239,7 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
     ) +
     ggplot2::xlab(xlab) +
     ggplot2::ylab(paste0("Percentage of cells expressing markers")) +
-    ggplot2::facet_wrap(. ~ df$markerLabels, ncol = ncol) +
+    ggplot2::facet_wrap(ggplot2::vars(.data$markerLabels), ncol = ncol) +
     ggplot2::theme(
       panel.background = ggplot2::element_rect(
         fill = "white",
