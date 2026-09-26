@@ -60,11 +60,11 @@ plotDensity <- function(counts,
     # Plot
     p1 <- ggplot2::ggplot(
       df.m,
-      ggplot2::aes_string("value", fill = "variable")
+      ggplot2::aes(.data$value, fill = .data$variable)
     ) +
       ggplot2::geom_density(alpha = 0.7) +
       ggplot2::scale_x_continuous(
-        trans = "pseudo_log",
+        transform = "pseudo_log",
         breaks = c(1, 5, 10^seq(1, 4))
       ) +
       ggplot2::scale_fill_manual(
@@ -182,10 +182,10 @@ plotBoxByCluster <- function(counts,
     # Plot
     p1 <- ggplot2::ggplot(
       df.m,
-      ggplot2::aes_string(
-        x = "cell_type",
-        y = "value",
-        fill = "variable"
+      ggplot2::aes(
+        x = .data$cell_type,
+        y = .data$value,
+        fill = .data$variable
       )
     ) +
       ggplot2::geom_boxplot(
@@ -194,7 +194,7 @@ plotBoxByCluster <- function(counts,
         alpha = 0.7
       ) +
       ggplot2::scale_y_continuous(
-        trans = "pseudo_log",
+        transform = "pseudo_log",
         breaks = c(1, 5, 10^seq(1, 4))
       ) +
       ggplot2::scale_fill_manual(

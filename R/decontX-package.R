@@ -13,6 +13,7 @@
 #' @importFrom RcppParallel RcppParallelLibs
 #' @import rstantools
 #' @importFrom rstan sampling
+#' @importFrom ggplot2 .data
 #'
 #' @references
 #' Stan Development Team (2022). RStan: the R interface to Stan. R package

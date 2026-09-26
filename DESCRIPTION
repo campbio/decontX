@@ -38,7 +38,7 @@ Config/Needs/coverage: covr
 Imports:
     dbscan,
     DelayedArray,
-    ggplot2,
+    ggplot2 (>= 3.5.0),
     Matrix (>= 1.5.3),
     MCMCprecision,
     methods,

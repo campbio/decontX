@@ -197,6 +197,43 @@ test_that(desc = "Testing DecontX on counts matrix", {
   expect_true(all(resBg$contamination >= 0 & resBg$contamination <= 1))
 })
 
+test_that("marker plots build for matrix and SCE input without warnings", {
+  s <- simulateContamination(seed = 12345)
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = s$observedCounts)
+  )
+  sce <- decontX(sce, z = s$z, seed = 12345, verbose = FALSE)
+  groups <- list(A = 1, B = 2)
+
+  # ggplot evaluates aesthetics lazily, so build each plot to exercise them
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerPercentage(
+    s$observedCounts, s$markers, z = s$z, labelBars = TRUE
+  )))
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerExpression(
+    s$observedCounts, s$markers[[1]], groups, z = s$z
+  )))
+  sparse <- methods::as(s$observedCounts, "CsparseMatrix")
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerPercentage(
+    sparse, s$markers, z = s$z
+  )))
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXMarkerExpression(
+    sparse, s$markers[[1]], groups, z = s$z
+  )))
+
+  p <- plotDecontXMarkerPercentage(sce, s$markers, groups,
+    assayName = c("counts", "decontXcounts"), labelBars = TRUE
+  )
+  expect_no_warning(b <- ggplot2::ggplot_build(p))
+  expect_length(b$data, 2)
+  expect_length(unique(b$data[[1]]$fill), 2)
+
+  p <- plotDecontXMarkerExpression(sce, s$markers[[1]], groups)
+  expect_no_warning(b <- ggplot2::ggplot_build(p))
+  expect_length(unique(b$data[[1]]$fill), 2)
+  expect_equal(levels(b$layout$layout$Cell_Type), names(groups))
+  expect_no_warning(ggplot2::ggplot_build(plotDecontXContamination(sce)))
+})
+
 test_that(desc = "Testing DecontX on SCE", {
   s <- simulateContamination()
   sce <- SingleCellExperiment::SingleCellExperiment(
