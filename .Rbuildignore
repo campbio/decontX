@@ -14,3 +14,4 @@
 ^\.claude$
 ^\.lintr$
 ^codecov\.yml$
+^\.worktrees$

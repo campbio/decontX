@@ -1,7 +1,13 @@
 # decontX: notes for coding agents
 
 The shared development standards (r-bioc-dev-standards) load automatically
-at session start. This file adds only what is specific to this package.
+at session start in Claude Code. This file adds only what is specific to
+this package. Other agents (for example through GEMINI.md) don't get them
+automatically: read
+https://raw.githubusercontent.com/campbio/r-bioc-dev-standards/v1/standards.md
+(or the cached copy in `~/.cache/r-bioc-dev-standards/v1/`) before
+starting, and follow it; those agents also aren't bound by
+`.claude/settings.json`.
 
 ## About
 
@@ -78,8 +84,9 @@ allow-listed, so each one prompts.
   browser. Ask first.
 - `build`: builds the source tarball in the repo root. Ask first; the
   standard targets build in a temporary directory instead.
-- `clean`: deletes compiled objects and tarballs. People only; denied in
-  `.claude/settings.json`.
+- `clean`: deletes compiled objects and tarballs. People only: it's in the
+  Makefile's `PEOPLE_ONLY`, so make refuses it when run from Claude Code,
+  and `.claude/settings.json` denies it too.
 
 ## Setup in a new worktree
 
