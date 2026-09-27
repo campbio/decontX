@@ -45,8 +45,8 @@ including `make site-check`.
 
 No custom S4 classes. The generics `decontX()`, `decontPro()` and
 `decontXcounts()`/`decontXcounts<-` dispatch on `SingleCellExperiment`,
-`Seurat` (decontPro only) and `ANY` (plain or sparse matrices). DecontX stores its results in the input
-SingleCellExperiment:
+`Seurat` (decontPro only) and `ANY` (plain or sparse matrices). DecontX
+stores its results in the input SingleCellExperiment:
 - decontaminated counts in the `decontXcounts` assay (read it with
   `decontXcounts()`, not `assays()$`)
 - contamination in `colData(sce)$decontX_contamination`
