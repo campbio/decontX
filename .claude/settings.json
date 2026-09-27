@@ -2,17 +2,26 @@
   "permissions": {
     "allow": [
       "Bash(make test)",
+      "Bash(make test-one:*)",
       "Bash(make check)",
+      "Bash(make check-full)",
       "Bash(make bioccheck)",
       "Bash(make docs)",
       "Bash(make lint)",
+      "Bash(make coverage)",
       "Bash(make build)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git branch:*)",
-      "Bash(git blame:*)"
+      "Bash(git blame:*)",
+      "Bash(git remote -v)",
+      "Bash(git fetch:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [
       "Edit(man/*.Rd)",
@@ -33,10 +42,32 @@
       "Bash(git push -f:*)",
       "Bash(git clean:*)",
       "Bash(rm -rf:*)",
-      "Bash(rm -r:*)"
+      "Bash(rm -r:*)",
+      "Bash(git push bioc:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git branch -d:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git branch -f:*)",
+      "Edit(.claude/settings.json)",
+      "Write(.claude/settings.json)",
+      "Edit(Makefile)",
+      "Write(Makefile)",
+      "Edit(dev/hooks/**)",
+      "Write(dev/hooks/**)"
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash dev/hooks/load-standards.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -48,8 +79,5 @@
         ]
       }
     ]
-  },
-  "env": {
-    "_R_CHECK_FORCE_SUGGESTS_": "false"
   }
 }

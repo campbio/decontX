@@ -1,16 +1,17 @@
-# Summary
+<!-- Base branch: devel. Use RELEASE_X_Y only for an approved release fix.
+     Never target main/master, which is updated automatically. -->
 
-<!-- What does this PR change, and why? Link related issues. -->
+## What changed and why
 
-# Checklist
+## How it was tested
 
-- [ ] `make test` passes locally
-- [ ] `make check` passes locally (no new warnings)
-- [ ] `NEWS.md` updated (required for any user-facing change)
-- [ ] `make docs` run if roxygen comments changed (man/ and NAMESPACE
-      regenerated, not hand-edited)
-- [ ] Code review run (`/code-review` or equivalent) before requesting
-      human review
+## Checklist
+
+- [ ] Tests added or updated, and `make test` passes
+- [ ] `make check-full` and `make bioccheck` pass with no new errors or warnings
+- [ ] NEWS.md updated for user-facing changes
+- [ ] Version bumped (z) if this will be pushed to Bioconductor
+- [ ] Related issue linked
 - [ ] ADR linked if this changes structure, dependencies, the S4
       interface, or the Stan model: <!-- dev/adr/NNNN -->
 - [ ] **Human judgment**: scientific correctness of any change to the

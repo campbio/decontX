@@ -1,8 +1,10 @@
 # Contributing to decontX
 
 Thank you for your interest in improving decontX! This guide applies to
-human contributors and AI agents alike. Agents: also read `AGENTS.md`,
-which is the canonical instruction file for automated work in this repo.
+human contributors and AI agents alike. decontX follows the shared
+[r-bioc-dev-standards](https://github.com/campbio/r-bioc-dev-standards)
+(its README explains each rule). Agents also get those standards at
+session start, plus the package-specific notes in `AGENTS.md`.
 
 ## Getting started
 
@@ -12,8 +14,9 @@ which is the canonical instruction file for automated work in this repo.
    Never push directly to `devel` or `main`.
 3. Set up your environment: R >= 4.3, a C++ toolchain with GNU make
    (Xcode CLT on macOS, Rtools on Windows), then
-   `devtools::install_dev_deps()`. The first build compiles the Stan
-   model and takes several minutes.
+   `devtools::install_dev_deps()` to install all dependencies, including
+   every package in Suggests (checks require them). The first build
+   compiles the Stan model and takes several minutes.
 
 ## Repository layout
 
@@ -22,15 +25,15 @@ Beyond the standard R package structure (`R/`, `src/`, `man/`, `tests/`,
 development. None of it ships in the built package (see `.Rbuildignore`).
 
 ```
-AGENTS.md              # canonical instructions for AI agents (CLAUDE.md and
+AGENTS.md              # package-specific notes for AI agents (CLAUDE.md and
 CLAUDE.md, GEMINI.md   #   GEMINI.md are one-line pointers to it)
-Makefile               # sanctioned dev commands: make test/check/bioccheck/...
-.claude/settings.json  # shared agent harness config: permissions, lint hook
+Makefile               # the standard dev commands (run `make help`)
+.claude/settings.json  # shared agent config: permissions and hooks
 .lintr                 # lintr config (80-char lines; generated files excluded)
 .github/               # this file, SECURITY.md, PR template, CI workflows
 dev/                   # maintainer-facing material:
   adr/                 #   architecture decision records (see adr/README.md)
-  hooks/               #   harness hook scripts (report-only lint on edits)
+  hooks/               #   agent hooks: load the standards; lint on edits
   RELEASE.md           #   Bioconductor release checklist
   ROADMAP.md           #   where the package is going
   AUDIT.md             #   periodic dependency/deprecation audit procedure
@@ -44,15 +47,19 @@ that are hard to reverse get an ADR in `dev/adr/`; and generated files
 
 ## Development workflow
 
-All sanctioned commands live in the `Makefile`:
+All building, testing, and checking goes through the `Makefile`
+(`make help` lists the targets):
 
 | Command | When |
 |---|---|
-| `make test` | After every change (fast loop) |
+| `make test-one FILTER=<pattern>` | While developing |
+| `make test` | Before handing off a change |
 | `make docs` | After editing roxygen comments |
 | `make lint` | Before committing |
-| `make check` | Before opening a PR |
-| `make bioccheck` | Before release; also runs weekly in CI |
+| `make check` | Quick R CMD check, any time |
+| `make check-full` | Full check with vignettes, before opening a PR |
+| `make bioccheck` | Before opening a PR; also runs weekly in CI |
+| `make coverage` | To confirm test coverage hasn't dropped |
 
 Ground rules:
 
@@ -69,8 +76,10 @@ Ground rules:
 
 ## Pull requests
 
-Use the PR template checklist. In short: `make test` and `make check`
-pass, `NEWS.md` updated, code review run, ADR linked if architectural.
+Open pull requests against `devel` (GitHub suggests `main`, which is an
+automatically updated copy of the current release). Use the PR template
+checklist. In short: `make test`, `make check-full`, and `make bioccheck`
+pass, `NEWS.md` updated, ADR linked if architectural.
 Scientific correctness of algorithm changes always requires human review
 by a maintainer.
 

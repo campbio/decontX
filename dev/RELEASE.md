@@ -14,28 +14,28 @@ we only bump z in devel.
 ## Remotes
 
 Development happens on GitHub; Bioconductor's git server is the release
-authority. Ensure the upstream remote exists:
+authority. Ensure the `bioc` remote exists:
 
 ```
-git remote add upstream git@git.bioconductor.org:packages/decontX
+git remote add bioc git@git.bioconductor.org:packages/decontX
 ```
 
 ## Pre-freeze checklist (start ~1 month before the freeze)
 
-1. Sync `devel` with `upstream/devel`; resolve any divergence.
-2. Run `make check` and `make bioccheck` locally (or inspect the weekly
+1. Sync `devel` with `bioc/devel`; resolve any divergence.
+2. Run `make check-full` and `make bioccheck` locally (or inspect the weekly
    CI BiocCheck run).
 3. Triage every ERROR/WARNING/NOTE into a fix plan (GitHub issues);
    fix; re-run; land fixes via PRs to `devel`.
 4. Run `/security-review` on the release branch diff.
 5. Update `NEWS.md` with a section for the new release version.
 6. Bump `Version:` in DESCRIPTION (z increment) and push `devel` to
-   both GitHub and `upstream/devel`.
+   both GitHub and `bioc/devel`.
 
 ## At release
 
 - Bioconductor creates the new `RELEASE_X_Y` branch. Add/track it:
-  `git fetch upstream && git checkout -b RELEASE_X_Y upstream/RELEASE_X_Y`
+  `git fetch bioc && git checkout -b RELEASE_X_Y bioc/RELEASE_X_Y`
 - Only bug fixes go to the release branch afterwards (z bumps on both
   branches, cherry-picked or fixed twice — never merge devel into
   release).

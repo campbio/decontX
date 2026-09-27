@@ -48,3 +48,7 @@ vignettes/*.pdf
 inst/doc
 /doc/
 /Meta/
+
+# Claude Code: agent worktrees and per-user settings
+.worktrees/
+.claude/settings.local.json

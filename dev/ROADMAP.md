@@ -120,7 +120,7 @@ user-facing changes.
 ## Medium term
 
 - **pkgdown site**: unchanged plan — add `_pkgdown.yml`, build locally,
-  deploy to `gh-pages` per the lab playbook (CI verifies structure with
+  deploy to `gh-pages` per the shared standards (CI verifies structure with
   `pkgdown::check_pkgdown()` only).
 - **Precomputed vignettes**: adopt the `.Rmd.orig` pattern (decontPro
   certainly; decontX arguably — it currently runs the EM twice per
