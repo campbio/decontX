@@ -11,7 +11,8 @@ contamination in scRNA-seq without needing empty droplets, and
 **DecontPro** (Yin et al. 2023) removes ambient and background
 contamination from CITE-seq ADT (protein) counts. Distributed through
 Bioconductor since 3.18. There is no Shiny app and no pkgdown site yet
-(see `dev/ROADMAP.md`), so those parts of the standards don't apply.
+(see `dev/ROADMAP.md`), so those parts of the standards don't apply,
+including `make site-check`.
 
 ## Layout
 
@@ -68,7 +69,9 @@ upstream functions exist, so never describe it as transitional.
 
 ## Extra make targets
 
-None are allow-listed, so each one prompts.
+The standard targets come from the shared `standards.mk` in
+r-bioc-dev-standards; the Makefile holds only these extras. None are
+allow-listed, so each one prompts.
 
 - `coverage-report`: HTML coverage report (`covr::report()`); opens a
   browser. Ask first.
