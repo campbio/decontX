@@ -8,6 +8,7 @@
       "Bash(make bioccheck)",
       "Bash(make docs)",
       "Bash(make lint)",
+      "Bash(make coverage)",
       "Bash(make build)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
