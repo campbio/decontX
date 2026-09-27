@@ -8,15 +8,35 @@
 # Package settings. Uncomment to change a default (see standards.mk).
 # FORCE_SUGGESTS = FALSE
 
-# Only FILTER may be set on the make command line. Settings allow
-# `make test-one` with any arguments, and a command-line variable could
-# change which makefile, shell, or source is used. Environment variables
-# still work, e.g. R_BIOC_STANDARDS_REF=<branch> make help.
+# Guards. Settings allow `make test-one` with any arguments, so this file
+# checks them itself, before anything else runs:
+# - FILTER may contain only letters, digits, '.', '_' and '-' (checked on
+#   its raw value, before make expands it);
+# - no other variable may be set on the command line, since one could
+#   change which makefile, shell, or source is used (environment variables
+#   still work, e.g. R_BIOC_STANDARDS_REF=<branch> make help);
+# - test-one must be the only target.
+_ok_chars := a b c d e f g h i j k l m n o p q r s t u v w x y z \
+  A B C D E F G H I J K L M N O P Q R S T U V W X Y Z 0 1 2 3 4 5 6 7 8 9 . _ -
+_strip_ok = $(if $(2),$(call _strip_ok,$(subst $(firstword $(2)),,$(1)),$(wordlist 2,$(words $(2)),$(2))),$(1))
+_filter_error := FILTER may contain only letters, digits, '.', '_' and '-'
 ifneq ($(findstring $$,$(value FILTER)),)
-  $(error FILTER may contain only letters, digits, '.', '_' and '-')
+  $(error $(_filter_error))
 endif
-ifneq ($(filter-out FILTER=%,$(MAKEOVERRIDES)),)
-  $(error Only FILTER=<pattern> may be set on the make command line; set other variables in the environment or above)
+ifneq ($(words $(value FILTER)),$(if $(value FILTER),1,0))
+  $(error $(_filter_error))
+endif
+ifneq ($(call _strip_ok,$(value FILTER),$(_ok_chars)),)
+  $(error $(_filter_error))
+endif
+_cmdline_vars := $(filter-out FILTER,$(foreach v,$(.VARIABLES),$(if $(filter command line,$(origin $(v))),$(v))))
+ifneq ($(_cmdline_vars),)
+  $(error Only FILTER=<pattern> may be set on the make command line (found: $(_cmdline_vars)); set other variables in the environment or above)
+endif
+ifneq ($(filter test-one,$(MAKECMDGOALS)),)
+  ifneq ($(words $(MAKECMDGOALS)),1)
+    $(error make test-one must be run on its own)
+  endif
 endif
 
 R_BIOC_STANDARDS_REF ?= v1
