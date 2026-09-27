@@ -8,6 +8,17 @@
 # Package settings. Uncomment to change a default (see standards.mk).
 # FORCE_SUGGESTS = FALSE
 
+# Only FILTER may be set on the make command line. Settings allow
+# `make test-one` with any arguments, and a command-line variable could
+# change which makefile, shell, or source is used. Environment variables
+# still work, e.g. R_BIOC_STANDARDS_REF=<branch> make help.
+ifneq ($(findstring $$,$(value FILTER)),)
+  $(error FILTER may contain only letters, digits, '.', '_' and '-')
+endif
+ifneq ($(filter-out FILTER=%,$(MAKEOVERRIDES)),)
+  $(error Only FILTER=<pattern> may be set on the make command line; set other variables in the environment or above)
+endif
+
 R_BIOC_STANDARDS_REF ?= v1
 R_BIOC_STANDARDS_BASE ?= https://raw.githubusercontent.com/campbio/r-bioc-dev-standards/$(R_BIOC_STANDARDS_REF)
 STANDARDS_MK := $(or $(XDG_CACHE_HOME),$(HOME)/.cache)/r-bioc-dev-standards/$(R_BIOC_STANDARDS_REF)/standards.mk

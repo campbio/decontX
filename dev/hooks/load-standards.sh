@@ -45,10 +45,15 @@ fetch() {
   return 1
 }
 
+# The three downloads run in parallel, so a slow network costs one timeout,
+# not three.
+fetch standards.md standards.md & p1=$!
+fetch shared/lint-changed.sh lint-changed.sh & p2=$!
+fetch shared/standards.mk standards.mk & p3=$!
 stale=0
-fetch standards.md standards.md || stale=1
-fetch shared/lint-changed.sh lint-changed.sh || stale=1
-fetch shared/standards.mk standards.mk || stale=1
+for p in "$p1" "$p2" "$p3"; do
+  wait "$p" || stale=1
+done
 
 if [ -s "$cache_dir/standards.md" ]; then
   if [ "$stale" -eq 1 ]; then
