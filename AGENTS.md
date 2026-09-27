@@ -41,10 +41,11 @@ including `make site-check`.
   over 800 indentation lints, against 3 with 2. Converting to 4 spaces
   would be a separate maintainer decision and its own PR.
 
-Object model: no custom S4 classes. The generics `decontX()`,
-`decontPro()` and `decontXcounts()`/`decontXcounts<-` dispatch on
-`SingleCellExperiment`, `Seurat` (decontPro only) and `ANY` (plain or
-sparse matrices). DecontX stores its results in the input
+## Object model
+
+No custom S4 classes. The generics `decontX()`, `decontPro()` and
+`decontXcounts()`/`decontXcounts<-` dispatch on `SingleCellExperiment`,
+`Seurat` (decontPro only) and `ANY` (plain or sparse matrices). DecontX stores its results in the input
 SingleCellExperiment:
 - decontaminated counts in the `decontXcounts` assay (read it with
   `decontXcounts()`, not `assays()$`)
@@ -77,7 +78,8 @@ allow-listed, so each one prompts.
   browser. Ask first.
 - `build`: builds the source tarball in the repo root. Ask first; the
   standard targets build in a temporary directory instead.
-- `clean`: deletes compiled objects and tarballs. People only.
+- `clean`: deletes compiled objects and tarballs. People only; denied in
+  `.claude/settings.json`.
 
 ## Setup in a new worktree
 
