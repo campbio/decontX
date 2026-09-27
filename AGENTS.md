@@ -11,7 +11,8 @@ contamination in scRNA-seq without needing empty droplets, and
 **DecontPro** (Yin et al. 2023) removes ambient and background
 contamination from CITE-seq ADT (protein) counts. Distributed through
 Bioconductor since 3.18. There is no Shiny app and no pkgdown site yet
-(see `dev/ROADMAP.md`), so those parts of the standards don't apply.
+(see `dev/ROADMAP.md`), so those parts of the standards don't apply,
+including `make site-check`.
 
 ## Layout
 
@@ -35,6 +36,10 @@ Bioconductor since 3.18. There is no Shiny app and no pkgdown site yet
 - `man/examples/decontX.R` is **hand-written**. It is the shared example
   pulled into several help pages with `@example`, so edit it directly.
 - `vignettes/decontX.Rmd`, `vignettes/decontPro.Rmd`.
+- Style: the code uses **2-space indentation**, set in `.lintr`
+  (`indentation_linter(indent = 2L)`). With 4 spaces, lintr would report
+  over 800 indentation lints, against 3 with 2. Converting to 4 spaces
+  would be a separate maintainer decision and its own PR.
 
 Object model: no custom S4 classes. The generics `decontX()`,
 `decontPro()` and `decontXcounts()`/`decontXcounts<-` dispatch on
@@ -64,7 +69,9 @@ upstream functions exist, so never describe it as transitional.
 
 ## Extra make targets
 
-None are allow-listed, so each one prompts.
+The standard targets come from the shared `standards.mk` in
+r-bioc-dev-standards; the Makefile holds only these extras. None are
+allow-listed, so each one prompts.
 
 - `coverage-report`: HTML coverage report (`covr::report()`); opens a
   browser. Ask first.
@@ -97,5 +104,4 @@ None are allow-listed, so each one prompts.
 
 ## Overrides
 
-- Generated man pages are protected with `Edit(man/*.Rd)` rather than
-  `Edit(man/**)`, because `man/examples/decontX.R` is hand-written.
+None.
