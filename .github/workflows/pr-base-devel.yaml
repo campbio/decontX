@@ -1,5 +1,6 @@
-# Fails any pull request aimed at the stable branch. The stable branch is a
-# copy of the current Bioconductor release, maintained by sync-stable.yaml.
+# Fails any pull request aimed at the stable branch, which is updated
+# automatically from the current Bioconductor release. The logic lives in
+# r-bioc-dev-standards.
 
 name: PR base branch
 
@@ -9,10 +10,4 @@ on:
 
 jobs:
   wrong-base:
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "::error::Pull requests must target devel (or a RELEASE_X_Y branch for release fixes)."
-          echo "::error::The ${{ github.base_ref }} branch is updated automatically from the current Bioconductor release."
-          echo "::error::To fix: click Edit next to the PR title and change the base branch to devel."
-          exit 1
+    uses: campbio/r-bioc-dev-standards/.github/workflows/pr-base-devel.yaml@v1
