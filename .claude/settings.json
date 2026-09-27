@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(make test)",
@@ -25,7 +26,7 @@
     ],
     "deny": [
       "Edit(man/*.Rd)",
-      "Write(man/**)",
+      "Write(man/*.Rd)",
       "Edit(NAMESPACE)",
       "Write(NAMESPACE)",
       "Edit(docs/**)",
@@ -53,7 +54,9 @@
       "Edit(Makefile)",
       "Write(Makefile)",
       "Edit(dev/hooks/**)",
-      "Write(dev/hooks/**)"
+      "Write(dev/hooks/**)",
+      "Edit(.lintr)",
+      "Write(.lintr)"
     ]
   },
   "hooks": {
@@ -74,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash dev/hooks/lint-changed.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/dev/hooks/lint-changed.sh\""
           }
         ]
       }

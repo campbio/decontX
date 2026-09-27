@@ -1,48 +1,71 @@
 #!/usr/bin/env bash
-# PostToolUse hook (Edit|Write): lint a touched .R file and report
-# findings back to the agent. REPORT-ONLY — it never rewrites files:
-# with a large pre-existing style backlog, auto-styling every touched
-# file would bury real changes in formatting diffs. Styling is applied
-# deliberately, per file, by a human-approved change.
+# PostToolUse hook for Claude Code: lints an R file right after Claude edits
+# it and passes the results back to Claude. It reports only and never
+# rewrites the file: auto-styling on every edit would bury the real change in
+# formatting noise.
 #
-# Exit 2 feeds stderr back to the agent as feedback; the edit itself is
-# never blocked (the tool has already run).
+# Copy this file to dev/hooks/lint-changed.sh in each package and register
+# it in .claude/settings.json (see ADOPTING.md).
+#
+# Source: https://github.com/campbio/r-bioc-dev-standards
+#
+# Claude Code sends the hook payload as JSON on stdin. Plain stdout from a
+# PostToolUse hook only reaches the debug log, so the lints are returned as
+# JSON in hookSpecificOutput.additionalContext, which Claude does see.
+# Always exits 0: a lint is information, not a reason to fail the edit.
 
-set -u
+set -uo pipefail
 
-input=$(cat)
+payload="$(cat)"
 
-if command -v jq >/dev/null 2>&1; then
-  file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty')
+# Extract .tool_input.file_path without depending on jq.
+if command -v jq > /dev/null 2>&1; then
+  file="$(printf '%s' "$payload" \
+    | jq -r '.tool_input.file_path // empty' 2> /dev/null)"
+elif command -v python3 > /dev/null 2>&1; then
+  file="$(printf '%s' "$payload" | python3 -c '
+import json, sys
+try:
+    print(json.load(sys.stdin).get("tool_input", {}).get("file_path", ""))
+except Exception:
+    print("")')"
 else
-  file=$(printf '%s' "$input" |
-    sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
-    head -n 1)
+  exit 0
 fi
 
-[ -n "${file:-}" ] || exit 0
-[ -f "$file" ] || exit 0
-
+[ -n "$file" ] && [ -f "$file" ] || exit 0
 case "$file" in
-  # generated files are never linted (and must never be hand-edited)
-  */R/RcppExports.R | */R/stanmodels.R | */src/*) exit 0 ;;
-  *.R | *.r) ;;
+  *.R|*.r) ;;
   *) exit 0 ;;
 esac
+command -v Rscript > /dev/null 2>&1 || exit 0
 
-# pass the path via the environment, not string interpolation, so paths
-# with quotes cannot break out of (or into) the R expression
-lints=$(LINT_FILE="$file" Rscript --no-init-file -e \
-  "if (requireNamespace('lintr', quietly = TRUE)) { l <- lintr::lint(Sys.getenv('LINT_FILE')); if (length(l) > 0) print(l) }" \
-  2>/dev/null)
+# One line per lint, at most 25, so a file with a lint backlog can't flood
+# the session.
+lints="$(Rscript -e '
+  f <- commandArgs(trailingOnly = TRUE)[1]
+  if (!requireNamespace("lintr", quietly = TRUE)) quit(status = 0)
+  l <- tryCatch(as.data.frame(lintr::lint(f)), error = function(e) NULL)
+  if (is.null(l) || nrow(l) == 0) quit(status = 0)
+  n <- nrow(l)
+  l <- utils::head(l, 25)
+  cat(sprintf("lintr found %d lint(s) in %s. Fix those on lines you changed;",
+              n, basename(f)),
+      "leave existing lints elsewhere in the file for a separate PR.\n")
+  cat(sprintf("  line %d: %s [%s]\n", l$line_number, l$message, l$linter),
+      sep = "")
+  if (n > 25) cat(sprintf("  ... and %d more\n", n - 25))
+' "$file" 2> /dev/null)"
 
-if [ -n "$lints" ]; then
-  {
-    printf '%s\n' "$lints" | head -n 40
-    echo "lintr findings in $file (first 40 lines shown)."
-    echo "Fix any your change introduced; leave pre-existing debt alone."
-  } >&2
-  exit 2
+[ -n "$lints" ] || exit 0
+
+if command -v jq > /dev/null 2>&1; then
+  jq -n --arg ctx "$lints" \
+    '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
+elif command -v python3 > /dev/null 2>&1; then
+  printf '%s' "$lints" | python3 -c '
+import json, sys
+print(json.dumps({"hookSpecificOutput": {
+    "hookEventName": "PostToolUse", "additionalContext": sys.stdin.read()}}))'
 fi
-
 exit 0
