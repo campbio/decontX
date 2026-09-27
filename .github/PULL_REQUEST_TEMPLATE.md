@@ -15,6 +15,7 @@
 - [ ] `make docs` run, if roxygen comments changed
 - [ ] NEWS.md updated for user-facing changes
 - [ ] Version bumped (z) if this will be pushed to Bioconductor
+- [ ] Plan review and `/code-review` run; findings fixed or answered
 - [ ] Related issue linked
 
 ## ADR
