@@ -51,4 +51,4 @@ inst/doc
 
 # Claude Code: agent worktrees and per-user settings
 .worktrees/
-.claude/settings.local.json
+.claude

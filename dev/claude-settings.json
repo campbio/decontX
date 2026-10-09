@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git blame:*)",
+      "Bash(git fetch campbio)"
+    ],
+    "ask": [],
+    "deny": [
+      "Bash(make clean)"
+    ]
+  },
+  "hooks": {}
+}
