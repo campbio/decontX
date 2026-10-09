@@ -5,6 +5,7 @@
 #' algorithm for single cell protein expression data such as CITE-seq or
 #' Total-seq.
 #'
+#' @return None; this page documents the package.
 #' @name decontX-package
 #' @aliases decontX-package
 #' @useDynLib decontX, .registration = TRUE
