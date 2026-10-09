@@ -1,6 +1,6 @@
 Package: decontX
 Title: Decontamination of single cell genomics data
-Version: 1.11.1
+Version: 1.11.2
 Authors@R: 
     c(person("Yuan", "Yin", , "yuan_yin@outlook.com", role = c("aut"),
            comment = c(ORCID = "0000-0001-9261-6061")),
