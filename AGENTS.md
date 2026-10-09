@@ -100,9 +100,14 @@ allow-listed, so each one prompts.
   checks don't relax missing Suggests.
 - The first build compiles the Stan model and the Rcpp code, which takes
   several minutes. Later `devtools::load_all()` calls reuse the objects.
+- Generated files were last refreshed in 1.11.2 with roxygen2 8.1.0
+  (`Config/roxygen2/version` in DESCRIPTION) and rstantools 2.7.1 with
+  StanHeaders >= 2.34 (`stan::rng_t` in `src/stanExports_shrinkage.*`).
+  Use those versions or newer so `make docs` doesn't rewrite them.
 - `devtools::load_all()` and `make test` regenerate
-  `src/stanExports_shrinkage.*`. Restore them (`git restore src/`) before
-  committing.
+  `src/stanExports_shrinkage.*`. If that changes them, restore them
+  (`git restore src/`) before committing, unless the refresh is the
+  point of the change.
 - `make check` needs the `checkbashisms` script to check the rstantools
   `configure` scripts (`brew install checkbashisms` on macOS). Without it,
   R CMD check emits a WARNING.

@@ -3,6 +3,9 @@
 \name{decontX-package}
 \alias{decontX-package}
 \title{The 'decontX' package.}
+\value{
+None; this page documents the package.
+}
 \description{
 DecontX is a decontamination algorithm for single-cell
 RNA-seq data. DecontPro is a decontamination and background removal

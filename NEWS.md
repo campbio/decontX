@@ -1,3 +1,10 @@
+# decontX 1.11.2
+
+* The `decontX-package` help page now has a Value section, which fixes a
+BiocCheck warning.
+* Documentation is regenerated with roxygen2 8.1.0, and the Stan model
+exports with rstantools 2.7.1. Results don't change.
+
 # decontX 1.11.1
 
 * `decontX` no longer depends on the `celda` package (ADR-0003 Stage 1).
