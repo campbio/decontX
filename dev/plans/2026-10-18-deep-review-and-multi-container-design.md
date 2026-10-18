@@ -1,7 +1,7 @@
 # Deep review, multi-container support, and docs: phased plan
 
 - **Date:** 2026-10-18
-- **Status:** Proposed (awaiting maintainer review)
+- **Status:** Approved by the maintainer, 2026-10-18
 - **Base:** `devel` at 3d7a8aa (decontX 1.11.2)
 - **Builds on:** `dev/audits/2026-09-comprehensive-review.md` and the
   waves in `dev/ROADMAP.md`
