@@ -109,9 +109,10 @@ test_that("numeric batch labels are not used as positional indices", {
 })
 
 test_that(desc = "Testing simulateContamination", {
-  expect_equivalent(
+  expect_equal(
     object = colSums(deconSim$observedCounts),
-    expected = deconSim$NByC
+    expected = deconSim$NByC,
+    ignore_attr = TRUE
   )
   expect_equal(
     object = dim(deconSim$phi),
