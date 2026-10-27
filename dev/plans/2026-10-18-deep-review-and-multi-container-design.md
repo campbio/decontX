@@ -412,3 +412,39 @@ possible release-branch port, which the maintainer decides.
 - A `SummarizedExperiment` method beyond what ExperimentSubset needs.
 - CI rendering of vignettes or articles.
 - A pkgdown development (`/dev/`) site.
+
+## 10. Amendments (2026-10-27, from the Phase 0 review)
+
+Decided by the maintainer during the review; details and evidence in
+`dev/audits/2026-10-deep-review.md`. Where they conflict with the
+sections above, these win.
+
+- **ExperimentSubset (section 5):** the method uses the direct
+  approach. It reads `assay(x, subsetName)` and the subset's colData,
+  calls the core, and writes back with `setSubsetAssay()`,
+  `colData(x, subsetName =) <-`, `reducedDim(x, , subsetName =) <-` and
+  `metadata(x, subsetName =) <-` (A6-12). It does not use
+  `getSubsetExperiment()`/`setSubsetExperiment()`. decontX adds no
+  ExperimentSubset detection code (no `is(x,
+  "SubsetSingleCellExperiment")` branch, which also misses two of the
+  three classes) until ExperimentSubset #5 lands. The Suggests floor is
+  the ExperimentSubset release with #53 (#54 isn't needed). Gaps found
+  were filed upstream: ExperimentSubset #2-#5 and #57-#59.
+- **AnnData (section 5):** `setOldClass("AbstractAnnData")` doesn't
+  dispatch (A6-03). The ANY methods redirect on
+  `inherits(x, "AbstractAnnData")`, and the AnnData method extracts the
+  matrix and calls the core directly, with no temporary SCE.
+- **decontPro (sections 5, 6):** the empty-droplet argument is renamed
+  `background`, matching decontX, with `ambient_counts` kept as a
+  permanent alias. The `ambient_counts` empty-droplet workflow (III-a,
+  item 5) is dropped from the vignette and the full-data article;
+  `background` gets a short example like decontX's. decontPro's argument
+  changes get their own ADR (ADR-0006).
+- **HDF5 input (Phase I-d):** returns an in-memory sparse result wrapped
+  as a DelayedMatrix, instead of writing back to a temporary HDF5 file
+  (A5-06). NEWS.
+- **Initialization (Phase I-e):** runs by default when `z` is given, as
+  today, with a new opt-out argument; plus opt-in `numThreads` (A5-01,
+  A5-02).
+- **ADR numbering:** ADR-0004 core, ADR-0005 container methods,
+  ADR-0006 decontPro arguments, ADR-0007 pkgdown.

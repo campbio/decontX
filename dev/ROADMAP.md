@@ -3,172 +3,206 @@
 Where the package is going. Proposals (from humans or agents) should
 lean in these directions; anything structural still needs an ADR first.
 
-Rewritten 2026-09-21 from the comprehensive review in
-`dev/audits/2026-09-comprehensive-review.md` (finding IDs below refer to
-it). Near-term work is organized as waves; each wave lands as its own
-PR(s), with `make test` green throughout and NEWS.md entries for
-user-facing changes.
+Rewritten 2026-10-27 from the deep review in
+`dev/audits/2026-10-deep-review.md` (finding IDs below refer to it), and
+organized by the phases of
+`dev/plans/2026-10-18-deep-review-and-multi-container-design.md`. It
+replaces the 2026-09 waves; their open items are folded in. Every PR
+keeps `make test` green, never lowers coverage, bumps z, and adds NEWS
+for user-facing changes. Each PR is reviewed locally before it is
+pushed, one at a time.
 
-## Near term
+## Done
 
-### Wave 1 — Make devel green + quick wins (no ADR needed)
+- **Phase 0 (review):** baseline, status of the 2026-09 findings, eight
+  review areas, the benchmark script `dev/bench/bench-decontx.R`, and
+  this rewrite. Upstream ExperimentSubset issues filed: #2-#5, #57-#59.
+- From the 2026-09 waves: green devel CI, celda removed from Imports
+  (ADR-0003 Stage 1), the numeric-`batch` fix, the defunct Seurat call,
+  the #46 memory fix (1.11.1), metadata and CITATION, lint backlog
+  cleared.
 
-- **celda dependency: keep it.** The deprecated-`normalizeCounts` warnings
-  (D3-01, CI-01) that surface in decontX's examples originate in celda and
-  are being fixed upstream in celda separately — decontX does not drop
-  celda or work around the deprecation. No ADR-D1. (The dead `.cDCalcEM*`
-  functions are still removed as ordinary dead-code cleanup below; that is
-  independent of the dependency.) This "keep it" is only about not
-  *reacting* to the deprecation — a deliberate, coordinated removal of
-  celda is planned separately under ADR-0003 (Wave 4 / longer term).
-- Fix the defunct Seurat call: `GetAssayData(slot=)` →
-  `SeuratObject::LayerData(layer=)` (D3-03) + a mocked regression test.
-- Fix the P0 numeric-`batch` indexing bug (`as.character(batch)`) with a
-  regression test (D1-01).
-- Delete dead code: commented-out legacy init block, 5 unreachable R
-  internals, 6 unregistered C entry points + 3 dead Sparse variants,
-  `nonzero`/`fastNormPropLog`/`fastNormPropSqrt` (keep `fastNormProp`),
-  `R/package_skeleton_test.R`, permanently-unrunnable commented tests
-  (D1-22..24, D2-04, D2-15, D4-16). This alone clears most of the
-  commented_code lint backlog and ~300 uncovered lines.
-- Metadata: URL/BugReports, expanded biocViews, inst/CITATION, NEWS
-  backfill (drafts in `dev/audits/2026-09-review-drafts.md`); reconcile
-  README.md/README.Rmd (D6-09); fix the stale `\link[uwot]` (D3-13).
-- CI hygiene: checkout@v4 everywhere, pin upload-artifact@v4, add
-  `_R_CHECK_FORCE_SUGGESTS_=false` to R-CMD-check, codecov.yml +
-  `make coverage`, decide the oldrel-1 line, create `dev/agent-log.md`
-  (D4-15, D5-02..06).
-- Lint burn-down after the deletions (mostly indentation/return), then
-  keep the lint job blocking.
+## Before Phase I
 
-### Wave 2 — Correctness hardening (no ADR)
+- Set up a devel (Bioc 3.24) library through an untracked repo-root
+  `.Renviron` (`R_LIBS_USER`), not renv, and check that `.gitignore` and
+  `.Rbuildignore` cover it.
+- Post the approved issue replies: #40, #43, #46, #39, #56. #44 waits
+  for the rewritten FAQ.
+- Rewrite the #44 FAQ and reply to match the doublet decision, for
+  maintainer review before posting.
 
-- Move matrixSums registration out of generated `RcppExports.cpp` into a
-  hand-owned `src/init.c` (D2-03) — **must precede anything that reruns
-  `compileAttributes()`**.
-- Input-validation pass: `.checkDecontXParams()` (maxIter/iterLogLik/
-  convergence/seed), varGenes/dbscanEps check order, batch length,
-  background gene-row matching (fixes issue #43's failure mode),
-  bgBatch hoisting, NA/gap-level `z`, preserve user cluster labels,
-  delta bounds, negative counts (D1-02..12).
-- C-level guards: NA-group check in `_colSumByGroup_numeric` (+ its row
-  twin if kept) — removes a reproducible segfault (D2-01); `min(z)`
-  guard in `decontXInitialize` (D2-02); `R_xlen_t` offsets (D2-07);
-  empty-cluster division guard in `decontXEM` (D2-08).
-- `plotDensity` shared bandwidth (D7-04) and the decontaminated ≤
-  observed invariant test (D7-05).
+## Phase I: fixes, coverage, quality, speed
 
-### Wave 3 — Test debt (guided by the 18-file plan in the drafts doc)
+### Stopgap
 
-- Convert the two empty test blocks into asserted tests; assert the
-  batch path; add the ground-truth recovery oracle (D4-01..03).
-- Shrink the decontPro fixture (14.8s → 1.9s measured) and mock
-  `.call_stan_vb` for Stan-free dispatch/validation tests (D4-05).
-- Snapshot policy for user-facing messages; no-vdiffr plotting policy
-  (structure/data assertions) — record both in AGENTS.md (D4-08, D4-14).
-- Target: honest ~80% coverage with the suite wall clock halved.
+- Fix the decontX vignette's Seurat section (A7-02). Small, and it fails
+  for users today.
 
-### Wave 4 — Issue fixes and dependency diet (ADRs D2/D3/D5)
+### I-a: regression net (before any fix)
 
-- **Issue #46:** default `output_samples = 10` in `.call_stan_vb` and
-  expose `output_samples`/`seed`/`iter` on `decontPro()` (bit-identical
-  results verified; small ADR since it adds args to an exported generic;
-  merges D1-13/D6-08/D7-01). Document the TMPDIR footprint and the
-  residual PSIS pass.
-- **ADR-D2:** Seurat → SeuratObject in Imports (45 → 13 transitive).
-- **ADR-D3:** drop plyr (`match(z, unique(z))`) and reshape2 (two small
-  base-R helpers) — gated on Wave 3's plotting tests.
-- **ADR-0003 (Stage 1):** drop celda from Imports. Its only live use is
-  a single `celda::normalizeCounts(..., normalize = "proportion")` call
-  in `.simulateContaminatedMatrix()`; replace with a local
-  proportion-normalize helper (base R or a thin `fastNormProp` wrapper),
-  verified identical on the simulation path, then remove `celda` from
-  DESCRIPTION. Self-contained — depends on nothing in celda. This is a
-  *planned* removal, distinct from the Wave-1 "keep celda" decision,
-  which only declined to react to the upstream `normalizeCounts`
-  deprecation. See `dev/adr/0003-remove-celda-dependency.md`.
-- **ADR-D5:** DESCRIPTION floors (drop Matrix pin, verify scrapper pin,
-  R >= 4.5.0 on devel); drop dead scran Suggest; resolve the undeclared
-  HDF5Array use (prefer deleting the redundant special case).
-- Answer/close the open issues: #40 (corrected explanation + FAQ), #39
-  (stale library), #43/#44/#45 (FAQ + the Wave-2 background validation).
+- Committed RDS reference outputs in `tests/testthat/fixtures/` on
+  `simulateContamination(C = 100, G = 60, K = 3, seed = 1)`, compared at
+  1e-10 on the user-`z` paths; a `dev/` script that installs two commits
+  and compares them with `identical()` (no-`z`, legacyInit, decontPro)
+  (A3-01).
+- Pin current behaviour the fixes will touch, following the pinning plan
+  in the drafts: distinct batched fixtures (A3-05), patterns on bare
+  `expect_error()` (A3-06), the `ambient_counts` path with a mocked
+  `.call_stan_vb` (A3-10), sparse and DelayedArray inputs (A3-19), and
+  `simulateContamination()` before the `rowsum()` swap (A3-17).
 
-### Wave 5 — Structure (ADR first)
+### I-b: correctness fixes
 
-- Consolidate the decontX argument surface (~11 duplicated sites with
-  real default drift) into one params constructor + delegating methods
-  (D1-20). Decompose `.decontX`/`.decontXoneBatch` into named helpers
-  (D1-21) and fix the per-batch same-seed RNG reuse (D1-16).
-- Migrate `Eigen::MappedSparseMatrix` → `Map<SparseMatrix<double>>`
-  (D2-10/D3-15) — after the Wave-2 registration move.
-- Regenerate the committed Stan exports with current rstantools (the
-  committed files are stale — B2-01); note the GPL-3 template header in
-  LICENSE/NOTICE (D2-13).
-- Resolve the docs-vs-code question on always-computed UMAP (D6-04):
-  either document reality or skip init when `z` is supplied.
+One issue per PR, each starting with a failing test. P1 first.
+- Validate `z`, `batch` and scalar parameters, with `assayName` checked
+  against `assayNames(x)` (A1-01, A1-10, A1-17, A1-18, A1-19, A6-01,
+  A5-07); fix the misleading docs and message about `z` (A7-13, A1-16).
+- Match `background` and `ambient_counts` rows by name, and require a
+  matching `bgBatch` (A1-02, A1-03, A1-12; #43).
+- Allow a single cluster per batch that has background, and run the
+  k-means fallback on PCA components (A8-01, A8-02; #43). NEWS.
+- Return user cluster labels as a factor, together with the marker-plot
+  fixes (A1-09, A1-07, A1-20, A1-22, D2-08). NEWS.
+- Crashes and input classes: one-cell batches, a DelayedMatrix over a
+  dense seed, dgR/dgT and data.frame inputs, the `decontXInitialize`
+  guard (A1-08, A1-06, A1-14, A1-15, D2-02).
+- decontPro: join Seurat split layers before reading (minimal fix;
+  Phase II rebuilds the method), validate `cell_type`, report Stan
+  failures clearly, error on unknown arguments (A1-04, A1-11, A1-13).
+- Plots: one shared bandwidth in `plotDensity()`, clear stale per-batch
+  UMAPs on re-run, the `file` argument, positional UMAP columns (A1-24,
+  A1-25, A7-17, A6-04).
+- Cosmetic (A1-21, A1-26).
 
-### Quality baseline (carried over, now concrete)
+### I-c: coverage
 
-- Get `make bioccheck` clean and flip the CI BiocCheck job to required
-  (Wave 1 clears most NOTEs; function-length and indentation NOTEs
-  shrink with Waves 1/5).
-- Docs: FAQ sections in both vignettes (drafts ready — the #40 answer
-  must use the corrected D7-03 version), `@return` expansions, decontPro
-  reproducibility documentation, 1-based `cell_type` warning, internal
-  man pages `@noRd`.
+- Reach >= 85% on `R/` and >= 80% overall on codecov's denominator, with
+  every exported method and `stop()` path tested (A3-02). Add
+  `.covrignore` for generated Stan code (A3-03).
+- Replace hollow tests (A3-04); fix the test warnings (A3-07, A3-08,
+  #55); test the C++ guards directly (A3-18); merge Stan fits and add a
+  Stan-free output test (A3-09); a `.hasScater()` helper (A3-14); quiet
+  test output (A3-15); snapshots for message wording, withr for state
+  (A3-16); realistic `maxIter` (A3-20). No fast/slow split.
 
-## Medium term
+### I-d: core refactor (ADR-0004 first)
 
-- **pkgdown site**: unchanged plan — add `_pkgdown.yml`, build locally,
-  deploy to `gh-pages` per the shared standards (CI verifies structure with
-  `pkgdown::check_pkgdown()` only).
-- **Precomputed vignettes**: adopt the `.Rmd.orig` pattern (decontPro
-  certainly; decontX arguably — it currently runs the EM twice per
-  build); interim: `eval=FALSE` the second decontX run (D6-11). Record
-  as an ADR when done.
-- **Community surface**: issue templates (sessionInfo + reprex), CODE_OF
-  _CONDUCT link, NEWS checkbox in the PR template (D5-05, D6-14, D6-02).
-- **Expand the decontPro vignette**: it is bare-bones today. Beyond the
-  Wave-1 fixes (D6-13), grow it toward parity with the decontX vignette:
-  what the three output matrices mean and how to access them, prior
-  tuning guidance (`delta_sd`/`background_sd`) with visual before/after,
-  the `ambient_counts` empty-droplet workflow, cluster-granularity
-  advice (from the issue #40 discussion), reproducibility/`output_
-  samples` notes once Wave 4 lands, and the corrected #40 FAQ.
+- **ADR-0004, container-agnostic core:** `.decontX()` and `.decontPro()`
+  take matrices and return plain lists (decontaminated counts,
+  contamination, labels, batch, estimates, UMAP, `runParams` with `seed`
+  and `iterLogLik`); one `.decontXParams()` constructor with no
+  defaults, full method signatures, and a test that the methods' formals
+  agree; `.decontX` and `.decontXoneBatch` split into named helpers.
+  Bit-identical on the reference paths (A4-01 to A4-08, A7-22).
+- Batched assembly with one `cbind` and one reorder (A5-05); HDF5 input
+  returns an in-memory DelayedMatrix (A5-06, NEWS).
+- Separate PRs:
+  - plyr replaced exactly, reshape2 by a faithful helper (A4-09, A4-10);
+  - dead compiled code deleted, `.colSumByGroup` becomes `rowsum()`,
+    `matrixSums.c` and `R/matrixSums.R` go (coordinate with celda), then
+    the `MappedSparseMatrix` migration (D2-01, D2-04 to D2-07, D2-10,
+    D2-11, D2-13 to D2-15, A2-02, A7-16);
+  - scrapper >= 1.5 and the old-API branch removed; unreachable code
+    removed; explicit `decontXcounts` methods (A3-11 to A3-13);
+  - small quality items (A4-11, A4-13 to A4-16);
+  - a pure file-move PR last (A4-17).
 
-## Longer term / ideas
+### I-e: speed and memory
 
-- Performance work on the DecontX EM loop guided by profiling, not
-  speculation — candidates already identified: the per-iteration C++→R
-  `fit_dirichlet` callback (D3-07), the exp/log round-trip in
-  `calculateNativeMatrix` (D2-09), and the per-batch matrix copies
-  (D1-27).
-- decontPro scalability beyond `output_samples`: the model has 2·N·M
-  latent parameters, so memory stays linear in cells even with one draw;
-  hierarchical/low-rank background structure is the real lever —
-  methods-level, needs a methods review first (D7-02).
-- **Native Seurat and AnnData support**: S4 methods/accessors so
-  `decontX()` and `decontPro()` run directly on Seurat and AnnData-backed
-  objects and write results back in place, sparing users the manual
-  SCE round-trip. Today only `decontPro` has a Seurat method (input
-  only); `decontX` has none, and neither supports AnnData (likely via
-  zellkonverter/anndata — dependency choice is part of the design).
-  New exported methods on the generics → ADR first; builds on the
-  Wave-4 SeuratObject migration (ADR-D2).
-- Keep `R/celda_functions.R` in sync with celda; coordinate upstream so
-  celda re-exports decontX's functions instead of shipping a 5-year-old
-  duplicate under the same names (D3-02). This is **Stage 2 of
-  ADR-0003** — inverting the dependency so celda references decontX
-  rather than the reverse, retiring the name masking. Cross-package and
-  coordinated with the parallel celda update; must be sequenced across
-  both packages' Bioconductor releases so that no release of either
-  package ever fails for users, masks the other's exports, or forms a
-  circular Imports edge. See `dev/adr/0003-remove-celda-dependency.md`.
+One optimization per PR, with before/after numbers from `dev/bench/` in
+the PR (real PBMC mode for EM changes). Bit-identical, or the documented
+tolerance.
+- Opt-out of initialization when `z` is given, and opt-in `numThreads`
+  (A5-01, A5-02). New arguments: in ADR-0004 or a short ADR.
+- Unchecked indexing in the EM loop (A5-03); the direct
+  `calculateNativeMatrix` (A5-04, D2-09, within 1e-14);
+  `.process_stan_vb_out` tidy-up (A4-20).
+- The real-PBMC benchmark once at the end, recorded in the audit.
+
+## Phase II: multi-container support (spike results, then ADR-0005)
+
+decontPro's arguments change in the same devel cycle, so one Bioc release
+carries the whole API change.
+- **ADR-0006, decontPro arguments:** camelCase primary with permanent
+  snake_case aliases (error if both given); the empty-droplet argument
+  becomes `background` with `ambient_counts` as an alias; `iter`, `seed`,
+  `output_samples`; a quiet option; the generic dispatches on the first
+  argument only; rstan's temporary CSV removed when the fit ends (A5-08,
+  A4-12, A4-14).
+- **ADR-0005, container methods:** same class in and out, results
+  written back, `z`/`batch` as a vector or a cell-metadata column name,
+  and decontPro container methods return the object (clean break, NEWS
+  marks it Breaking). Write locations are the audit's area 6 table.
+  - Seurat: join split layers on a copy; the layer split becomes `batch`
+    when `batch` is NULL; separate `decontXcounts` assay; per-batch
+    reductions hold only that batch's cells (A1-05, A6-08).
+  - AnnData via anndataR (Suggests): extract the matrix, call the core,
+    write to `layers`/`obs`/`obsm`/`uns`; dispatch by an `inherits()`
+    redirect in the ANY methods; clear errors for read-only backed
+    objects (A6-03, A6-10).
+  - SCE: decontPro reads and writes an altExp (`altExpName`).
+  - Plots accept any supported object through an internal getter
+    (A4-18, A4-19).
+  - ExperimentSubset last, after ExperimentSubset #53 and #5 are in a
+    release: the direct approach (A6-12 to A6-19), Suggests floor on
+    that release, no workaround code.
+- Parity tests against the matrix method for every class; write-back
+  tests; an h5ad round trip; Seurat split-layer tests.
+- SeuratObject to Suggests is a low-priority option (A5-09).
+
+## Phase III: docs and site
+
+### III-a: clarity and completeness (alongside Phase I)
+
+- **decontPro vignette rewrite** (A7-03 to A7-05, A7-11): the model;
+  cord_blood loaded with only the needed modes; its bundled cell-type
+  labels (no Seurat, no dplyr, which leaves Suggests); 500 cells;
+  what every output means; tuning the priors with before/after plots; a
+  short `background` example like decontX's; runtime and
+  reproducibility; FAQ. No empty-droplet demo.
+- **decontX vignette:** show the cell-type mapping code (A7-01);
+  "proportion", not "percentage" (A7-08); simpler code (A7-09); one EM
+  run (A7-06); FAQ with #40, #43, #44 (decontX and doublet detectors on
+  the same original counts), #45 (A7-07, A8-03).
+- Citations in both vignettes and the package help page; 2024 for
+  DecontPro everywhere, including `AGENTS.md` (A7-12, A7-14).
+- Roxygen and examples (A7-10, A7-15, A7-18, A7-23); README (A7-20);
+  DESCRIPTION Title and Description (A7-21); chunk labels, long lines,
+  typos (A7-19, #57).
+- Every edited vignette is rendered locally and gets a novice-reader
+  pass.
+
+### III-b: multi-container docs (after Phase II)
+
+- A short "Using your object" section per class in each vignette, which
+  replaces the manual round trip; runnable examples for each method;
+  NEWS and a vignette callout for the decontPro break.
+
+### III-c: pkgdown site and articles (ADR-0007 first)
+
+- `_pkgdown.yml`, no development mode; full-data articles for PBMC
+  (decontX) and cord_blood (decontPro), run locally at each release; a
+  release-triggered gh-pages deploy. Enabling Pages and the first deploy
+  are maintainer actions. After it, the vignettes link to the articles.
+
+## Longer term
+
+- **A spatial model** (Xenium and others, #42): a new method, planned by
+  the maintainer after this program. Not part of it.
+- **ADR-0003 Stage 2:** invert the celda/decontX relationship so celda
+  uses decontX's functions, sequenced across both packages' Bioconductor
+  releases so neither breaks for users. See
+  `dev/adr/0003-remove-celda-dependency.md`.
+- decontPro scalability beyond `output_samples`: memory stays linear in
+  cells; hierarchical or low-rank background structure needs a methods
+  review first.
 
 ## Non-goals (for now)
 
 - No Shiny app in this package (interactive use is served by
   singleCellTK).
-- No change to the statistical models without a methods-level review —
-  model changes are science, not refactoring. (This includes the
-  decontPro low-rank idea above.)
+- No change to the DecontX or DecontPro statistical models, or to
+  decontPro's VB defaults, without a methods-level review.
+- Python/scanpy users and MuData.
+- CI rendering of vignettes or articles, and a pkgdown development site.
