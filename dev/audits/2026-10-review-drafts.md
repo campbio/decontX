@@ -50,7 +50,9 @@ Area 8 (targeted methods check):
 - Area 7: items 1-3 and 5-8 AGREED as recommended.
 - Area 7 item 4: **no empty-droplet demo** is needed ("Don't need
   empty drops"). This drops the `ambient_counts` empty-droplet workflow
-  from the decontPro vignette rewrite (plan section III-a, item 5).
+  from the decontPro vignette rewrite (plan section III-a, item 5) and
+  from the full-data decontPro article (III-c): decontPro doesn't run on
+  empty droplets.
 - Area 8 items 1-3 AGREED as recommended (A8-01 yes, A8-02 yes, no
   A8-05 backport).
 - Area 8 item 4: post the drafted replies with the audit's approval.
@@ -61,11 +63,44 @@ Area 8 (targeted methods check):
   "decontX first" draft and the area 8 "remove doublets before decontX"
   draft FAQ below; the FAQ and the #44 reply are rewritten to match.
 
+### Maintainer decisions (2026-10-27)
+
+- ES method: the **direct approach**, not get/setSubsetExperiment (A6-12
+  as written is replaced). Read `assay(x, subsetName)` and the subset's
+  colData, call the matrix core, and write results straight back with
+  `setSubsetAssay()`, `colData(x, subsetName =) <-`,
+  `reducedDim(x, , subsetName =) <-` and `metadata(x, subsetName =) <-`.
+  A lead prototype (session scratchpad `area6v2/direct/p01_direct.R`, ES
+  1.23.16) gave results identical to the matrix method for SCE,
+  SpatialExperiment and TreeSE subsets, siblings, a nested subset, a
+  re-run, and a batched run with `batch` read from a main colData column.
+  Notes: it needs only ES #53 (not #54) and copies only the subset
+  matrix; writing back only the subset's own colData avoids the silent
+  drop (A6-13); `unlink = TRUE` in `setSubsetAssay()` is still needed when
+  the main object already has `decontXcounts`, and there it unlinks only
+  that assay, so R4 doesn't affect decontX.
+- ES detection: write **no** detection code (`.hasSlot()` or similar);
+  wait for ES #5, to be fixed in ES devel soon.
+- File candidate ES issues R2, R3, R4 unless an open ES PR already fixes
+  them. None was fixed on the full PR stack (ES 1.23.18, #53-#56), so
+  they were filed 2026-10-27 as campbio/ExperimentSubset #57 (R2,
+  duplicate colData names), #58 (R3, main altExps invisible in subsets)
+  and #59 (R4, `unlink` naming assays).
+- decontPro `ambient_counts`: document how to use it, with a short
+  vignette example like decontX's `background` example. Make the naming
+  consistent with decontX: the empty-droplet argument becomes
+  `background`, with `ambient_counts` kept as a permanent alias. Chosen
+  over `backgroundCounts` / `ambientCounts`, which collide with the
+  output elements `background_counts` / `ambient_counts` (estimated
+  contamination per cell, a different quantity; `R/stan_helpers.R:109-115`).
+  The help text says plainly that `background` is the empty-droplet
+  matrix, distinct from the model's background component (`backgroundSd`).
+
 Since then, ExperimentSubset has changed a lot (PRs #38-#51 merged;
 #53 subset assay scoping and #54 `getSubsetExperiment()` /
 `setSubsetExperiment()` open, held until after Bioc 3.24). The area 6
-ExperimentSubset findings were made against ExperimentSubset 1.22.0
-and need rechecking against that API.
+ExperimentSubset findings were made against ExperimentSubset 1.22.0;
+the "Area 6 re-check" section rechecks them against the PR #54 branch.
 
 
 
@@ -600,6 +635,86 @@ assay decontPro in altExp + metadata(altExp); 10 rhdf5 in h5ad test skips; ES Su
   queryable, else document. uns: run params + per-batch estimates; per-cell in obs/obsm. Plot getter reads obs/obsm/layers. Replaces area-6
   decisions 4-6; decision 10 (rhdf5 skip) stays. zellkonverter rejected (no AnnData object in R; Python via basilisk for writing).
   Verified the h5ad->SCE->h5ad route via anndataR works (s15_sce_roundtrip.R) -> document as an alternative.
+
+---
+
+## Area 6 re-check: ExperimentSubset after PRs #38-#54 (agent report, 2026-10-26; parity and silent-drop claims checked by lead against out/s03.txt)
+
+Env: ES 1.23.16 = PR #54 branch c9ac5ee (stacked on #53, both open until after Bioc 3.24); decontX 1.11.2 at 867e2ca; R 4.6.1, SCE 1.34.0,
+SPE 1.22.0, TreeSE 2.20.0. Global ES 1.23.18 (PR #56 stack, same exports, unused). Scripts s01-s07 and outputs in the session scratchpad
+(area6v2/), not committed. GitHub shows ES #2/#3 OPEN because the fix PRs target devel.
+
+### Today (no decontX changes)
+decontX/decontXcounts/decontPro on Subset{SCE,Spatial,Tree} dispatch to SCE methods; decontX(es) all top level, parity, subsets survive; decontPro(es)
+top counts, list. decontXcounts(es) pre-run: ERROR "'decontXcounts' is not the name of an assay, a subset or an assay seen in a subset." (was NULL).
+Typo assayName: same clear error. assayName="s1": 150 of 300 cols -> colData silently recycled, then reducedDim<- "'value' should have number of
+rows equal to 'ncol(x)'"; 70 of 300 -> "70 elements in value to replace 300". batch as a column-name string: ERROR (not supported yet; planned).
+
+### Naming (#2/#53)
+Siblings own "decontXcounts" via setSubsetAssay; "s1/decontXcounts", subsetAssayName=, getSubsetAssay each return their own; bare name -> ERROR
+"'decontXcounts' is stored in subset 's1', 's2' ... name it as "s1/decontXcounts""; storing linked "counts" -> unlink error; unknown "s1/nope" clear error.
+
+### colData/reducedDim/metadata/altExp
+Rownames correct, write-back keeps names and factors, mismatched -> clear error; parentColData=TRUE tags mcols()$fromParentData. reducedDim(subsetName=)
+ok, no-type ok (#39); ES::reducedDimNames(subsetName=) lists; #26 masking present (reducedDims(sce, withDimnames=FALSE)<- "unused argument").
+metadata(subsetName=) ok. altExp(subsetName=) ok. Main altExps not visible in subsets. All work with ES unattached.
+
+### es[i,] (#4)
+assay(es[1:50,],"s1") / es[,1:100] -> "subscript out of bounds"; getSubsetExperiment(es[1:50,],"s1") -> "subscript contains out-of-bounds indices".
+
+### Classes (#5)
+SubsetSCE>SCE; SubsetSpatial>SPE>SCE; SubsetTree>TreeSE>SCE. No virtual class or predicate. Use .hasSlot(x,"subsets") or the 5 classes;
+hasMethod() FALSE when ES is unattached.
+
+### Round trip: getSubsetExperiment -> decontX -> setSubsetExperiment
+Parity (contamination, counts, clusters, UMAP) for SCE/SPE/TreeSE, z from subset colData, batched, siblings, nested s1a, re-run. Lands in: own
+"decontXcounts" (dgC; linked counts not copied for int/double/dgC), subset colData (clusters factor), reducedDim decontX_UMAP / decontX_<b>_UMAP,
+metadata$decontX; validObject TRUE; re-extracted SCE plots. Main or ancestor "decontXcounts" -> linked -> set errors without unlink=TRUE. Main has
+decontX columns + parentData=TRUE -> subset contamination/clusters dropped silently; parentData=FALSE stores them but parentColData=TRUE gives
+duplicate names. Primary assay is first under the parent's name (parent "s1/decontXcounts" -> "decontXcounts","counts"); default assayName="counts"
+misses it. SPE sample_id duplicated with parentData=TRUE; spatialCoords and tree intact. decontPro on an ADT subset: parity, stores assay+metadata.
+Cost (2000x2000 of 4000 cells dgC + logcounts): get 0.08 s, set 0.08 s, decontX 1.65 s (matrix 1.61 s); extracted SCE 16 MB (materializes every
+linked assay); max-used ~860 vs ~775 Mb.
+
+Sketch of the thin method (top of the SCE method):
+```r
+if (!is.null(subsetName)) {
+  if (!methods::.hasSlot(x, "subsets")) stop("'subsetName' needs an ExperimentSubset object")
+  sub <- ExperimentSubset::getSubsetExperiment(x, subsetName, parentData = FALSE)
+  if (is.null(assayName)) assayName <- SummarizedExperiment::assayNames(sub)[1]
+  if (assayName == "decontXcounts") stop("...")
+  z <- .resolveCol(z, sub, x); batch <- .resolveCol(batch, sub, x)  # subset colData, then main by colnames
+  sub <- decontX(sub, assayName = assayName, z = z, batch = batch, ...)
+  return(ExperimentSubset::setSubsetExperiment(x, subsetName, sub, unlink = TRUE))
+}
+```
+Replaces the plan's whole ES row (per-slot writes, rownames reset, per-batch UMAP naming). Plots: getSubsetExperiment() + the SCE getter.
+decontXcounts(es, subsetName=) -> assay(x, subsetName, subsetAssayName = "decontXcounts").
+
+### Dependencies
+Depends/Imports unchanged 1.22.0 -> 1.23.16; 88 recursive (78 non-base); 40 new vs decontX 1.11.2 tree (103), 17 vs the 1.10.0 tree. Suggests.
+
+### Candidate upstream ES issues (not filed; repros in area6v2/scripts/s07_es_repros.R)
+- R1 (already in the #50 comment, confirmed): parentData=TRUE + tool overwrites an inherited column -> dropped silently on set.
+- R2: after a parentData=FALSE write, colData(..., parentColData=TRUE) has duplicate names; `$` returns the main object's values.
+- R3 (new): main altExps not visible in a subset or getSubsetExperiment(); decontPro(subsetName=, altExpName=) can't reach a main ADT altExp.
+- R4 (enhancement): unlink is all-or-nothing; a changed counts is unlinked silently along with decontXcounts; unlink = <assay names> would fix it.
+
+### Findings
+- A6-12 P2 II M: thin wrapper via get/setSubsetExperiment replaces the plan's ES row; plot getter via getSubsetExperiment(parentData=FALSE);
+  Suggests floor on the ES version with #53+#54.
+- A6-13 P2 II S (ES #50): overwritten inherited columns dropped silently -> wrapper uses parentData=FALSE and resolves z/batch names itself; regression test.
+- A6-14 P2 II S: linked decontXcounts from main/ancestor -> unlink=TRUE in wrapper; unlink is all-or-nothing (candidate ES enhancement R4).
+- A6-15 P3 II S: ES default assayName = primary (assayNames(sub)[1]); error if assayName == "decontXcounts".
+- A6-16 P3 II S (ES #50): duplicate names with parentColData=TRUE -> getter reads parentColData=FALSE.
+- A6-17 P3 II: main altExps invisible to subsets -> decontPro altExpName on a subset impossible (consistent with area-6 decision 3); candidate ES issue R3.
+- A6-18 P3 I-b S: A6-01 silent recycling mode; validate assayName %in% assayNames(x) first.
+- A6-19 P3 II S: decontXcounts(es, subsetName=) can forward to assay(x, s, subsetAssayName=) with no NULL check; the plan's is(SubsetSCE) branch misses 2 classes.
+
+### Status of earlier A6 items
+A6-01 OPEN (typo part fixed by ES); A6-02 OPEN (ES #5); A6-05 FIXED on the #53 branch; A6-06 FIXED in devel (#48); A6-07 OPEN (ES #4); A6-11
+resolved by the round trip; the NULL-before-run case CHANGED to an error; #26 OPEN; #21 and #39 FIXED. A6-03/04/08/09/10 (AnnData, Seurat)
+not rechecked. Not verified: a decontPro ES method end to end (the SCE method doesn't return the object yet); memory figures are rough gc() peaks.
 
 ---
 
