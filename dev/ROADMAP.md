@@ -14,7 +14,7 @@ pushed, one at a time.
 
 ## Done
 
-- **Phase 0 (review):** baseline, status of the 2026-09 findings, eight
+- **Phase 0 (review), approved 2026-10-27:** baseline, status of the 2026-09 findings, eight
   review areas, the benchmark script `dev/bench/bench-decontx.R`, and
   this rewrite. Upstream ExperimentSubset issues filed: #2-#5, #57-#59.
 - From the 2026-09 waves: green devel CI, celda removed from Imports
@@ -181,10 +181,15 @@ carries the whole API change.
 
 ### III-c: pkgdown site and articles (ADR-0007 first)
 
-- `_pkgdown.yml`, no development mode; full-data articles for PBMC
-  (decontX) and cord_blood (decontPro), run locally at each release; a
-  release-triggered gh-pages deploy. Enabling Pages and the first deploy
-  are maintainer actions. After it, the vignettes link to the articles.
+- Documentation moves to GitHub Pages: a release site at the root,
+  rebuilt at each release from the `RELEASE_*` branch, and a development
+  site at `/dev/`, built from `devel`. The pkgdown mode is set by branch
+  (Bioc's three-part versions defeat `mode: auto`).
+- `_pkgdown.yml`; full-data articles for PBMC (decontX) and cord_blood
+  (decontPro), run locally at each release; how the articles appear on
+  the development site is decided in ADR-0007. Enabling Pages and the
+  first deploy are maintainer actions. After it, the vignettes link to
+  the articles.
 
 ## Longer term
 
@@ -205,4 +210,5 @@ carries the whole API change.
 - No change to the DecontX or DecontPro statistical models, or to
   decontPro's VB defaults, without a methods-level review.
 - Python/scanpy users and MuData.
-- CI rendering of vignettes or articles, and a pkgdown development site.
+- CI rendering of the full-data articles. (The development site renders
+  the short vignettes in CI.)

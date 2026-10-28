@@ -446,5 +446,13 @@ sections above, these win.
 - **Initialization (Phase I-e):** runs by default when `z` is given, as
   today, with a new opt-out argument; plus opt-in `numThreads` (A5-01,
   A5-02).
+- **pkgdown (section 6, III-c; section 9):** a development site at
+  `/dev/`, built from `devel`, is in scope as part of moving the
+  documentation to GitHub Pages. This replaces "no development mode"
+  and the out-of-scope `/dev/` site. The release site still documents
+  the current Bioc release. The mode is set by branch, since Bioc's
+  three-part versions defeat pkgdown's `mode: auto`; the devel build
+  renders the short vignettes in CI, and ADR-0007 decides how the
+  full-data articles appear there.
 - **ADR numbering:** ADR-0004 core, ADR-0005 container methods,
   ADR-0006 decontPro arguments, ADR-0007 pkgdown.

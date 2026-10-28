@@ -1,6 +1,9 @@
 # Deep review: decontX (Phase 0)
 
 - **Date:** 2026-10-18 to 2026-10-27
+- **Status:** approved by the maintainer, 2026-10-27, with one change:
+  the pkgdown site gains a development site (see Changes to the
+  approved plan).
 - **Version reviewed:** 1.11.2, `devel` at c6fca8e (the area 6
   ExperimentSubset re-check ran at 867e2ca, which changes no package code)
 - **Plan:** `dev/plans/2026-10-18-deep-review-and-multi-container-design.md`
@@ -432,6 +435,9 @@ that change behaviour or the plan:
 - The decontX Seurat section is fixed now, in a small PR early in
   Phase I; III-b replaces it with the native method.
 - DecontPro is cited as 2024 everywhere, including `AGENTS.md`.
+- pkgdown (2026-10-27): the move to GitHub Pages includes a development
+  site at `/dev/`, built from `devel`, beside the release site built
+  from the current `RELEASE_*` branch.
 - Doublets (#44): run decontX and the doublet detectors on the same
   original counts. It is fine when both flag the same cells, and high
   contamination can also be evidence of a doublet.
@@ -476,10 +482,18 @@ Recorded in the plan as amendments (2026-10-27):
   example; the argument is renamed `background`.
 - HDF5 input returns an in-memory DelayedMatrix (A5-06), a result-class
   change the plan didn't foresee.
+- pkgdown: a development site at `/dev/` is now in scope, as part of
+  moving the documentation to GitHub Pages; it reverses the plan's "no
+  development mode". Bioconductor versions have three components, so
+  pkgdown's `mode: auto` would call every build a release; ADR-0007 sets
+  the mode by branch (devel to `/dev/`, `RELEASE_*` to the root). A
+  devel build renders the short vignettes in CI; how the full-data
+  articles appear on the development site is settled in ADR-0007.
 
 ## Proposed work
 
-Nothing below is filed until this audit is approved. Each line is one
+The audit is approved (2026-10-27). Each issue and reply is still
+reviewed locally before it is filed or posted. Each line is one
 issue and, normally, one PR, in the order of `dev/ROADMAP.md`.
 
 **Issues to open**
@@ -516,7 +530,7 @@ issue and, normally, one PR, in the order of `dev/ROADMAP.md`.
     A1-05, A4-18, A4-19, A6-*).
 19. decontPro vignette rewrite and decontX vignette fixes with FAQ (A7-*,
     A8-03).
-20. pkgdown site (pkgdown ADR).
+20. pkgdown site on GitHub Pages, release and development (ADR-0007).
 
 **Issue replies to post** (drafts in the review, area 8): #40 (reply,
 close), #43 (reply), #46 (close), #39 (close), #56 (close). #44 waits
@@ -531,4 +545,6 @@ for the rewritten FAQ.
 - ADR-0006: decontPro arguments (camelCase with aliases, `background`,
   `iter`/`seed`/`output_samples`, quiet option, error on unknown
   arguments, generic signature).
-- ADR-0007: pkgdown site (layout, release-only rebuilds, deploy trigger).
+- ADR-0007: pkgdown site (layout; the release site rebuilt at each
+  release and the `/dev/` site from `devel`; the development mode set by
+  branch; deploy triggers; which articles the development site carries).

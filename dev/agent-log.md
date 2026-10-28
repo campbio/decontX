@@ -46,7 +46,8 @@ it.
   coverage 74%; initialization is about 90% of large runs.
 - **Issues/ADRs opened:** campbio/ExperimentSubset #2-#5 (2026-10-19)
   and #57-#59 (2026-10-27). decontX issues, replies and ADR-0004 to
-  ADR-0007 are proposed in the audit and wait for its approval.
+  ADR-0007 are proposed in the audit, which the maintainer approved on
+  2026-10-27 with a pkgdown development site added.
 - **Full write-up:** `dev/audits/2026-10-deep-review.md` (evidence in
   `dev/audits/2026-10-review-drafts.md`); `dev/ROADMAP.md` rewritten.
 
