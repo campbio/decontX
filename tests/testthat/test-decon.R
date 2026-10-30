@@ -374,18 +374,25 @@ test_that("misspelled messages keep their current wording", {
 })
 
 test_that("sparse and DelayedArray input give the dense-input results", {
+  # The EM is deterministic, so two iterations are enough to compare
   d <- refData()
-  dense <- decontX(d$sim$observedCounts, z = d$sim$z, verbose = FALSE)
+  dense <- decontX(d$sim$observedCounts,
+    z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
   # Today dense input returns a dgCMatrix (A1-14; #71 changes this)
   expect_s4_class(dense$decontXcounts, "dgCMatrix")
 
   sparseCounts <- methods::as(d$sim$observedCounts, "CsparseMatrix")
-  sparse <- decontX(sparseCounts, z = d$sim$z, verbose = FALSE)
+  sparse <- decontX(sparseCounts, z = d$sim$z, maxIter = 2, verbose = FALSE)
   expect_identical(sparse$contamination, dense$contamination)
   expect_identical(sparse$decontXcounts, dense$decontXcounts)
 
   delayedCounts <- DelayedArray::DelayedArray(sparseCounts)
-  delayed <- decontX(delayedCounts, z = d$sim$z, verbose = FALSE)
+  delayed <- decontX(delayedCounts,
+    z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
   expect_s4_class(delayed$decontXcounts, "DelayedMatrix")
   expect_identical(delayed$contamination, dense$contamination)
   expect_identical(

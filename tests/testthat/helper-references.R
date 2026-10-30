@@ -18,6 +18,19 @@ refData <- function() {
   )
 }
 
+# The 10 x 8 decontPro fixture, with an ambient matrix for the same ADTs
+refProData <- function() {
+  withr::with_seed(42, {
+    counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8,
+      dimnames = list(paste0("g", seq_len(10)), paste0("c", seq_len(8)))
+    )
+    ambient <- matrix(sample(1:100, 50, replace = TRUE), nrow = 10, ncol = 5,
+      dimnames = list(paste0("g", seq_len(10)), paste0("e", seq_len(5)))
+    )
+  })
+  list(counts = counts, ambient = ambient, k = c(1, 1, 2, 2, 3, 3, 4, 4))
+}
+
 # The UMAP is left out: with z supplied it doesn't feed the EM, and it
 # depends on the platform
 refKeep <- function(res) {

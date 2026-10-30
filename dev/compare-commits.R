@@ -46,13 +46,6 @@ runPaths <- function(helper) {
   env <- new.env(parent = asNamespace("decontX"))
   sys.source(helper, envir = env)
   local(envir = env, {
-    proFixture <- function() {
-      withr::with_seed(42, {
-        counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8)
-        ambient <- matrix(sample(1:100, 50, replace = TRUE), nrow = 10)
-      })
-      list(counts = counts, ambient = ambient, k = c(1, 1, 2, 2, 3, 3, 4, 4))
-    }
     extraPaths <- list(
       noZ = function(d) decontX(d$sim$observedCounts, verbose = FALSE),
       noZSce = function(d) {
@@ -63,18 +56,18 @@ runPaths <- function(helper) {
       },
       legacyInit = function(d) {
         if (!requireNamespace("scater", quietly = TRUE)) {
-          return("skipped: scater is not installed")
+          return(structure("scater is not installed", class = "pathSkipped"))
         }
         suppressWarnings(decontX(d$sim$observedCounts,
           legacyInit = TRUE, verbose = FALSE
         ))
       },
       decontPro = function(d) {
-        p <- proFixture()
+        p <- refProData()
         decontPro(p$counts, p$k, 1e-2, 1e-2)
       },
       decontProAmbient = function(d) {
-        p <- proFixture()
+        p <- refProData()
         decontPro(p$counts, p$k, 1e-2, 1e-2, ambient_counts = p$ambient)
       }
     )
@@ -103,7 +96,13 @@ same <- TRUE
 for (path in union(names(results$old), names(results$new))) {
   old <- results$old[[path]]
   new <- results$new[[path]]
-  # A path that errors fails the comparison, even with the same error twice
+  # A path that errors or is skipped fails the comparison, even when both
+  # commits do the same
+  if (inherits(old, "pathSkipped") || inherits(new, "pathSkipped")) {
+    same <- FALSE
+    message(path, ": SKIPPED (", unclass(old), ")")
+    next
+  }
   errors <- c(
     old = if (inherits(old, "pathError")) old,
     new = if (inherits(new, "pathError")) new
@@ -118,6 +117,10 @@ for (path in union(names(results$old), names(results$new))) {
   } else {
     same <- FALSE
     difference <- all.equal(old, new, tolerance = 0)
+    # all.equal() misses some differences identical() sees, such as type
+    if (isTRUE(difference)) {
+      difference <- waldo::compare(old, new, x_arg = "old", y_arg = "new")
+    }
     message(path, ": DIFFERS\n  ", paste(utils::head(difference, 5),
       collapse = "\n  "
     ))
