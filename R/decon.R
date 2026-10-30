@@ -68,8 +68,8 @@
 #' dimensionality reduction before clustering. Variability is calculated
 #' using \code{\link[scrapper]{modelGeneVariances}} from the 'scrapper'
 #' package (or by the variance of the log-normalized counts when
-#' \code{legacyInit = TRUE}). Used only when z is not provided.
-#' Default 5000.
+#' \code{legacyInit = TRUE}). If \code{z} is provided, it is used only for
+#' the UMAP stored in the results. Default 5000.
 #' @param dbscanEps Numeric. The clustering resolution parameter
 #' used in '\link[dbscan]{dbscan}' to estimate broad cell clusters.
 #' Used only when z is not provided. Default 1.
@@ -87,7 +87,8 @@
 #'  normalization functions were deprecated in favor of the 'scrapper'
 #'  package. It is kept for backwards compatibility and will remain
 #'  available as long as the upstream functions are still provided by
-#'  scater/scuttle. Used only when z is not provided. Default FALSE.
+#'  scater/scuttle. If \code{z} is provided, it is used only for the UMAP
+#'  stored in the results. Default FALSE.
 #' @param logfile Character. Messages will be redirected to a file named
 #'  `logfile`. If NULL, messages will be printed to stdout.  Default NULL.
 #' @param verbose Logical. Whether to print log messages. Default TRUE.
@@ -155,6 +156,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
                                                       legacyInit = FALSE,
                                                       logfile = NULL,
                                                       verbose = TRUE) {
+  .checkAssayName(x, assayName, "assayName", "x")
   countsBackground <- NULL
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
@@ -172,6 +174,9 @@ setMethod("decontX", "SingleCellExperiment", function(x,
 
     if (is.null(bgAssayName)) {
       bgAssayName <- assayName
+    }
+    if (inherits(background, "SummarizedExperiment")) {
+      .checkAssayName(background, bgAssayName, "bgAssayName", "background")
     }
     countsBackground <- SummarizedExperiment::assay(background, i = bgAssayName)
   }
@@ -367,6 +372,22 @@ setMethod(
                      legacyInit = FALSE,
                      logfile = NULL,
                      verbose = TRUE) {
+  .checkDecontXArgs(
+    counts = counts,
+    z = z,
+    batch = batch,
+    maxIter = maxIter,
+    convergence = convergence,
+    iterLogLik = iterLogLik,
+    delta = delta,
+    estimateDelta = estimateDelta,
+    varGenes = varGenes,
+    dbscanEps = dbscanEps,
+    seed = seed,
+    legacyInit = legacyInit,
+    logfile = logfile,
+    verbose = verbose
+  )
   startTime <- Sys.time()
   .logMessages(paste(rep("-", 50), collapse = ""),
     logfile = logfile,
@@ -863,10 +884,103 @@ setMethod(
 }
 
 
+## Check the arguments of .decontX() before any work is done
+.checkDecontXArgs <- function(counts,
+                              z,
+                              batch,
+                              maxIter,
+                              convergence,
+                              iterLogLik,
+                              delta,
+                              estimateDelta,
+                              varGenes,
+                              dbscanEps,
+                              seed,
+                              legacyInit,
+                              logfile,
+                              verbose) {
+  .checkCellValues(z, "z", ncol(counts))
+  .checkCellValues(batch, "batch", ncol(counts))
+  if (!.isWholeNumber(maxIter, min = 1)) {
+    stop("'maxIter' must be a single whole number of at least 1.")
+  }
+  if (!.isWholeNumber(iterLogLik, min = 1)) {
+    stop("'iterLogLik' must be a single whole number of at least 1.")
+  }
+  if (!.isNumber(convergence, min = 0)) {
+    stop("'convergence' must be a single non-negative number.")
+  }
+  .checkDelta(delta)
+  .processvarGenes(varGenes)
+  .processdbscanEps(dbscanEps)
+  flags <- list(
+    estimateDelta = estimateDelta,
+    legacyInit = legacyInit,
+    verbose = verbose
+  )
+  for (flag in names(flags)) {
+    if (!(isTRUE(flags[[flag]]) || isFALSE(flags[[flag]]))) {
+      stop("'", flag, "' must be TRUE or FALSE.")
+    }
+  }
+  if (!is.null(seed) && !.isNumber(seed)) {
+    stop("'seed' must be NULL or a single number.")
+  }
+  if (!is.null(logfile) &&
+        !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
+    stop("'logfile' must be NULL or a single character string.")
+  }
+  invisible(NULL)
+}
+
+## z and batch need one value per cell and no NA
+.checkCellValues <- function(values, arg, numCells) {
+  if (is.null(values)) {
+    return(invisible(NULL))
+  }
+  if (length(values) != numCells) {
+    stop(
+      "'", arg, "' must be of the same length as the number of cells in ",
+      "the 'counts' matrix."
+    )
+  }
+  if (anyNA(values)) {
+    stop("'", arg, "' must not contain NA.")
+  }
+  invisible(NULL)
+}
+
+## A single finite number of at least 'min'
+.isNumber <- function(x, min = -Inf) {
+  is.numeric(x) && length(x) == 1 && is.finite(x) && x >= min
+}
+
+## A single finite whole number of at least 'min'
+.isWholeNumber <- function(x, min = -Inf) {
+  .isNumber(x, min = min) && x == round(x)
+}
+
+## The assay must exist, so a wrong name stops before decontX runs
+.checkAssayName <- function(object, assayName, arg, objectArg) {
+  available <- SummarizedExperiment::assayNames(object)
+  if (!(is.character(assayName) && length(assayName) == 1 &&
+          assayName %in% available)) {
+    stop(
+      "'", arg, "' (", deparse(assayName), ") is not an assay of '",
+      objectArg, "'. Its assays are: ", paste(available, collapse = ", "),
+      "."
+    )
+  }
+  invisible(NULL)
+}
+
 ## Make sure provided count matrix is the right type
 .checkCountsDecon <- function(counts) {
-  if (sum(is.na(counts)) > 0) {
+  if (anyNA(counts)) {
     stop("Missing value in 'counts' matrix.")
+  }
+  if (any(counts < 0)) {
+    stop("Negative value in 'counts' matrix.")
   }
   if (is.null(dim(counts))) {
     stop("At least 2 genes need to have non-zero expressions.")
@@ -956,9 +1070,8 @@ setMethod(
   libSizes <- Matrix::colSums(counts)
   if (any(libSizes == 0)) {
     stop(
-      "All cells must have at least one count to estimate cell ",
-      "clusters. Remove empty cells or droplets before running ",
-      "decontX, or supply cluster labels with the 'z' parameter."
+      "All cells must have at least one count. Remove empty cells or ",
+      "droplets before running decontX."
     )
   }
   sf <- scrapper::centerSizeFactors(libSizes)
@@ -1047,7 +1160,7 @@ setMethod(
   if (is.null(varGenes)) {
     varGenes <- 5000
   } else {
-    if (varGenes < 2 || length(varGenes) > 1) {
+    if (!.isWholeNumber(varGenes, min = 2)) {
       stop("Parameter 'varGenes' must be an integer larger than 1.")
     }
   }
@@ -1059,7 +1172,7 @@ setMethod(
   if (is.null(dbscanEps)) {
     dbscanEps <- 1
   } else {
-    if (dbscanEps < 0) {
+    if (!.isNumber(dbscanEps, min = 0)) {
       stop("Parameter 'dbscanEps' needs to be non-negative.")
     }
   }
@@ -1067,7 +1180,8 @@ setMethod(
 }
 
 .checkDelta <- function(delta) {
-  if (!is.numeric(delta) || length(delta) != 2 || any(delta < 0)) {
+  if (!is.numeric(delta) || length(delta) != 2 ||
+        !all(is.finite(delta)) || any(delta <= 0)) {
     stop(
       "'delta' needs to be a numeric vector of length 2",
       " containing positive values."
