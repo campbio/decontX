@@ -300,6 +300,8 @@ Note that the decontaminated matrix of decontX consists of floating point number
 
 ```{r seurat_create2, eval = FALSE}
 # Retrieve the counts matrix from the Seurat object
+library(Seurat)
+library(SingleCellExperiment)
 counts <- LayerData(seuratObject, assay = "RNA", layer = "counts")
 
 # Create a SingleCellExperiment object and run decontX
