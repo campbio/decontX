@@ -449,7 +449,7 @@ that change behaviour or the plan:
   devel library through an untracked repo-root `.Renviron`
   (`R_LIBS_USER`), not renv.
 
-## Open questions (answered 2026-10-27, except 4)
+## Open questions (all answered)
 
 1. **Batch prefix for user `z` in batched runs.** Answered 2026-10-27:
    clusters decontX estimates (no `z`) keep the `"<batch>-<k>"` prefix;
@@ -464,9 +464,24 @@ that change behaviour or the plan:
 3. **R dependency floor** (#57). Answered 2026-10-27: raising
    `R (>= 4.3.0)` is allowed when needed, for example to clear the
    BiocCheck NOTE or for a dependency; it goes in the dependencies PR.
-4. **#44 FAQ and reply text.** The draft in the review is superseded by
-   the doublet decision; the rewritten text goes to the maintainer before
-   it is posted.
+4. **#44 FAQ and reply text.** Rewritten to the doublet decision,
+   approved 2026-10-29 and the reply posted. The FAQ entry, for the
+   vignettes (#83):
+
+   > **Should I run doublet detection before or after decontX?**
+   > Run both on the same original counts. Run your doublet detector (for
+   > example scDblFinder or scds) on the original filtered counts, not on
+   > decontaminated counts. Doublet detectors are designed for raw integer
+   > counts, and decontX changes exactly what they look for: when a doublet
+   > is grouped with one of its two cell types, decontX treats the other
+   > cell's transcripts as contamination and removes them, so the doublet
+   > looks like a single cell afterwards.
+   >
+   > It's fine when decontX and a doublet detector flag some of the same
+   > cells. High decontX contamination can itself indicate a doublet: in
+   > Yang et al. (2020), every cell with more than 70% estimated
+   > contamination was also called a doublet by Scrublet. Use both results
+   > together when you decide which cells to remove.
 
 ## Changes to the approved plan
 
@@ -492,9 +507,9 @@ Recorded in the plan as amendments (2026-10-27):
 
 ## Proposed work
 
-The audit is approved (2026-10-27). Each issue and reply is still
-reviewed locally before it is filed or posted. Each line is one
-issue and, normally, one PR, in the order of `dev/ROADMAP.md`.
+The audit is approved (2026-10-27). The issues were opened on
+2026-10-29 as #65-#84, in this order (issue n is #(64 + n)). Each
+line is one issue and, normally, one PR, in the order of `dev/ROADMAP.md`.
 
 **Issues to open**
 1. Fix the decontX vignette Seurat section (A7-02).
@@ -532,9 +547,10 @@ issue and, normally, one PR, in the order of `dev/ROADMAP.md`.
     A8-03).
 20. pkgdown site on GitHub Pages, release and development (ADR-0007).
 
-**Issue replies to post** (drafts in the review, area 8): #40 (reply,
-close), #43 (reply), #46 (close), #39 (close), #56 (close). #44 waits
-for the rewritten FAQ.
+**Issue replies** (posted 2026-10-29): #40 (closed), #43 (reply, open
+until #68 and #69), #44 (reply, open until the FAQ ships in #83), #46
+(closed), #39 (closed), #56 (closed). #45 gets a reply pointing to its
+FAQ once #83 ships (after #70); #55, #57 and #42 stay open.
 
 **ADR stubs**
 - ADR-0004: container-agnostic core (core contract and return shape,

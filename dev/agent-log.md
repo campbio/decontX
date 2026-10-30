@@ -47,7 +47,10 @@ it.
 - **Issues/ADRs opened:** campbio/ExperimentSubset #2-#5 (2026-10-19)
   and #57-#59 (2026-10-27). decontX issues, replies and ADR-0004 to
   ADR-0007 are proposed in the audit, which the maintainer approved on
-  2026-10-27 with a pkgdown development site added.
+  2026-10-27 with a pkgdown development site added. On 2026-10-29:
+  issues #65-#84 opened; replies posted on #40, #43, #44, #46, #39 and
+  #56 (#40, #46, #39 and #56 closed); ADR-0004 to ADR-0007 committed as
+  Proposed stubs.
 - **Full write-up:** `dev/audits/2026-10-deep-review.md` (evidence in
   `dev/audits/2026-10-review-drafts.md`); `dev/ROADMAP.md` rewritten.
 
