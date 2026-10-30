@@ -901,8 +901,9 @@ setMethod(
                               verbose) {
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
-  if (!.isWholeNumber(maxIter, min = 1)) {
-    stop("'maxIter' must be a single whole number of at least 1.")
+  # Inf runs until convergence
+  if (!(.isWholeNumber(maxIter, min = 1) || .isInf(maxIter))) {
+    stop("'maxIter' must be a single whole number of at least 1, or Inf.")
   }
   if (!.isWholeNumber(iterLogLik, min = 1)) {
     stop("'iterLogLik' must be a single whole number of at least 1.")
@@ -960,15 +961,24 @@ setMethod(
   .isNumber(x, min = min) && x == round(x)
 }
 
+## Positive infinity, which some arguments accept to mean "no limit"
+.isInf <- function(x) {
+  is.numeric(x) && length(x) == 1 && isTRUE(x == Inf)
+}
+
 ## The assay must exist, so a wrong name stops before decontX runs
 .checkAssayName <- function(object, assayName, arg, objectArg) {
   available <- SummarizedExperiment::assayNames(object)
   if (!(is.character(assayName) && length(assayName) == 1 &&
           assayName %in% available)) {
+    found <- if (length(available) > 0) {
+      paste0("Its assays are: ", paste(available, collapse = ", "), ".")
+    } else {
+      "It has no named assays."
+    }
     stop(
       "'", arg, "' (", deparse(assayName), ") is not an assay of '",
-      objectArg, "'. Its assays are: ", paste(available, collapse = ", "),
-      "."
+      objectArg, "'. ", found
     )
   }
   invisible(NULL)
@@ -1160,7 +1170,8 @@ setMethod(
   if (is.null(varGenes)) {
     varGenes <- 5000
   } else {
-    if (!.isWholeNumber(varGenes, min = 2)) {
+    # Inf uses all genes
+    if (!(.isWholeNumber(varGenes, min = 2) || .isInf(varGenes))) {
       stop("Parameter 'varGenes' must be an integer larger than 1.")
     }
   }

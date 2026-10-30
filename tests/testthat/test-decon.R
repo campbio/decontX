@@ -542,5 +542,42 @@ test_that("the zero-count error doesn't suggest supplying z", {
   err <- expect_error(decontX(counts, z = d$sim$z, verbose = FALSE),
     regexp = "at least one count"
   )
-  expect_no_match(conditionMessage(err), "'z'")
+  expect_false(grepl("'z'", conditionMessage(err)))
+})
+
+test_that("decontX still accepts integer, factor and Inf arguments", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  expect_no_error(.checkDecontXArgs(
+    counts = counts,
+    z = factor(d$sim$z),
+    batch = factor(d$batch),
+    maxIter = 500L,
+    convergence = 0L,
+    iterLogLik = 10L,
+    delta = c(10L, 10L),
+    estimateDelta = TRUE,
+    varGenes = 5000L,
+    dbscanEps = 0,
+    seed = 1L,
+    legacyInit = FALSE,
+    logfile = NULL,
+    verbose = FALSE
+  ))
+  expect_no_error(.checkDecontXArgs(
+    counts = counts,
+    z = as.character(d$sim$z),
+    batch = NULL,
+    maxIter = Inf,
+    convergence = 0.001,
+    iterLogLik = 10,
+    delta = c(10, 10),
+    estimateDelta = FALSE,
+    varGenes = Inf,
+    dbscanEps = NULL,
+    seed = NULL,
+    legacyInit = TRUE,
+    logfile = tempfile(),
+    verbose = TRUE
+  ))
 })

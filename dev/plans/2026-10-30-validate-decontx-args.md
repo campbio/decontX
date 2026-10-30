@@ -40,11 +40,14 @@ correlation with the true contamination was 0.999 for a valid `z`.
    calls first, before any work, so it covers both methods. Each message
    names the argument and the problem. It checks:
    - `z` and `batch`: NULL, or one value per cell with no NA
-   - `maxIter` and `iterLogLik`: a single whole number, at least 1
+   - `maxIter`: a single whole number, at least 1, or `Inf` (run until
+     convergence, which worked before)
+   - `iterLogLik`: a single whole number, at least 1
    - `convergence`: a single non-negative number
    - `estimateDelta`, `legacyInit` and `verbose`: `TRUE` or `FALSE`
    - `seed`: NULL or a single finite number
-   - `varGenes`: a single whole number, at least 2
+   - `varGenes`: a single whole number, at least 2, or `Inf` (all genes,
+     which worked before)
    - `dbscanEps`: a single non-negative number
    - `delta`: two finite, positive numbers
    - `logfile`: NULL or a single character string
