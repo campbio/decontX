@@ -923,23 +923,7 @@ setMethod(
   .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
-  # Inf runs until convergence
-  if (!(.isWholeNumber(maxIter, min = 1) || .isInf(maxIter))) {
-    stop("'maxIter' must be a single whole number of at least 1, or Inf.")
-  }
-  # Inf calculates the log likelihood only at convergence
-  if (!(.isWholeNumber(iterLogLik, min = 1) || .isInf(iterLogLik))) {
-    stop("'iterLogLik' must be a single whole number of at least 1, or Inf.")
-  }
-  if (!.isNumber(convergence, min = 0)) {
-    stop("'convergence' must be a single non-negative number.")
-  }
-  if (.isInf(maxIter) && convergence == 0) {
-    stop(
-      "'convergence' must be above 0 when 'maxIter' is Inf, or the EM ",
-      "never stops."
-    )
-  }
+  .checkEMArgs(maxIter, convergence, iterLogLik)
   .checkDelta(delta)
   .processvarGenes(varGenes)
   .processdbscanEps(dbscanEps)
@@ -960,6 +944,28 @@ setMethod(
   if (!is.null(logfile) &&
         !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
     stop("'logfile' must be NULL or a single character string.")
+  }
+  invisible(NULL)
+}
+
+## The EM loop arguments
+.checkEMArgs <- function(maxIter, convergence, iterLogLik) {
+  # Inf runs until convergence
+  if (!(.isWholeNumber(maxIter, min = 1) || .isInf(maxIter))) {
+    stop("'maxIter' must be a single whole number of at least 1, or Inf.")
+  }
+  # Inf calculates the log likelihood only at convergence
+  if (!(.isWholeNumber(iterLogLik, min = 1) || .isInf(iterLogLik))) {
+    stop("'iterLogLik' must be a single whole number of at least 1, or Inf.")
+  }
+  if (!.isNumber(convergence, min = 0)) {
+    stop("'convergence' must be a single non-negative number.")
+  }
+  if (.isInf(maxIter) && convergence == 0) {
+    stop(
+      "'convergence' must be above 0 when 'maxIter' is Inf, or the EM ",
+      "never stops."
+    )
   }
   invisible(NULL)
 }
