@@ -17,7 +17,9 @@ if (length(args) < 1 || length(args) > 2) {
   stop("Usage: Rscript dev/compare-commits.R <old-ref> [<new-ref>]")
 }
 refs <- c(old = args[1], new = if (length(args) == 2) args[2] else "HEAD")
-helper <- normalizePath(file.path("tests", "testthat", "helper-references.R"))
+helper <- normalizePath(file.path("tests", "testthat", "helper-references.R"),
+  mustWork = TRUE
+)
 
 # Install one commit into a new temporary library and return the library
 installCommit <- function(ref) {
@@ -81,7 +83,7 @@ runPaths <- function(helper) {
   paths <- c(env$refPaths, env$extraPaths)
   lapply(paths, function(path) {
     tryCatch(path(d), error = function(e) {
-      paste("error:", conditionMessage(e))
+      structure(conditionMessage(e), class = "pathError")
     })
   })
 }
@@ -101,7 +103,17 @@ same <- TRUE
 for (path in union(names(results$old), names(results$new))) {
   old <- results$old[[path]]
   new <- results$new[[path]]
-  if (identical(old, new)) {
+  # A path that errors fails the comparison, even with the same error twice
+  errors <- c(
+    old = if (inherits(old, "pathError")) old,
+    new = if (inherits(new, "pathError")) new
+  )
+  if (length(errors) > 0) {
+    same <- FALSE
+    message(path, ": ERROR\n  ", paste(names(errors), errors,
+      sep = ": ", collapse = "\n  "
+    ))
+  } else if (identical(old, new)) {
     message(path, ": identical")
   } else {
     same <- FALSE

@@ -1,6 +1,6 @@
 # Phase I-a regression net (#66)
 
-Status: proposed, 2026-10-30. Roadmap Phase I-a; audit findings A3-01,
+Status: approved by the maintainer, 2026-10-30. Roadmap Phase I-a; audit findings A3-01,
 A3-05, A3-06, A3-10, A3-16 (in part), A3-17, A3-19, and the "P" rows of
 the I-a pinning plan in `dev/audits/2026-10-review-drafts.md`.
 
@@ -36,14 +36,17 @@ in that fix's PR.
   - the full output of `simulateContamination()` (the default call and
     the `seed = 1` call), to pin the simulator before the I-d
     `rowsum()` swap
-  - `.calculateDecontXBarplotPercent()` on the `single` path with labels
-    1..K (the A1-07 pin)
+  - the marker percentages for labels 1..K (the A1-07 pin). They come
+    from `plotDecontXMarkerPercentage()`'s plot data on the simulated
+    counts, because the label handling that A1-07 fixes is in that
+    wrapper. The percentages are rounded to whole numbers.
 - `tests/testthat/test-references.R` reruns each path and compares it
   with `expect_equal(tolerance = 1e-10)`. The 1e-10 allows for libm
   differences across the Bioc builders. Integer parts (`z`, `iteration`,
   simulated counts) must match exactly. All five paths are bit-identical
   on rerun locally, and the EM has no thread-dependent reductions.
-- **About 70 KB** without the UMAPs.
+- **About 170 KB** without the UMAPs. Most of it is the default
+  `simulateContamination()` output.
 - **When a later PR changes results on purpose**, it reruns
   `make-refs.R` and says in the PR which references changed and why.
   The test failure itself shows which element moved.
@@ -55,7 +58,9 @@ in that fix's PR.
 - **How it works:** it installs each commit from `git archive` into its
   own temporary library, runs a fixed set of paths in a fresh R process
   per library (callr), and compares them with `identical()`. It prints
-  one line per path: identical, or the largest absolute difference.
+  one line per path: identical, the start of the `all.equal()`
+  differences, or the error if the path failed on either commit. It
+  exits with status 1 unless every path is identical.
 - **The paths:**
   - the five above
   - no `z`, for both the matrix and SCE (with the UMAP)
@@ -86,8 +91,9 @@ in that fix's PR.
   (`decon.R:1051`, `:1063`). Both fire even when `z` is given.
 - **A3-10 / A1-12:** cover the decontPro `ambient_counts` path for the
   matrix and SCE methods, with `.call_stan_vb` mocked to capture the
-  Stan data. This pins `dat$p` as `rowSums(ambient) / sum(ambient)`,
-  matched by position as today. No Stan run.
+  Stan data. This pins `dat$p` as `rowSums(ambient) / sum(ambient)`.
+  The rows are in the same order, so the test survives the #68 fix that
+  matches rows by name. No Stan run.
 - **A3-19 / A1-06 / A1-14:**
   - dgCMatrix input gives results identical to dense input.
   - DelayedArray(dgCMatrix) input gives identical results and returns a
