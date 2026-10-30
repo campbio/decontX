@@ -15,11 +15,13 @@ pushed, one at a time.
 ## Done
 
 - **Phase 0 (review), approved 2026-10-27:** baseline, status of the
-  2026-09 findings, eight review areas, the benchmark script `dev/bench/bench-decontx.R`, and
-  this rewrite. Upstream ExperimentSubset issues filed: #2-#5, #57-#59.
-  The work below was opened as #65-#84 (2026-10-29); replies posted on
-  #40, #43, #44, #46, #39 and #56, ADR-0004 to ADR-0007 drafted as
-  Proposed.
+  2026-09 findings, eight review areas, the benchmark script
+  `dev/bench/bench-decontx.R`, and this rewrite. Upstream
+  ExperimentSubset issues filed: #2-#5, #57-#59. The work below was
+  opened as #65-#84 (2026-10-29); replies posted on #40, #43, #44, #46,
+  #39 and #56, ADR-0004 to ADR-0007 drafted as Proposed.
+- The `expect_equivalent()` test warning (#55, A3-07), fixed by an
+  outside contribution, #64.
 - From the 2026-09 waves: green devel CI, celda removed from Imports
   (ADR-0003 Stage 1), the numeric-`batch` fix, the defunct Seurat call,
   the #46 memory fix (1.11.1), metadata and CITATION, lint backlog
