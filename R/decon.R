@@ -157,6 +157,24 @@ setMethod("decontX", "SingleCellExperiment", function(x,
                                                       logfile = NULL,
                                                       verbose = TRUE) {
   .checkAssayName(x, assayName, "assayName", "x")
+  mat <- SummarizedExperiment::assay(x, i = assayName)
+  .checkDecontXArgs(
+    counts = mat,
+    z = z,
+    batch = batch,
+    maxIter = maxIter,
+    convergence = convergence,
+    iterLogLik = iterLogLik,
+    delta = delta,
+    estimateDelta = estimateDelta,
+    varGenes = varGenes,
+    dbscanEps = dbscanEps,
+    seed = seed,
+    legacyInit = legacyInit,
+    logfile = logfile,
+    verbose = verbose
+  )
+
   countsBackground <- NULL
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
@@ -172,16 +190,17 @@ setMethod("decontX", "SingleCellExperiment", function(x,
     background <- temp$background
     bgBatch <- temp$bgBatch
 
+    bgArg <- "bgAssayName"
     if (is.null(bgAssayName)) {
       bgAssayName <- assayName
+      bgArg <- "assayName"
     }
     if (inherits(background, "SummarizedExperiment")) {
-      .checkAssayName(background, bgAssayName, "bgAssayName", "background")
+      .checkAssayName(background, bgAssayName, bgArg, "background")
     }
     countsBackground <- SummarizedExperiment::assay(background, i = bgAssayName)
+    .checkCountsDecon(countsBackground, "background")
   }
-
-  mat <- SummarizedExperiment::assay(x, i = assayName)
 
   result <- .decontX(
     counts = mat,
@@ -253,6 +272,23 @@ setMethod("decontX", "ANY", function(x,
                                      legacyInit = FALSE,
                                      logfile = NULL,
                                      verbose = TRUE) {
+  .checkDecontXArgs(
+    counts = x,
+    z = z,
+    batch = batch,
+    maxIter = maxIter,
+    convergence = convergence,
+    iterLogLik = iterLogLik,
+    delta = delta,
+    estimateDelta = estimateDelta,
+    varGenes = varGenes,
+    dbscanEps = dbscanEps,
+    seed = seed,
+    legacyInit = legacyInit,
+    logfile = logfile,
+    verbose = verbose
+  )
+
   countsBackground <- NULL
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
@@ -267,6 +303,7 @@ setMethod("decontX", "ANY", function(x,
 
     background <- temp$background
     countsBackground <- background
+    .checkCountsDecon(countsBackground, "background")
 
     bgBatch <- temp$bgBatch
   }
@@ -372,22 +409,6 @@ setMethod(
                      legacyInit = FALSE,
                      logfile = NULL,
                      verbose = TRUE) {
-  .checkDecontXArgs(
-    counts = counts,
-    z = z,
-    batch = batch,
-    maxIter = maxIter,
-    convergence = convergence,
-    iterLogLik = iterLogLik,
-    delta = delta,
-    estimateDelta = estimateDelta,
-    varGenes = varGenes,
-    dbscanEps = dbscanEps,
-    seed = seed,
-    legacyInit = legacyInit,
-    logfile = logfile,
-    verbose = verbose
-  )
   startTime <- Sys.time()
   .logMessages(paste(rep("-", 50), collapse = ""),
     logfile = logfile,
@@ -899,17 +920,25 @@ setMethod(
                               legacyInit,
                               logfile,
                               verbose) {
+  .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
   # Inf runs until convergence
   if (!(.isWholeNumber(maxIter, min = 1) || .isInf(maxIter))) {
     stop("'maxIter' must be a single whole number of at least 1, or Inf.")
   }
-  if (!.isWholeNumber(iterLogLik, min = 1)) {
-    stop("'iterLogLik' must be a single whole number of at least 1.")
+  # Inf calculates the log likelihood only at convergence
+  if (!(.isWholeNumber(iterLogLik, min = 1) || .isInf(iterLogLik))) {
+    stop("'iterLogLik' must be a single whole number of at least 1, or Inf.")
   }
   if (!.isNumber(convergence, min = 0)) {
     stop("'convergence' must be a single non-negative number.")
+  }
+  if (.isInf(maxIter) && convergence == 0) {
+    stop(
+      "'convergence' must be above 0 when 'maxIter' is Inf, or the EM ",
+      "never stops."
+    )
   }
   .checkDelta(delta)
   .processvarGenes(varGenes)
@@ -924,8 +953,9 @@ setMethod(
       stop("'", flag, "' must be TRUE or FALSE.")
     }
   }
-  if (!is.null(seed) && !.isNumber(seed)) {
-    stop("'seed' must be NULL or a single number.")
+  if (!is.null(seed) &&
+        !(.isNumber(seed) && abs(seed) <= .Machine$integer.max)) {
+    stop("'seed' must be NULL or a single number in R's integer range.")
   }
   if (!is.null(logfile) &&
         !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
@@ -969,8 +999,11 @@ setMethod(
 ## The assay must exist, so a wrong name stops before decontX runs
 .checkAssayName <- function(object, assayName, arg, objectArg) {
   available <- SummarizedExperiment::assayNames(object)
-  if (!(is.character(assayName) && length(assayName) == 1 &&
-          assayName %in% available)) {
+  numAssays <- length(SummarizedExperiment::assays(object))
+  isName <- is.character(assayName) && length(assayName) == 1 &&
+    assayName %in% available
+  isIndex <- .isWholeNumber(assayName, min = 1) && assayName <= numAssays
+  if (!(isName || isIndex)) {
     found <- if (length(available) > 0) {
       paste0("Its assays are: ", paste(available, collapse = ", "), ".")
     } else {
@@ -985,15 +1018,15 @@ setMethod(
 }
 
 ## Make sure provided count matrix is the right type
-.checkCountsDecon <- function(counts) {
-  if (anyNA(counts)) {
-    stop("Missing value in 'counts' matrix.")
-  }
-  if (any(counts < 0)) {
-    stop("Negative value in 'counts' matrix.")
-  }
+.checkCountsDecon <- function(counts, name = "counts") {
   if (is.null(dim(counts))) {
     stop("At least 2 genes need to have non-zero expressions.")
+  }
+  if (anyNA(counts)) {
+    stop("Missing value in '", name, "' matrix.")
+  }
+  if (min(counts) < 0) {
+    stop("Negative value in '", name, "' matrix.")
   }
 }
 

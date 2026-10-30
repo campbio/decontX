@@ -36,16 +36,18 @@ correlation with the true contamination was 0.999 for a valid `z`.
 
 ## What changes
 
-1. **`.checkDecontXArgs()`.** A new internal function that `.decontX()`
-   calls first, before any work, so it covers both methods. Each message
-   names the argument and the problem. It checks:
+1. **`.checkDecontXArgs()`.** A new internal function that both methods
+   call first, before background processing or any other work. Each
+   message names the argument and the problem. It checks:
    - `z` and `batch`: NULL, or one value per cell with no NA
    - `maxIter`: a single whole number, at least 1, or `Inf` (run until
      convergence, which worked before)
-   - `iterLogLik`: a single whole number, at least 1
-   - `convergence`: a single non-negative number
+   - `iterLogLik`: a single whole number, at least 1, or `Inf` (log
+     likelihood only at convergence, which worked before)
+   - `convergence`: a single non-negative number, above 0 when
+     `maxIter` is `Inf` (otherwise the EM never stops)
    - `estimateDelta`, `legacyInit` and `verbose`: `TRUE` or `FALSE`
-   - `seed`: NULL or a single finite number
+   - `seed`: NULL or a single number in R's integer range
    - `varGenes`: a single whole number, at least 2, or `Inf` (all genes,
      which worked before)
    - `dbscanEps`: a single non-negative number
@@ -55,10 +57,14 @@ correlation with the true contamination was 0.999 for a valid `z`.
    The `varGenes`, `dbscanEps` and `delta` messages keep their current
    wording, so the existing pins keep matching.
 2. **Counts:** `.checkCountsDecon()` errors on negative counts and uses
-   `anyNA()` (Matrix's method) instead of `sum(is.na())` (A5-07).
+   `anyNA()` (Matrix's method) instead of `sum(is.na())` (A5-07). It runs
+   once on the whole counts matrix, before any batch, and on the
+   background counts.
 3. **Assay names:** the SCE method checks `assayName` against
    `assayNames(x)`, and `bgAssayName` against the background's assays,
-   before anything runs (A6-01).
+   before anything runs (A6-01). An assay index still works. When
+   `bgAssayName` defaults to `assayName`, the message names
+   `assayName`.
 4. **Docs (A7-13):**
    - `varGenes` and `legacyInit` also build the UMAP stored in the
      results when `z` is given.

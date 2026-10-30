@@ -570,7 +570,7 @@ test_that("decontX still accepts integer, factor and Inf arguments", {
     batch = NULL,
     maxIter = Inf,
     convergence = 0.001,
-    iterLogLik = 10,
+    iterLogLik = Inf,
     delta = c(10, 10),
     estimateDelta = FALSE,
     varGenes = Inf,
@@ -580,4 +580,70 @@ test_that("decontX still accepts integer, factor and Inf arguments", {
     logfile = tempfile(),
     verbose = TRUE
   ))
+})
+
+test_that("decontX rejects settings that never stop or can't seed", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  expect_error(
+    decontX(x, z = d$sim$z, maxIter = Inf, convergence = 0, verbose = FALSE),
+    regexp = "'convergence' must be above 0 when 'maxIter' is Inf"
+  )
+  expect_error(decontX(x, z = d$sim$z, seed = 1e10, verbose = FALSE),
+    regexp = "'seed' must be NULL or a single number in R's integer range"
+  )
+})
+
+test_that("decontX checks background counts for NA and negative values", {
+  d <- refData()
+  bgNegative <- d$bg
+  bgNegative[1, 1] <- -1L
+  bgMissing <- d$bg
+  bgMissing[1, 1] <- NA
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, background = bgNegative,
+      verbose = FALSE
+    ),
+    regexp = "Negative value in 'background' matrix"
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  bgSce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = bgMissing)
+  )
+  expect_error(
+    decontX(sce, z = d$sim$z, background = bgSce, verbose = FALSE),
+    regexp = "Missing value in 'background' matrix"
+  )
+})
+
+test_that("decontX takes assays by index and names the assay argument", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  byName <- decontX(sce, z = d$sim$z, maxIter = 2, verbose = FALSE)
+  byIndex <- decontX(sce,
+    assayName = 1, z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
+  expect_identical(byIndex$decontX_contamination, byName$decontX_contamination)
+  expect_error(decontX(sce, assayName = 2, z = d$sim$z, verbose = FALSE),
+    regexp = "'assayName' \\(2\\) is not an assay of 'x'"
+  )
+
+  # bgAssayName defaults to assayName, so the message names assayName
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(raw = d$sim$observedCounts)
+  )
+  bg <- SingleCellExperiment::SingleCellExperiment(list(counts = d$bg))
+  expect_error(
+    decontX(sce,
+      assayName = "raw", z = d$sim$z, background = bg,
+      verbose = FALSE
+    ),
+    regexp = "'assayName' \\(\"raw\"\\) is not an assay of 'background'"
+  )
 })

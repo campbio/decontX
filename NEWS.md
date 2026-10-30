@@ -6,9 +6,12 @@ of cells was padded with `NA` and gave wrong results; `z` or `batch` with
 `NA`, invalid `maxIter`, `iterLogLik`, `convergence`, `seed`, `varGenes`,
 `dbscanEps` or `logfile` values, non-logical `estimateDelta`,
 `legacyInit` or `verbose`, a `delta` that isn't two finite positive
-numbers, and negative counts ran silently or failed with cryptic errors.
-An `assayName` or `bgAssayName` that isn't an assay of the input now
-stops before decontX runs. Results don't change for valid input (#67).
+numbers, and negative counts in `x` or `background` ran silently or
+failed with cryptic errors. `maxIter`, `iterLogLik` and `varGenes` must
+be whole numbers (or `Inf`, which keeps working), and `maxIter = Inf`
+needs `convergence` above 0. An `assayName` or `bgAssayName` that isn't
+an assay of the input now stops before decontX runs; an assay index
+still works. Results don't change for valid input (#67).
 * The `varGenes` and `legacyInit` docs now say they still set the UMAP
 stored in the results when `z` is given, and the error for cells with no
 counts no longer suggests supplying `z`.
