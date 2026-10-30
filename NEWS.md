@@ -2,8 +2,8 @@
 
 * The "Working with Seurat" section of the decontX vignette now runs as
 pasted with SeuratObject 5: it reads counts with `LayerData()` instead of
-the defunct `GetAssayData(slot = )`, attaches SingleCellExperiment, and
-uses one name for the Seurat object (#65).
+`GetAssayData(slot = )` (defunct since SeuratObject 5.3), attaches
+SingleCellExperiment, and uses one name for the Seurat object (#65).
 
 # decontX 1.11.2
 
