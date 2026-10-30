@@ -135,3 +135,39 @@ test_that("decontPro Seurat method uses LayerData not GetAssayData", {
   expect_equal(dim(received), dim(mat))
   expect_equal(as.matrix(received), mat)
 })
+
+test_that("decontPro takes the ambient profile from ambient_counts", {
+  # Stan is mocked out: this pins the ambient profile passed to Stan (row
+  # sums of ambient_counts, matched by position) for the matrix and SCE
+  # methods.
+  withr::local_seed(42)
+  mat <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8,
+                dimnames = list(paste0("g", seq_len(10)),
+                                paste0("c", seq_len(8))))
+  ambient <- matrix(sample(1:100, 50, replace = TRUE), nrow = 10, ncol = 5,
+                    dimnames = list(paste0("g", seq_len(10)),
+                                    paste0("e", seq_len(5))))
+  k <- c(1, 1, 2, 2, 3, 3, 4, 4)
+  expected <- rowSums(ambient) / sum(ambient)
+
+  received <- NULL
+  local_mocked_bindings(
+    .call_stan_vb = function(data, initial_condition) {
+      received <<- data
+      NULL
+    },
+    .process_stan_vb_out = function(stan_vb_output, dat) list()
+  )
+
+  decontPro(mat, k, 1e-2, 1e-2, ambient_counts = ambient)
+  expect_equal(received$p, expected)
+  expect_equal(received$counts, mat)
+
+  received <- NULL
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = mat))
+  ambientSce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = ambient)
+  )
+  decontPro(sce, k, 1e-2, 1e-2, ambient_counts = ambientSce)
+  expect_equal(received$p, expected)
+})

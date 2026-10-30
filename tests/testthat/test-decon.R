@@ -82,8 +82,9 @@ test_that(desc = "legacyInit reproduces the scater-based initialization", {
 })
 
 test_that("numeric batch labels are not used as positional indices", {
-  sim1 <- simulateContamination(K = 5, delta = c(1, 5))
-  sim2 <- simulateContamination(K = 5, delta = c(1, 5))
+  # Different seeds, so a misaligned batch would change the results
+  sim1 <- simulateContamination(K = 5, delta = c(1, 5), seed = 1)
+  sim2 <- simulateContamination(K = 5, delta = c(1, 5), seed = 2)
   combined <- cbind(sim1$observedCounts, sim2$observedCounts)
   z <- c(sim1$z, sim2$z)
   n1 <- ncol(sim1$observedCounts)
@@ -118,8 +119,12 @@ test_that(desc = "Testing simulateContamination", {
     expected = dim(deconSim$eta)
   )
   expect_equal(typeof(deconSim$observedCounts), "integer")
-  expect_warning(simulateContamination(K = 101, C = 10))
-  expect_error(simulateContamination(K = 3, G = 2, numMarkers = 10))
+  expect_warning(simulateContamination(K = 101, C = 10),
+    regexp = "Only 10 clusters are simulated"
+  )
+  expect_error(simulateContamination(K = 3, G = 2, numMarkers = 10),
+    regexp = "cannot be greater than the number of genes"
+  )
 
   # ADR-0003 Stage 1: the contamination distribution eta is now normalized
   # by the package's own fastNormProp instead of celda::normalizeCounts.
@@ -281,14 +286,20 @@ test_that(desc = "Testing DecontX on SCE", {
 
 ## .decontXoneBatch
 test_that(desc = "Testing .decontXoneBatch", {
-  expect_error(decontX(
-    x = deconSim$observedCounts,
-    z = deconSim$z, delta = c(1, -1)
-  ))
-  expect_error(decontX(
-    x = deconSim$observedCounts,
-    z = deconSim$z, delta = c(1, 1, 1)
-  ))
+  expect_error(
+    decontX(
+      x = deconSim$observedCounts,
+      z = deconSim$z, delta = c(1, -1)
+    ),
+    regexp = "'delta' needs to be a numeric vector of length 2"
+  )
+  expect_error(
+    decontX(
+      x = deconSim$observedCounts,
+      z = deconSim$z, delta = c(1, 1, 1)
+    ),
+    regexp = "'delta' needs to be a numeric vector of length 2"
+  )
   expect_error(
     decontX(
       x = deconSim$observedCounts,
@@ -313,5 +324,72 @@ test_that(desc = "Testing .decontXoneBatch", {
   expect_error(
     .decontXoneBatch(counts = countsNA, z = deconSim$z),
     "Missing value in 'counts' matrix."
+  )
+})
+
+test_that("decontX stops when batch and bgBatch don't go together", {
+  d <- refData()
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, background = d$bg,
+      bgBatch = d$bgBatch, verbose = FALSE
+    ),
+    regexp = "background should also default to no batch"
+  )
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, batch = d$batch,
+      background = d$bg, verbose = FALSE
+    ),
+    regexp = "Please also supply background batch"
+  )
+})
+
+test_that("decontX checks varGenes and dbscanEps even when z is given", {
+  d <- refData()
+  expect_error(
+    decontX(d$sim$observedCounts, z = d$sim$z, varGenes = 1, verbose = FALSE),
+    regexp = "'varGenes' must be an integer larger than 1"
+  )
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, dbscanEps = -1,
+      verbose = FALSE
+    ),
+    regexp = "'dbscanEps' needs to be non-negative"
+  )
+})
+
+test_that("misspelled messages keep their current wording", {
+  # #74 fixes the spelling; the snapshots show that change
+  d <- refData()
+  expect_snapshot(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, background = d$bg,
+      bgBatch = d$bgBatch, verbose = FALSE
+    ),
+    error = TRUE
+  )
+  expect_snapshot(sim <- simulateContamination(K = 101, C = 10))
+})
+
+test_that("sparse and DelayedArray input give the dense-input results", {
+  d <- refData()
+  dense <- decontX(d$sim$observedCounts, z = d$sim$z, verbose = FALSE)
+  # Today dense input returns a dgCMatrix (A1-14; #71 changes this)
+  expect_s4_class(dense$decontXcounts, "dgCMatrix")
+
+  sparseCounts <- methods::as(d$sim$observedCounts, "CsparseMatrix")
+  sparse <- decontX(sparseCounts, z = d$sim$z, verbose = FALSE)
+  expect_identical(sparse$contamination, dense$contamination)
+  expect_identical(sparse$decontXcounts, dense$decontXcounts)
+
+  delayedCounts <- DelayedArray::DelayedArray(sparseCounts)
+  delayed <- decontX(delayedCounts, z = d$sim$z, verbose = FALSE)
+  expect_s4_class(delayed$decontXcounts, "DelayedMatrix")
+  expect_identical(delayed$contamination, dense$contamination)
+  expect_identical(
+    methods::as(delayed$decontXcounts, "dgCMatrix"),
+    dense$decontXcounts
   )
 })

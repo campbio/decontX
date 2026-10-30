@@ -10,8 +10,12 @@ label4[seq(2)] <- 2
 label5 <- as.factor(rep(seq(5), each = 2))
 
 test_that(desc = "Testing .colSumByGroup", {
-  expect_error(.Call("_colSumByGroup", mat, label1))
-  expect_error(.Call("_colSumByGroup", mat, label2))
+  expect_error(.Call("_colSumByGroup", mat, label1),
+    regexp = "grouping argument must be a factor"
+  )
+  expect_error(.Call("_colSumByGroup", mat, label2),
+    regexp = "length of the grouping argument must match"
+  )
   res <- .Call("_colSumByGroup", mat, label3)
   expect_true(all(res == t(rowsum(t(mat), label3))))
   res <- .colSumByGroup(mat, label3, 2)
@@ -21,8 +25,12 @@ test_that(desc = "Testing .colSumByGroup", {
 storage.mode(mat) <- "numeric"
 
 test_that(desc = "Testing .colSumByGroupNumeric", {
-  expect_error(.Call("_colSumByGroup_numeric", mat, label1))
-  expect_error(.Call("_colSumByGroup_numeric", mat, label2))
+  expect_error(.Call("_colSumByGroup_numeric", mat, label1),
+    regexp = "grouping argument must be a factor"
+  )
+  expect_error(.Call("_colSumByGroup_numeric", mat, label2),
+    regexp = "length of the grouping argument must match"
+  )
   res <- .Call("_colSumByGroup_numeric", mat, label3)
   expect_true(all(res == t(rowsum(t(mat), label3))))
   res <- .colSumByGroupNumeric(mat, label3, 2)
