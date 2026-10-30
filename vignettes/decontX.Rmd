@@ -277,6 +277,7 @@ If you are using the [Seurat](https://cran.r-project.org/web/packages/Seurat/ind
 ```{r seurat_create, eval = FALSE}
 # Read counts from CellRanger output
 library(Seurat)
+library(SingleCellExperiment)
 counts <- Read10X("sample/outs/filtered_feature_bc_matrix/")
 
 # Create a SingleCellExperiment object and run decontX
@@ -298,10 +299,18 @@ sce <- decontX(sce, background = sce.raw)
 Note that the decontaminated matrix of decontX consists of floating point numbers and must be rounded to integers before adding it to a Seurat object. If you already have a Seurat object containing the counts matrix and would like to run decontX, you can retrieve the count matrix, create a SCE object, and run decontX, and then add it back to the Seurat object:
 
 ```{r seurat_create2, eval = FALSE}
-counts <- GetAssayData(object = seuratObject, slot = "counts")
+# Retrieve the counts matrix from the Seurat object
+library(Seurat)
+library(SingleCellExperiment)
+counts <- LayerData(seuratObject, assay = "RNA", layer = "counts")
+
+# Create a SingleCellExperiment object and run decontX
 sce <- SingleCellExperiment(list(counts = counts))
 sce <- decontX(sce)
-seuratObj[["decontXcounts"]] <- CreateAssayObject(counts = decontXcounts(sce))
+
+# Add the decontaminated counts to the Seurat object as a new assay
+decontCounts <- decontXcounts(sce)
+seuratObject[["decontXcounts"]] <- CreateAssayObject(counts = decontCounts)
 ```
 
 
