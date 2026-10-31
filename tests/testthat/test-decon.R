@@ -772,3 +772,21 @@ test_that("decontX stops when no background droplets are left", {
     regexp = "'background' must be a matrix"
   )
 })
+
+test_that("decontX handles one droplet per batch and duplicated extra genes", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  expect_no_error(
+    decontX(x,
+      z = d$sim$z, batch = d$batch, background = d$bg,
+      bgBatch = c(rep("A", 39), "B"), maxIter = 5, verbose = FALSE
+    )
+  )
+
+  # Duplicated names only matter among the genes that are matched to x
+  run <- function(bg) {
+    decontX(x, z = d$sim$z, background = bg, maxIter = 5, verbose = FALSE)
+  }
+  extra <- rbind(d$bg, Extra = 1L, Extra = 2L)
+  expect_identical(run(extra)$contamination, run(d$bg)$contamination)
+})

@@ -549,7 +549,7 @@ setMethod(
 
     zBat <- NULL
     countsBat <- counts[, batch == bat]
-    bgBat <- countsBackground[, batchBackground == bat]
+    bgBat <- countsBackground[, batchBackground == bat, drop = FALSE]
 
     ## Convert to sparse matrix
     if (!inherits(countsBat, "dgCMatrix")) {
@@ -1532,6 +1532,9 @@ simulateContamination <- function(C = 300,
                                  feature = "genes",
                                  logfile = NULL,
                                  verbose = TRUE) {
+  if (is.null(dim(background))) {
+    stop("'", bgArg, "' must be a matrix.")
+  }
   countsNames <- rownames(counts)
   bgNames <- rownames(background)
   if (is.null(countsNames) || is.null(bgNames)) {
@@ -1548,7 +1551,9 @@ simulateContamination <- function(C = 300,
   if (identical(countsNames, bgNames)) {
     return(background)
   }
-  if (anyDuplicated(countsNames) || anyDuplicated(bgNames)) {
+  # Duplicates among the extra background rows are dropped with them
+  if (anyDuplicated(countsNames) ||
+        anyDuplicated(bgNames[bgNames %in% countsNames])) {
     stop(
       "'", countsArg, "' or '", bgArg, "' has duplicated row names, so ",
       "their rows can't be matched by name. Give both the same row names ",

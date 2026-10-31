@@ -203,3 +203,11 @@ test_that("decontPro matches ambient_counts rows to the counts by name", {
     regexp = "'ambient_counts' lacks 1 of the 10 ADTs in 'filtered_counts': g3"
   )
 })
+
+test_that("decontPro names ambient_counts when it isn't a matrix", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2, ambient_counts = rowSums(p$ambient)),
+    regexp = "'ambient_counts' must be a matrix"
+  )
+})

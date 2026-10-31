@@ -13,7 +13,8 @@ already match (#68).
 and its values must be the same as those of `batch`. Before, a short
 `bgBatch` was recycled, and a batch without matching background droplets
 silently ran without background. `decontX()` also stops when no
-background droplets are left after removing barcodes that are in `x`.
+background droplets are left after removing barcodes that are in `x`,
+and a batch with a single background droplet no longer fails.
 
 # decontX 1.11.5
 
