@@ -167,3 +167,39 @@ test_that("decontPro takes the ambient profile from ambient_counts", {
   decontPro(sce, k, 1e-2, 1e-2, ambient_counts = ambientSce)
   expect_equal(received$p, expected)
 })
+
+test_that("decontPro matches ambient_counts rows to the counts by name", {
+  p <- refProData()
+  mat <- p$counts
+  ambient <- p$ambient
+  k <- p$k
+  expected <- rowSums(ambient) / sum(ambient)
+
+  received <- NULL
+  local_mocked_bindings(
+    .call_stan_vb = function(data, initial_condition) {
+      received <<- data
+      NULL
+    },
+    .process_stan_vb_out = function(stan_vb_output, dat) list()
+  )
+
+  decontPro(mat, k, 1e-2, 1e-2, ambient_counts = ambient[10:1, ])
+  expect_equal(received$p, expected)
+
+  received <- NULL
+  extra <- rbind(ambient, extra_ADT = 50L)
+  expect_message(
+    decontPro(mat, k, 1e-2, 1e-2, ambient_counts = extra),
+    regexp = paste0(
+      "Dropped ADTs in 'ambient_counts' that aren't in 'filtered_counts': ",
+      "1 of 11 \\(extra_ADT\\)"
+    )
+  )
+  expect_equal(received$p, expected)
+
+  expect_error(
+    decontPro(mat, k, 1e-2, 1e-2, ambient_counts = ambient[-3, ]),
+    regexp = "'ambient_counts' lacks 1 of the 10 ADTs in 'filtered_counts': g3"
+  )
+})
