@@ -45,7 +45,8 @@
 #' \code{background}, one per column. Its unique values must be the same as
 #' those in \code{batch}, such that each batch of cells have their
 #' corresponding batch of empty droplets as background, pointed by this
-#' parameter. Default to NULL.
+#' parameter: every batch needs at least one droplet, after barcodes that are
+#' also in \code{x} are removed. Default to NULL.
 #' @param maxIter Integer. Maximum iterations of the EM algorithm. Default 500.
 #' @param convergence Numeric. The EM algorithm will be stopped if the maximum
 #' difference in the contamination estimates between the previous and
@@ -1460,6 +1461,12 @@ simulateContamination <- function(C = 300,
 
 .checkBackground <- function(x, background, bgBatch,
                              logfile = NULL, verbose = FALSE) {
+  if (is.null(dim(background))) {
+    stop("'background' must be a matrix or a SingleCellExperiment.")
+  }
+  if (ncol(background) == 0) {
+    stop("'background' has no droplets.")
+  }
   if (!is.null(bgBatch)) {
     if (length(bgBatch) != ncol(background)) {
       stop("'bgBatch' must have one value per column of 'background'.")
@@ -1500,12 +1507,12 @@ simulateContamination <- function(C = 300,
     if (!is.null(bgBatch)) {
       bgBatch <- bgBatch[!(dupBarcode)]
     }
-  }
-  if (ncol(background) == 0) {
-    stop(
-      "No droplets are left in 'background' after removing the barcodes ",
-      "that are also in 'x'."
-    )
+    if (ncol(background) == 0) {
+      stop(
+        "No droplets are left in 'background' after removing the barcodes ",
+        "that are also in 'x'."
+      )
+    }
   }
 
   re <- list(

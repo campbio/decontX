@@ -663,11 +663,13 @@ test_that("decontX matches background rows to the counts by gene name", {
   expect_identical(run(reversed)$contamination, matched)
   extra <- rbind(d$bg, Extra_1 = 1L, Extra_2 = 2L)
   expect_identical(run(extra)$contamination, matched)
-  expect_message(run(extra, verbose = TRUE),
+  messages <- capture_messages(run(extra, verbose = TRUE))
+  expect_match(messages,
     regexp = paste0(
       "Dropped genes in 'background' that aren't in 'x': 2 of 62 ",
       "\\(Extra_1, Extra_2\\)"
-    )
+    ),
+    all = FALSE
   )
 
   # Without row names on either, rows are matched by position
@@ -683,12 +685,14 @@ test_that("decontX matches background rows to the counts by gene name", {
   expect_identical(run(dupBg, counts = dupX)$contamination, matched)
 
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
-  bgSce <- SingleCellExperiment::SingleCellExperiment(list(counts = reversed))
-  res <- decontX(sce,
-    z = d$sim$z, background = bgSce, maxIter = 5,
-    verbose = FALSE
-  )
-  expect_identical(res$decontX_contamination, matched)
+  for (bg in list(reversed, extra)) {
+    bgSce <- SingleCellExperiment::SingleCellExperiment(list(counts = bg))
+    res <- decontX(sce,
+      z = d$sim$z, background = bgSce, maxIter = 5,
+      verbose = FALSE
+    )
+    expect_identical(res$decontX_contamination, matched)
+  }
 })
 
 test_that("decontX stops when background rows can't be matched", {
@@ -757,6 +761,14 @@ test_that("decontX stops when no background droplets are left", {
   colnames(bg) <- colnames(x)[seq_len(ncol(bg))]
   expect_error(
     decontX(x, z = d$sim$z, background = bg, verbose = FALSE),
-    regexp = "No droplets are left in 'background'"
+    regexp = "No droplets are left in 'background' after removing"
+  )
+  expect_error(
+    decontX(x, z = d$sim$z, background = d$bg[, 0], verbose = FALSE),
+    regexp = "'background' has no droplets"
+  )
+  expect_error(
+    decontX(x, z = d$sim$z, background = d$bg[, 1], verbose = FALSE),
+    regexp = "'background' must be a matrix"
   )
 })
