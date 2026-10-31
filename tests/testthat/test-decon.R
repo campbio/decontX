@@ -401,3 +401,249 @@ test_that("sparse and DelayedArray input give the dense-input results", {
     dense$decontXcounts
   )
 })
+
+test_that("decontX checks that z and batch have one value per cell", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  zNA <- d$sim$z
+  zNA[1:5] <- NA
+  batchNA <- d$batch
+  batchNA[1] <- NA
+  lengthMessage <- "must be of the same length as the number of cells"
+  expect_error(decontX(x, z = d$sim$z[1:90], verbose = FALSE),
+    regexp = paste("'z'", lengthMessage)
+  )
+  expect_error(decontX(x, z = "cluster", verbose = FALSE),
+    regexp = paste("'z'", lengthMessage)
+  )
+  expect_error(decontX(x, z = zNA, verbose = FALSE),
+    regexp = "'z' must not contain NA"
+  )
+  expect_error(
+    decontX(x, z = d$sim$z, batch = d$batch[1:90], verbose = FALSE),
+    regexp = paste("'batch'", lengthMessage)
+  )
+  expect_error(decontX(x, z = d$sim$z, batch = batchNA, verbose = FALSE),
+    regexp = "'batch' must not contain NA"
+  )
+})
+
+test_that("decontX checks its scalar arguments", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  z <- d$sim$z
+  checks <- list(
+    list(args = list(maxIter = 0), regexp = "'maxIter' must be a single"),
+    list(args = list(maxIter = "a"), regexp = "'maxIter' must be a single"),
+    list(args = list(maxIter = 2.5), regexp = "'maxIter' must be a single"),
+    list(args = list(iterLogLik = 0), regexp = "'iterLogLik' must be a single"),
+    list(
+      args = list(convergence = "x"),
+      regexp = "'convergence' must be a single non-negative number"
+    ),
+    list(
+      args = list(convergence = -1),
+      regexp = "'convergence' must be a single non-negative number"
+    ),
+    list(
+      args = list(estimateDelta = "yes"),
+      regexp = "'estimateDelta' must be TRUE or FALSE"
+    ),
+    list(
+      args = list(estimateDelta = NA),
+      regexp = "'estimateDelta' must be TRUE or FALSE"
+    ),
+    list(
+      args = list(legacyInit = "yes"),
+      regexp = "'legacyInit' must be TRUE or FALSE"
+    ),
+    list(
+      args = list(verbose = "no"),
+      regexp = "'verbose' must be TRUE or FALSE"
+    ),
+    list(args = list(seed = "a"), regexp = "'seed' must be NULL or a single"),
+    list(
+      args = list(seed = c(1, 2)),
+      regexp = "'seed' must be NULL or a single"
+    ),
+    list(
+      args = list(varGenes = NA),
+      regexp = "'varGenes' must be an integer larger than 1"
+    ),
+    list(
+      args = list(varGenes = "a"),
+      regexp = "'varGenes' must be an integer larger than 1"
+    ),
+    list(
+      args = list(dbscanEps = NA),
+      regexp = "'dbscanEps' needs to be non-negative"
+    ),
+    list(
+      args = list(dbscanEps = "a"),
+      regexp = "'dbscanEps' needs to be non-negative"
+    ),
+    list(
+      args = list(logfile = 1),
+      regexp = "'logfile' must be NULL or a single character string"
+    )
+  )
+  for (check in checks) {
+    call <- utils::modifyList(list(x = x, z = z, verbose = FALSE), check$args)
+    expect_error(do.call(decontX, call), regexp = check$regexp)
+  }
+})
+
+test_that("decontX requires two finite, positive delta values", {
+  d <- refData()
+  deltaMessage <- "'delta' needs to be a numeric vector of length 2"
+  for (delta in list(c(0, 0), c(10, NA), c(10, Inf))) {
+    expect_error(
+      decontX(d$sim$observedCounts,
+        z = d$sim$z, delta = delta,
+        verbose = FALSE
+      ),
+      regexp = deltaMessage
+    )
+  }
+})
+
+test_that("decontX stops on negative counts", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  counts[1, 1:3] <- -5L
+  expect_error(decontX(counts, z = d$sim$z, verbose = FALSE),
+    regexp = "Negative value in 'counts' matrix"
+  )
+})
+
+test_that("decontX checks assay names before running", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  bg <- SingleCellExperiment::SingleCellExperiment(list(counts = d$bg))
+  expect_error(decontX(sce, assayName = "raw", z = d$sim$z, verbose = FALSE),
+    regexp = "'assayName' \\(\"raw\"\\) is not an assay of 'x'"
+  )
+  expect_error(
+    decontX(sce,
+      z = d$sim$z, background = bg, bgAssayName = "raw",
+      verbose = FALSE
+    ),
+    regexp = "'bgAssayName' \\(\"raw\"\\) is not an assay of 'background'"
+  )
+})
+
+test_that("the zero-count error doesn't suggest supplying z", {
+  # Initialization runs even when z is supplied (#79 adds an opt-out)
+  d <- refData()
+  counts <- d$sim$observedCounts
+  counts[, 1] <- 0
+  err <- expect_error(decontX(counts, z = d$sim$z, verbose = FALSE),
+    regexp = "at least one count"
+  )
+  expect_false(grepl("'z'", conditionMessage(err)))
+})
+
+test_that("decontX still accepts integer, factor and Inf arguments", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  expect_no_error(.checkDecontXArgs(
+    counts = counts,
+    z = factor(d$sim$z),
+    batch = factor(d$batch),
+    maxIter = 500L,
+    convergence = 0L,
+    iterLogLik = 10L,
+    delta = c(10L, 10L),
+    estimateDelta = TRUE,
+    varGenes = 5000L,
+    dbscanEps = 0,
+    seed = 1L,
+    legacyInit = FALSE,
+    logfile = NULL,
+    verbose = FALSE
+  ))
+  expect_no_error(.checkDecontXArgs(
+    counts = counts,
+    z = as.character(d$sim$z),
+    batch = NULL,
+    maxIter = Inf,
+    convergence = 0.001,
+    iterLogLik = Inf,
+    delta = c(10, 10),
+    estimateDelta = FALSE,
+    varGenes = Inf,
+    dbscanEps = NULL,
+    seed = NULL,
+    legacyInit = TRUE,
+    logfile = tempfile(),
+    verbose = TRUE
+  ))
+})
+
+test_that("decontX rejects settings that never stop or can't seed", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  expect_error(
+    decontX(x, z = d$sim$z, maxIter = Inf, convergence = 0, verbose = FALSE),
+    regexp = "'convergence' must be above 0 when 'maxIter' is Inf"
+  )
+  expect_error(decontX(x, z = d$sim$z, seed = 1e10, verbose = FALSE),
+    regexp = "'seed' must be NULL or a single number in R's integer range"
+  )
+})
+
+test_that("decontX checks background counts for NA and negative values", {
+  d <- refData()
+  bgNegative <- d$bg
+  bgNegative[1, 1] <- -1L
+  bgMissing <- d$bg
+  bgMissing[1, 1] <- NA
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, background = bgNegative,
+      verbose = FALSE
+    ),
+    regexp = "Negative value in 'background' matrix"
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  bgSce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = bgMissing)
+  )
+  expect_error(
+    decontX(sce, z = d$sim$z, background = bgSce, verbose = FALSE),
+    regexp = "Missing value in 'background' matrix"
+  )
+})
+
+test_that("decontX takes assays by index and names the assay argument", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  byName <- decontX(sce, z = d$sim$z, maxIter = 2, verbose = FALSE)
+  byIndex <- decontX(sce,
+    assayName = 1, z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
+  expect_identical(byIndex$decontX_contamination, byName$decontX_contamination)
+  expect_error(decontX(sce, assayName = 2, z = d$sim$z, verbose = FALSE),
+    regexp = "'assayName' \\(2\\) is not an assay of 'x'"
+  )
+
+  # bgAssayName defaults to assayName, so the message names assayName
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(raw = d$sim$observedCounts)
+  )
+  bg <- SingleCellExperiment::SingleCellExperiment(list(counts = d$bg))
+  expect_error(
+    decontX(sce,
+      assayName = "raw", z = d$sim$z, background = bg,
+      verbose = FALSE
+    ),
+    regexp = "'assayName' \\(\"raw\"\\) is not an assay of 'background'"
+  )
+})

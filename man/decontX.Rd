@@ -126,8 +126,8 @@ iteration. Default 10.}
 dimensionality reduction before clustering. Variability is calculated
 using \code{\link[scrapper]{modelGeneVariances}} from the 'scrapper'
 package (or by the variance of the log-normalized counts when
-\code{legacyInit = TRUE}). Used only when z is not provided.
-Default 5000.}
+\code{legacyInit = TRUE}). If \code{z} is provided, it is used only for
+the UMAP stored in the results. Default 5000.}
 
 \item{dbscanEps}{Numeric. The clustering resolution parameter
 used in '\link[dbscan]{dbscan}' to estimate broad cell clusters.
@@ -148,7 +148,8 @@ and may emit deprecation warnings from scater/scuttle, whose
 normalization functions were deprecated in favor of the 'scrapper'
 package. It is kept for backwards compatibility and will remain
 available as long as the upstream functions are still provided by
-scater/scuttle. Used only when z is not provided. Default FALSE.}
+scater/scuttle. If \code{z} is provided, it is used only for the UMAP
+stored in the results. Default FALSE.}
 
 \item{logfile}{Character. Messages will be redirected to a file named
 \code{logfile}. If NULL, messages will be printed to stdout.  Default NULL.}
