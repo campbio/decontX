@@ -1,3 +1,20 @@
+# decontX 1.11.6
+
+* `decontX()` now matches the rows of `background` to the genes of `x` by
+name, and `decontPro()` matches the rows of `ambient_counts` to the ADTs
+of `filtered_counts`. Before, rows were matched by position: rows in a
+different order ran without an error and gave wrong estimates, extra or
+missing genes gave a cryptic error (#43), and names that didn't overlap
+ran. Now extra rows are dropped with a log message, missing genes stop
+with an error that names them, and rows are matched by position only
+when either matrix has no row names. Results don't change when the rows
+already match (#68).
+* `bgBatch` must have one value per background droplet, with no `NA`,
+and its values must be the same as those of `batch`. Before, a short
+`bgBatch` was recycled, and a batch without matching background droplets
+silently ran without background. `decontX()` also stops when no
+background droplets are left after removing barcodes that are in `x`.
+
 # decontX 1.11.5
 
 * `decontX()` now checks its inputs before running and stops with an error

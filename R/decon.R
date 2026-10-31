@@ -32,15 +32,20 @@
 #' data format as \code{x}
 #' except it contains the empty droplets instead of cells. When supplied,
 #' empirical distribution of transcripts from these empty droplets
-#' will be used as the contamination distribution. Default NULL.
+#' will be used as the contamination distribution. When both have row
+#' names, its rows are matched to the genes of \code{x} by name: genes
+#' that aren't in \code{x} are dropped, and every gene of \code{x} must be
+#' present. Otherwise the rows are matched by position. Barcodes that are
+#' also in \code{x} are removed. Default NULL.
 #' @param bgAssayName Character. Name of the assay to use if \code{background}
 #' is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
 #' same as
 #' \code{assayName}.
 #' @param bgBatch Numeric or character vector. Batch labels for
-#' \code{background}. Its unique values should be the same as those in
-#' \code{batch}, such that each batch of cells have their corresponding batch
-#' of empty droplets as background, pointed by this parameter. Default to NULL.
+#' \code{background}, one per column. Its unique values must be the same as
+#' those in \code{batch}, such that each batch of cells have their
+#' corresponding batch of empty droplets as background, pointed by this
+#' parameter. Default to NULL.
 #' @param maxIter Integer. Maximum iterations of the EM algorithm. Default 500.
 #' @param convergence Numeric. The EM algorithm will be stopped if the maximum
 #' difference in the contamination estimates between the previous and
@@ -426,6 +431,15 @@ setMethod(
     verbose = verbose
   )
 
+  if (!is.null(countsBackground)) {
+    countsBackground <- .matchBackgroundRows(
+      counts = counts,
+      background = countsBackground,
+      logfile = logfile,
+      verbose = verbose
+    )
+  }
+
   runParams <- list(
     z = z,
     batch = batch,
@@ -485,6 +499,21 @@ setMethod(
   batch <- as.character(batch)
   if (!is.null(batchBackground)) {
     batchBackground <- as.character(batchBackground)
+    notInBatch <- setdiff(batchBackground, batch)
+    if (length(notInBatch) > 0) {
+      stop(
+        "'bgBatch' has values that aren't in 'batch': ",
+        .firstFew(notInBatch), "."
+      )
+    }
+    # Barcodes that are also in x were already removed from the background
+    noBackground <- setdiff(batch, batchBackground)
+    if (length(noBackground) > 0) {
+      stop(
+        "Every batch needs droplets in 'background'; none for: ",
+        .firstFew(noBackground), "."
+      )
+    }
   }
   runParams$batch <- batch
   runParams$batchBackground <- batchBackground
@@ -1431,6 +1460,15 @@ simulateContamination <- function(C = 300,
 
 .checkBackground <- function(x, background, bgBatch,
                              logfile = NULL, verbose = FALSE) {
+  if (!is.null(bgBatch)) {
+    if (length(bgBatch) != ncol(background)) {
+      stop("'bgBatch' must have one value per column of 'background'.")
+    }
+    if (anyNA(bgBatch)) {
+      stop("'bgBatch' must not contain NA.")
+    }
+  }
+
   # Remove background barcodes that have already appeared in x
   # If bgBatch param is supplied, also remove duplicate bgBatch
   if (!is.null(colnames(background))) {
@@ -1460,14 +1498,14 @@ simulateContamination <- function(C = 300,
     background <- background[, !(dupBarcode), drop = FALSE]
 
     if (!is.null(bgBatch)) {
-      if (length(bgBatch) != length(dupBarcode)) {
-        stop(
-          "Length of bgBatch must be equal to the number of columns",
-          "of background matrix."
-        )
-      }
       bgBatch <- bgBatch[!(dupBarcode)]
     }
+  }
+  if (ncol(background) == 0) {
+    stop(
+      "No droplets are left in 'background' after removing the barcodes ",
+      "that are also in 'x'."
+    )
   }
 
   re <- list(
@@ -1476,4 +1514,66 @@ simulateContamination <- function(C = 300,
   )
 
   re
+}
+
+## Match the rows of a background matrix to the rows of the counts: by name
+## when both have row names, otherwise by position
+.matchBackgroundRows <- function(counts,
+                                 background,
+                                 countsArg = "x",
+                                 bgArg = "background",
+                                 feature = "genes",
+                                 logfile = NULL,
+                                 verbose = TRUE) {
+  countsNames <- rownames(counts)
+  bgNames <- rownames(background)
+  if (is.null(countsNames) || is.null(bgNames)) {
+    if (nrow(counts) != nrow(background)) {
+      stop(
+        "'", bgArg, "' and '", countsArg, "' have a different number of ",
+        feature, " (", nrow(background), " and ", nrow(counts), "). Rows ",
+        "are matched by name when both have row names, and by position ",
+        "otherwise."
+      )
+    }
+    return(background)
+  }
+  if (identical(countsNames, bgNames)) {
+    return(background)
+  }
+  if (anyDuplicated(countsNames) || anyDuplicated(bgNames)) {
+    stop(
+      "'", countsArg, "' or '", bgArg, "' has duplicated row names, so ",
+      "their rows can't be matched by name. Give both the same row names ",
+      "in the same order, or make the names unique."
+    )
+  }
+  missing <- setdiff(countsNames, bgNames)
+  if (length(missing) > 0) {
+    stop(
+      "'", bgArg, "' lacks ", length(missing), " of the ",
+      length(countsNames), " ", feature, " in '", countsArg, "': ",
+      .firstFew(missing), ". Rows are matched by name."
+    )
+  }
+  extra <- setdiff(bgNames, countsNames)
+  if (length(extra) > 0) {
+    .logMessages(
+      date(),
+      " .. Dropped ", feature, " in '", bgArg, "' that aren't in '",
+      countsArg, "': ", length(extra), " of ", length(bgNames), " (",
+      .firstFew(extra), ")",
+      sep = "",
+      logfile = logfile,
+      append = TRUE,
+      verbose = verbose
+    )
+  }
+  background[match(countsNames, bgNames), , drop = FALSE]
+}
+
+## The first few values, for messages
+.firstFew <- function(x, n = 5) {
+  more <- if (length(x) > n) ", ..." else ""
+  paste0(paste(x[seq_len(min(n, length(x)))], collapse = ", "), more)
 }

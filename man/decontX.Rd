@@ -82,7 +82,11 @@ located in the assay slot under \code{assayName}. It should have the same
 data format as \code{x}
 except it contains the empty droplets instead of cells. When supplied,
 empirical distribution of transcripts from these empty droplets
-will be used as the contamination distribution. Default NULL.}
+will be used as the contamination distribution. When both have row
+names, its rows are matched to the genes of \code{x} by name: genes
+that aren't in \code{x} are dropped, and every gene of \code{x} must be
+present. Otherwise the rows are matched by position. Barcodes that are
+also in \code{x} are removed. Default NULL.}
 
 \item{bgAssayName}{Character. Name of the assay to use if \code{background}
 is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
@@ -90,9 +94,10 @@ same as
 \code{assayName}.}
 
 \item{bgBatch}{Numeric or character vector. Batch labels for
-\code{background}. Its unique values should be the same as those in
-\code{batch}, such that each batch of cells have their corresponding batch
-of empty droplets as background, pointed by this parameter. Default to NULL.}
+\code{background}, one per column. Its unique values must be the same as
+those in \code{batch}, such that each batch of cells have their
+corresponding batch of empty droplets as background, pointed by this
+parameter. Default to NULL.}
 
 \item{maxIter}{Integer. Maximum iterations of the EM algorithm. Default 500.}
 
