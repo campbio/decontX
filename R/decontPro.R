@@ -15,7 +15,11 @@
 #' Default to 2e-6.
 #' @param ambient_counts Count matrix NxM (feature x droplet) with only ambient
 #' droplets. Similar to \code{filtered_counts} param, if it is a wrapper object,
-#' expect \code{counts} in the assay slot. Default to NULL.
+#' expect \code{counts} in the assay slot. When both have row names, its
+#' rows are matched to the ADTs of \code{filtered_counts} by name: ADTs
+#' that aren't in \code{filtered_counts} are dropped, and every ADT of
+#' \code{filtered_counts} must be present. Otherwise the rows are matched
+#' by position. Default to NULL.
 #' @param ... Additional arguments for generics.
 #'
 #' @return A list containing decontaminated counts, and estimated parameters.
@@ -134,13 +138,13 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   if (is.null(ambient_counts)) {
     temp <- counts
   } else {
-    # Quick check ambient counts have same num of ADTs as counts
-    if (nrow(counts) != nrow(ambient_counts)) {
-      stop(
-        "Input ambient_counts and counts have different number of ADTs/rows."
-      )
-    }
-    temp <- ambient_counts
+    temp <- .matchBackgroundRows(
+      counts = counts,
+      background = ambient_counts,
+      countsArg = "filtered_counts",
+      bgArg = "ambient_counts",
+      feature = "ADTs"
+    )
   }
 
   p <- Matrix::rowSums(temp)

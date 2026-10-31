@@ -647,3 +647,146 @@ test_that("decontX takes assays by index and names the assay argument", {
     regexp = "'assayName' \\(\"raw\"\\) is not an assay of 'background'"
   )
 })
+
+test_that("decontX matches background rows to the counts by gene name", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  run <- function(bg, counts = x, verbose = FALSE) {
+    decontX(counts,
+      z = d$sim$z, background = bg, maxIter = 5,
+      verbose = verbose
+    )
+  }
+  matched <- run(d$bg)$contamination
+
+  reversed <- d$bg[rev(seq_len(nrow(d$bg))), ]
+  expect_identical(run(reversed)$contamination, matched)
+  extra <- rbind(d$bg, Extra_1 = 1L, Extra_2 = 2L)
+  expect_identical(run(extra)$contamination, matched)
+  messages <- capture_messages(run(extra, verbose = TRUE))
+  expect_match(messages,
+    regexp = paste0(
+      "Dropped genes in 'background' that aren't in 'x': 2 of 62 ",
+      "\\(Extra_1, Extra_2\\)"
+    ),
+    all = FALSE
+  )
+
+  # Without row names on either, rows are matched by position
+  unnamed <- d$bg
+  rownames(unnamed) <- NULL
+  expect_identical(run(unnamed)$contamination, matched)
+
+  # Duplicated names that are identical in both are used as they are
+  dupX <- x
+  rownames(dupX)[2] <- rownames(dupX)[1]
+  dupBg <- d$bg
+  rownames(dupBg) <- rownames(dupX)
+  expect_identical(run(dupBg, counts = dupX)$contamination, matched)
+
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
+  for (bg in list(reversed, extra)) {
+    bgSce <- SingleCellExperiment::SingleCellExperiment(list(counts = bg))
+    res <- decontX(sce,
+      z = d$sim$z, background = bgSce, maxIter = 5,
+      verbose = FALSE
+    )
+    expect_identical(res$decontX_contamination, matched)
+  }
+})
+
+test_that("decontX stops when background rows can't be matched", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  run <- function(bg, counts = x) {
+    decontX(counts, z = d$sim$z, background = bg, verbose = FALSE)
+  }
+  expect_error(run(d$bg[-c(1, 2), ]),
+    regexp = paste0(
+      "'background' lacks 2 of the 60 genes in 'x': ",
+      rownames(x)[1], ", ", rownames(x)[2]
+    )
+  )
+  noOverlap <- d$bg
+  rownames(noOverlap) <- paste0("other_", seq_len(nrow(noOverlap)))
+  expect_error(run(noOverlap),
+    regexp = "'background' lacks 60 of the 60 genes in 'x'"
+  )
+  unnamed <- d$bg[-1, ]
+  rownames(unnamed) <- NULL
+  expect_error(run(unnamed),
+    regexp = "'background' and 'x' have a different number of genes"
+  )
+  dupX <- x
+  rownames(dupX)[2] <- rownames(dupX)[1]
+  expect_error(run(d$bg, counts = dupX),
+    regexp = "duplicated row names, so their rows can't be matched by name"
+  )
+})
+
+test_that("decontX checks bgBatch against batch and the background", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  run <- function(bgBatch, bg = d$bg) {
+    decontX(x,
+      z = d$sim$z, batch = d$batch, background = bg,
+      bgBatch = bgBatch, verbose = FALSE
+    )
+  }
+  expect_error(run(c("A", "B")),
+    regexp = "'bgBatch' must have one value per column of 'background'"
+  )
+  expect_error(run(replace(d$bgBatch, 1, NA)),
+    regexp = "'bgBatch' must not contain NA"
+  )
+  expect_error(run(rep(c("C", "A", "B"), length.out = 40)),
+    regexp = "'bgBatch' has values that aren't in 'batch': C"
+  )
+  expect_error(run(rep("A", 40)),
+    regexp = "Every batch needs droplets in 'background'; none for: B"
+  )
+
+  # A batch can also lose its droplets to barcodes that are in x
+  bg <- d$bg
+  colnames(bg)[21:40] <- colnames(x)[1:20]
+  expect_error(run(d$bgBatch, bg = bg),
+    regexp = "Every batch needs droplets in 'background'; none for: B"
+  )
+})
+
+test_that("decontX stops when no background droplets are left", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  bg <- d$bg
+  colnames(bg) <- colnames(x)[seq_len(ncol(bg))]
+  expect_error(
+    decontX(x, z = d$sim$z, background = bg, verbose = FALSE),
+    regexp = "No droplets are left in 'background' after removing"
+  )
+  expect_error(
+    decontX(x, z = d$sim$z, background = d$bg[, 0], verbose = FALSE),
+    regexp = "'background' has no droplets"
+  )
+  expect_error(
+    decontX(x, z = d$sim$z, background = d$bg[, 1], verbose = FALSE),
+    regexp = "'background' must be a matrix"
+  )
+})
+
+test_that("decontX handles one droplet per batch and duplicated extra genes", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  expect_no_error(
+    decontX(x,
+      z = d$sim$z, batch = d$batch, background = d$bg,
+      bgBatch = c(rep("A", 39), "B"), maxIter = 5, verbose = FALSE
+    )
+  )
+
+  # Duplicated names only matter among the genes that are matched to x
+  run <- function(bg) {
+    decontX(x, z = d$sim$z, background = bg, maxIter = 5, verbose = FALSE)
+  }
+  extra <- rbind(d$bg, Extra = 1L, Extra = 2L)
+  expect_identical(run(extra)$contamination, run(d$bg)$contamination)
+})
