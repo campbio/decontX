@@ -827,6 +827,13 @@ test_that("decontX names the batch with one cluster and no background", {
     decontX(x, z = z, batch = d$batch, verbose = FALSE),
     regexp = "'z' has only one cluster in batch 'B'"
   )
+  # A batch the user named "all_cells" is named too
+  batch <- ifelse(d$batch == "A", "all_cells", "S2")
+  z <- ifelse(batch == "all_cells", 1, d$sim$z)
+  expect_error(
+    decontX(x, z = z, batch = batch, verbose = FALSE),
+    regexp = "'z' has only one cluster in batch 'all_cells'"
+  )
 })
 
 test_that("the k-means fallback clusters the PCA components", {
@@ -846,4 +853,8 @@ test_that("the k-means fallback clusters the PCA components", {
   # One row per cell, and at most 50 PCs rather than all 60 genes
   expect_identical(nrow(received), ncol(x))
   expect_lte(ncol(received), 50L)
+  # The PCs of the default initialization (varGenes = 5000, seed = 12345);
+  # decontX runs it on a dgCMatrix, so the last digits can differ
+  pcs <- .decontxInitializeZScrapper(x, varGenes = 5000, seed = 12345)$pcs
+  expect_equal(received, pcs)
 })

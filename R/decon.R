@@ -480,6 +480,7 @@ setMethod(
   )
 
   ## Generate batch labels if none were supplied
+  batchGiven <- !is.null(batch)
   if (is.null(batch)) {
     batch <- rep("all_cells", nC)
 
@@ -529,7 +530,7 @@ setMethod(
   # Checked for every batch before any of them runs
   if (!is.null(z) && is.null(countsBackground)) {
     for (bat in batchIndex) {
-      .checkOneCluster(z[batch == bat], bat)
+      .checkOneCluster(z[batch == bat], if (batchGiven) bat)
     }
   }
 
@@ -774,7 +775,7 @@ setMethod(
   .checkCountsDecon(counts)
   .checkDelta(delta)
   if (!is.null(z) && is.null(countsBackground)) {
-    .checkOneCluster(z, batch)
+    .checkOneCluster(z)
   }
 
   nC <- ncol(counts)
@@ -1089,7 +1090,7 @@ setMethod(
   if (length(unique(z)) > 1) {
     return(invisible(NULL))
   }
-  where <- if (is.null(batch) || identical(batch, "all_cells")) {
+  where <- if (is.null(batch)) {
     ""
   } else {
     paste0(" in batch '", batch, "'")
@@ -1136,7 +1137,6 @@ setMethod(
       seed = seed
     )
   }
-  normed <- init$normed
   resUmap <- init$umap
 
   z <- NULL
@@ -1157,7 +1157,7 @@ setMethod(
       if (is.null(init$pcs)) {
         ## The legacy initialization clusters all genes
         ## transpose before realizing so only one dense copy is allocated
-        cl <- stats::kmeans(as.matrix(t(normed)), 2)
+        cl <- stats::kmeans(as.matrix(t(init$normed)), 2)
       } else {
         ## Cells x PCs, small and dense, instead of cells x all genes
         cl <- stats::kmeans(init$pcs, 2)
@@ -1226,7 +1226,7 @@ setMethod(
   resUmap <- do.call(scrapper::runUmap, umapArgs)
 
   ## The PCs, cells x PCs, are what the k-means fallback clusters
-  list(normed = normed, umap = resUmap, pcs = t(pca$components))
+  list(umap = resUmap, pcs = t(pca$components))
 }
 
 ## Original scater/scuttle-based initialization, kept for backwards
