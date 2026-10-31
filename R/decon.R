@@ -1459,8 +1459,8 @@ simulateContamination <- function(C = 300,
 }
 
 
-.checkBackground <- function(x, background, bgBatch,
-                             logfile = NULL, verbose = FALSE) {
+## The background needs droplets, and bgBatch one value per droplet
+.checkBackgroundShape <- function(background, bgBatch) {
   if (is.null(dim(background))) {
     stop("'background' must be a matrix or a SingleCellExperiment.")
   }
@@ -1475,6 +1475,12 @@ simulateContamination <- function(C = 300,
       stop("'bgBatch' must not contain NA.")
     }
   }
+  invisible(NULL)
+}
+
+.checkBackground <- function(x, background, bgBatch,
+                             logfile = NULL, verbose = FALSE) {
+  .checkBackgroundShape(background, bgBatch)
 
   # Remove background barcodes that have already appeared in x
   # If bgBatch param is supplied, also remove duplicate bgBatch
@@ -1551,6 +1557,27 @@ simulateContamination <- function(C = 300,
   if (identical(countsNames, bgNames)) {
     return(background)
   }
+  .checkBackgroundNames(countsNames, bgNames, countsArg, bgArg, feature)
+  extra <- setdiff(bgNames, countsNames)
+  if (length(extra) > 0) {
+    .logMessages(
+      date(),
+      " .. Dropped ", feature, " in '", bgArg, "' that aren't in '",
+      countsArg, "': ", length(extra), " of ", length(bgNames), " (",
+      .firstFew(extra), ")",
+      sep = "",
+      logfile = logfile,
+      append = TRUE,
+      verbose = verbose
+    )
+  }
+  background[match(countsNames, bgNames), , drop = FALSE]
+}
+
+## Every row name of the counts must be in the background, and the names
+## that are matched must be unique
+.checkBackgroundNames <- function(countsNames, bgNames,
+                                  countsArg, bgArg, feature) {
   # Duplicates among the extra background rows are dropped with them
   if (anyDuplicated(countsNames) ||
         anyDuplicated(bgNames[bgNames %in% countsNames])) {
@@ -1568,20 +1595,7 @@ simulateContamination <- function(C = 300,
       .firstFew(missing), ". Rows are matched by name."
     )
   }
-  extra <- setdiff(bgNames, countsNames)
-  if (length(extra) > 0) {
-    .logMessages(
-      date(),
-      " .. Dropped ", feature, " in '", bgArg, "' that aren't in '",
-      countsArg, "': ", length(extra), " of ", length(bgNames), " (",
-      .firstFew(extra), ")",
-      sep = "",
-      logfile = logfile,
-      append = TRUE,
-      verbose = verbose
-    )
-  }
-  background[match(countsNames, bgNames), , drop = FALSE]
+  invisible(NULL)
 }
 
 ## The first few values, for messages
