@@ -1,3 +1,15 @@
+# decontX 1.11.7
+
+* `decontX()` allows a `z` with one cluster when `background` is
+supplied, since the contamination profile then comes from the empty
+droplets. This fits only when the cells are a single cell type. Without
+`background`, one cluster still stops, and the error now names the batch
+(#69).
+* When dbscan finds only one cluster, the k-means fallback now runs on the
+PCA components instead of a dense matrix of all genes, which could need
+gigabytes of memory (#43). This changes the clusters and contamination
+estimates on that path only; `legacyInit = TRUE` is unchanged.
+
 # decontX 1.11.6
 
 * `decontX()` now matches the rows of `background` to the genes of `x` by

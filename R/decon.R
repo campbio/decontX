@@ -21,7 +21,12 @@
 #' '\link[scrapper]{runUmap}' from the 'scrapper' package
 #' will be used to further reduce the dataset to 2 dimensions and
 #' the '\link[dbscan]{dbscan}' function from the 'dbscan' package
-#' will be used to identify clusters of broad cell types. Default NULL.
+#' will be used to identify clusters of broad cell types. If dbscan finds
+#' only one cluster, k-means on the PCA components splits the cells into
+#' two. \code{z} needs at least two clusters in each batch, unless
+#' \code{background} is supplied: with \code{background}, one cluster is
+#' allowed, which fits only when the cells are a single cell type.
+#' Default NULL.
 #' @param batch Numeric or character vector. Batch labels for cells.
 #' If batch labels are supplied, DecontX is run on cells from each
 #' batch separately. Cells run in different channels or assays
@@ -36,7 +41,8 @@
 #' names, its rows are matched to the genes of \code{x} by name: genes
 #' that aren't in \code{x} are dropped, and every gene of \code{x} must be
 #' present. Otherwise the rows are matched by position. Barcodes that are
-#' also in \code{x} are removed. Default NULL.
+#' also in \code{x} are removed. With \code{background}, \code{z} may have
+#' a single cluster. Default NULL.
 #' @param bgAssayName Character. Name of the assay to use if \code{background}
 #' is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
 #' same as
@@ -519,6 +525,12 @@ setMethod(
   runParams$batch <- batch
   runParams$batchBackground <- batchBackground
   batchIndex <- unique(batch)
+  # Checked for every batch before any of them runs
+  if (!is.null(z) && is.null(countsBackground)) {
+    for (bat in batchIndex) {
+      .checkOneCluster(z[batch == bat], bat)
+    }
+  }
 
   ## Set result lists upfront for all cells from different batches
   estConp <- rep(NA, nC)
@@ -760,6 +772,9 @@ setMethod(
                              legacyInit = FALSE) {
   .checkCountsDecon(counts)
   .checkDelta(delta)
+  if (!is.null(z) && is.null(countsBackground)) {
+    .checkOneCluster(z, batch)
+  }
 
   nC <- ncol(counts)
   deconMethod <- "clustering"
@@ -1067,6 +1082,24 @@ setMethod(
 }
 
 
+## Without background, the contamination profile of each cluster comes from
+## the other clusters, so one cluster can't be fit
+.checkOneCluster <- function(z, batch = NULL) {
+  if (length(unique(z)) > 1) {
+    return(invisible(NULL))
+  }
+  where <- if (is.null(batch) || identical(batch, "all_cells")) {
+    ""
+  } else {
+    paste0(" in batch '", batch, "'")
+  }
+  stop(
+    "'z' has only one cluster", where, ". decontX needs at least two ",
+    "clusters to estimate contamination without 'background'."
+  )
+}
+
+
 ## Make sure provided cell labels are the right type
 #' @importFrom plyr mapvalues
 .processCellLabels <- function(z, numCells) {
@@ -1075,14 +1108,6 @@ setMethod(
       "'z' must be of the same length as the number of cells in the",
       " 'counts' matrix."
     )
-  }
-  if (length(unique(z)) < 2) {
-    stop(
-      "No need to decontaminate when only one cluster",
-      " is in the dataset."
-    ) # Even though
-    # everything runs smoothly when length(unique(z)) == 1, result is not
-    # trustful
   }
   if (!is.factor(z)) {
     z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
@@ -1127,8 +1152,14 @@ setMethod(
     # If dbscan was not able to get more than 2 clusters,
     # use kmeans to force 2 clusters as a last resort
     if (totalClusters == 1) {
-      ## transpose before realizing so only one dense copy is allocated
-      cl <- stats::kmeans(as.matrix(t(normed)), 2)
+      if (is.null(init$pcs)) {
+        ## The legacy initialization clusters all genes
+        ## transpose before realizing so only one dense copy is allocated
+        cl <- stats::kmeans(as.matrix(t(normed)), 2)
+      } else {
+        ## Cells x PCs, small and dense, instead of cells x all genes
+        cl <- stats::kmeans(init$pcs, 2)
+      }
       z <- cl$cluster
     } else {
       z <- resDbscan$cluster
@@ -1192,7 +1223,8 @@ setMethod(
   }
   resUmap <- do.call(scrapper::runUmap, umapArgs)
 
-  list(normed = normed, umap = resUmap)
+  ## The PCs, cells x PCs, are what the k-means fallback clusters
+  list(normed = normed, umap = resUmap, pcs = t(pca$components))
 }
 
 ## Original scater/scuttle-based initialization, kept for backwards
