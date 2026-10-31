@@ -808,6 +808,7 @@ test_that("decontX allows one cluster when the batch has background", {
     z = z, batch = d$batch, background = d$bg, bgBatch = d$bgBatch,
     maxIter = 5, verbose = FALSE
   )
+  expect_length(unique(res$z[d$batch == "A"]), 1)
   expect_true(all(is.finite(res$contamination)))
 })
 

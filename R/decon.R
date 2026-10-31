@@ -22,10 +22,11 @@
 #' will be used to further reduce the dataset to 2 dimensions and
 #' the '\link[dbscan]{dbscan}' function from the 'dbscan' package
 #' will be used to identify clusters of broad cell types. If dbscan finds
-#' only one cluster, k-means on the PCA components splits the cells into
-#' two. \code{z} needs at least two clusters in each batch, unless
-#' \code{background} is supplied: with \code{background}, one cluster is
-#' allowed, which fits only when the cells are a single cell type.
+#' only one cluster, k-means on the PCA components (on all genes with
+#' \code{legacyInit = TRUE}) splits the cells into two. \code{z} needs at
+#' least two clusters in each batch, unless \code{background} is
+#' supplied: with \code{background}, one cluster is allowed, which fits
+#' only when the cells are a single cell type.
 #' Default NULL.
 #' @param batch Numeric or character vector. Batch labels for cells.
 #' If batch labels are supplied, DecontX is run on cells from each
@@ -1095,7 +1096,8 @@ setMethod(
   }
   stop(
     "'z' has only one cluster", where, ". decontX needs at least two ",
-    "clusters to estimate contamination without 'background'."
+    "clusters to estimate contamination without 'background'. Supply ",
+    "'background' to allow one cluster."
   )
 }
 
