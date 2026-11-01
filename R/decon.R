@@ -534,9 +534,15 @@ setMethod(
     }
   }
 
+  ## User labels come back as given, without unused levels
+  if (!is.null(z)) {
+    zLabels <- if (is.factor(z)) droplevels(z) else factor(z)
+  }
+
   ## Set result lists upfront for all cells from different batches
   estConp <- rep(NA, nC)
-  returnZ <- rep(NA, nC)
+  returnZ <- character(nC)
+  zLevels <- character()
   resBatch <- list()
 
   ## Cycle through each sample/batch and run DecontX
@@ -659,27 +665,36 @@ setMethod(
     estRmat <- estRmat[, allCol]
     dimnames(estRmat) <- list(geneNames, allCellNames)
 
+    labels <- if (is.null(z)) res$z else zLabels[batch == bat]
+    labelled <- .labelEstimates(res, labels)
     resBatch[[bat]] <- list(
-      z = res$z,
-      phi = res$phi,
-      eta = res$eta,
+      z = labelled$z,
+      phi = labelled$phi,
+      eta = labelled$eta,
       delta = res$delta,
       theta = res$theta,
       contamination = res$contamination,
       logLikelihood = res$logLikelihood,
       UMAP = res$UMAP,
-      z = res$z,
       iteration = res$iteration
     )
 
     estConp[batch == bat] <- res$contamination
-    if (length(batchIndex) > 1) {
-      returnZ[batch == bat] <- paste0(bat, "-", res$z)
-    } else {
-      returnZ[batch == bat] <- res$z
+    # Estimated clusters are numbered within each batch, so batched runs
+    # prefix them with the batch
+    if (is.null(z)) {
+      prefix <- if (length(batchIndex) > 1) paste0(bat, "-") else ""
+      returnZ[batch == bat] <- paste0(prefix, labelled$z)
+      zLevels <- c(zLevels, paste0(prefix, levels(labelled$z)))
     }
   }
   names(resBatch) <- batchIndex
+
+  if (is.null(z)) {
+    returnZ <- factor(returnZ, levels = zLevels)
+  } else {
+    returnZ <- zLabels
+  }
 
   returnResult <- list(
     "runParams" = runParams,
@@ -1112,11 +1127,30 @@ setMethod(
       " 'counts' matrix."
     )
   }
-  if (!is.factor(z)) {
+  if (is.factor(z)) {
+    # An unused level would be an empty cluster, which gives NaN estimates
+    z <- droplevels(z)
+  } else {
     z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
     z <- as.factor(z)
   }
   z
+}
+
+
+## The EM numbers the clusters with the codes of res$z. Name the phi and
+## eta columns by each cluster's label in 'labels' (one per cell), ordered
+## as the levels of 'labels'. Only the columns move, not the values.
+.labelEstimates <- function(res, labels) {
+  labels <- droplevels(labels)
+  codes <- as.integer(res$z)
+  codeLabels <- as.character(labels)[match(seq_len(ncol(res$phi)), codes)]
+  columns <- match(levels(labels), codeLabels)
+  phi <- res$phi[, columns, drop = FALSE]
+  eta <- res$eta[, columns, drop = FALSE]
+  colnames(phi) <- levels(labels)
+  colnames(eta) <- levels(labels)
+  list(z = labels, phi = phi, eta = eta)
 }
 
 
