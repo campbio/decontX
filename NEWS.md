@@ -10,7 +10,7 @@ rows of `parameters$r_est` are named by label. A `cell_type` of the
 wrong length or with NA, and counts that aren't non-negative whole
 numbers, stop with a clear message, and a failed Stan fit says so
 instead of stopping with "no applicable method for `@`". Results for
-1-based integer labels don't change (#72).
+labels 1 to K don't change (#72).
 * `decontPro()` stops on arguments it doesn't know, such as `seed`,
 `batch` or a misspelled `delta_SD`, which used to be ignored (#72).
 

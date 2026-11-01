@@ -244,6 +244,26 @@ test_that("decontPro joins split Seurat layers in Cells() order", {
   expect_identical(SeuratObject::Layers(obj), c("counts.a", "counts.b"))
 })
 
+test_that("decontPro reads a Seurat v3 assay", {
+  skip_if_not_installed("SeuratObject")
+  withr::local_options(Seurat.object.assay.version = "v3")
+  p <- refProData()
+  obj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$counts, "CsparseMatrix")
+  )
+  expect_false(methods::is(obj[["RNA"]], "Assay5"))
+
+  received <- NULL
+  local_mocked_bindings(
+    .decontPro = function(counts, cell_type, ...) {
+      received <<- counts
+      list()
+    }
+  )
+  decontPro(obj, p$k, 1e-2, 1e-2)
+  expect_equal(as.matrix(received), p$counts)
+})
+
 test_that("decontPro checks the length of cell_type and NA", {
   p <- refProData()
   expect_error(
@@ -352,6 +372,10 @@ test_that("decontPro rejects unknown arguments", {
     decontPro(sce, p$k, altExpName = "ADT"),
     regexp = "Unknown arguments to decontPro\\(\\): 'altExpName'"
   )
+  expect_error(
+    decontPro(sce, p$k, 1e-2, 1e-2, NULL, 5),
+    regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
+  )
 
   skip_if_not_installed("SeuratObject")
   obj <- SeuratObject::CreateSeuratObject(
@@ -360,5 +384,9 @@ test_that("decontPro rejects unknown arguments", {
   expect_error(
     decontPro(obj, p$k, assay = "ADT"),
     regexp = "Unknown arguments to decontPro\\(\\): 'assay'"
+  )
+  expect_error(
+    decontPro(obj, p$k, 1e-2, 1e-2, NULL, 5),
+    regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
   )
 })
