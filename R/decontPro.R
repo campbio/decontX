@@ -24,7 +24,8 @@
 #' rows are matched to the ADTs of \code{filtered_counts} by name: ADTs
 #' that aren't in \code{filtered_counts} are dropped, and every ADT of
 #' \code{filtered_counts} must be present. Otherwise the rows are matched
-#' by position. Default to NULL.
+#' by position. The ADTs used must have no NA or negative counts.
+#' Default to NULL.
 #' @param ... Not used. Any other argument stops with an error.
 #'
 #' @return A list containing decontaminated counts, and estimated parameters.
@@ -158,6 +159,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
       bgArg = "ambient_counts",
       feature = "ADTs"
     )
+    .checkCountsDecon(temp, "ambient_counts")
   }
 
   p <- Matrix::rowSums(temp)

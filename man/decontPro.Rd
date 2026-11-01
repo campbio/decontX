@@ -65,7 +65,8 @@ expect \code{counts} in the assay slot. When both have row names, its
 rows are matched to the ADTs of \code{filtered_counts} by name: ADTs
 that aren't in \code{filtered_counts} are dropped, and every ADT of
 \code{filtered_counts} must be present. Otherwise the rows are matched
-by position. Default to NULL.}
+by position. The ADTs used must have no NA or negative counts.
+Default to NULL.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.

@@ -405,3 +405,26 @@ test_that("decontPro rejects unknown arguments", {
     regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
   )
 })
+
+test_that("decontPro rejects NA and negative values in ambient_counts", {
+  # Checked before any Stan call, so no fit runs
+  p <- refProData()
+  missing <- p$ambient
+  missing[2, 3] <- NA
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2, ambient_counts = missing),
+    regexp = "Missing value in 'ambient_counts' matrix"
+  )
+  negative <- p$ambient
+  negative[2, 3] <- -1L
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2, ambient_counts = negative),
+    regexp = "Negative value in 'ambient_counts' matrix"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2,
+      ambient_counts = as(negative, "CsparseMatrix")
+    ),
+    regexp = "Negative value in 'ambient_counts' matrix"
+  )
+})

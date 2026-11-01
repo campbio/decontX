@@ -44,11 +44,16 @@ Reproduced on devel at f380a36 (1.11.8) with the 10 x 8 fixture.
    decontPro stops with "Stan's variational inference failed" instead of
    the `@` error. Added at code review: the list case alone missed most
    failures.
-5. **`...`.** Any extra argument, named or not, stops in all three
+5. **`ambient_counts`.** After its rows are matched, NA or negative
+   values stop, using decontX's `.checkCountsDecon()` (sparse-aware).
+   Added at hand-off at the maintainer's request (2026-11-01); they used
+   to reach Stan and end in the generic failure message.
+6. **`...`.** Any extra argument, named or not, stops in all three
    methods, naming the arguments.
-6. **Docs.** `@param cell_type` (labels and the `r_est` row order),
+7. **Docs.** `@param cell_type` (labels and the `r_est` row order),
    `@param filtered_counts` (whole numbers; split layers are joined),
-   `@param ...` (unused; extra arguments are an error), `@return`
+   `@param ambient_counts` (no NA or negative counts), `@param ...`
+   (unused; extra arguments are an error), `@return`
    (`r_est` row names).
 
 ## Tests
@@ -64,6 +69,8 @@ Written first; each fails on its assertion on devel.
 - A real 10 x 8 fit with gapped labels equals the 1..K fit, apart from
   the `r_est` row names, which are the labels.
 - Non-integer, negative and NA counts stop with clear messages.
+- NA and negative values in `ambient_counts` (dense and dgCMatrix) stop
+  with messages naming it.
 - A mocked `.call_stan_vb` returning a list stops with the new message.
 - `seed`, `delta_SD`, `batch` and an unnamed extra stop in the matrix,
   SingleCellExperiment and Seurat methods.
@@ -71,8 +78,8 @@ Written first; each fails on its assertion on devel.
 ## NEWS, version, release
 
 - NEWS entries for the three fixes and the `r_est` row names.
-- Version 1.11.10 (PR #92 takes 1.11.9); rebased locally on devel once
-  #92 merges.
+- Version 1.11.10 (PR #92 took 1.11.9); rebased on devel after #92
+  merged.
 - Devel only: crashes with unclear messages; the split-layer half-run
   warned.
 

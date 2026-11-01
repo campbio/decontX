@@ -7,8 +7,9 @@ layer's cells alone (#72).
 * `decontPro()` accepts any `cell_type` labels, such as integers with
 gaps, character strings or a factor, and recodes them for Stan. The
 rows of `parameters$r_est` are named by label. A `cell_type` of the
-wrong length or with NA, and counts that aren't non-negative whole
-numbers, stop with a clear message, and a failed Stan fit says so
+wrong length or with NA, counts that aren't non-negative whole
+numbers, and NA or negative values in `ambient_counts` stop with a clear
+message, and a failed Stan fit says so
 instead of stopping with "no applicable method for `@`". Results for
 labels 1 to K don't change (#72).
 * `decontPro()` stops on arguments it doesn't know, such as `seed`,
