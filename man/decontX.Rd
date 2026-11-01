@@ -181,8 +181,8 @@ with the following items:
 \describe{
 \item{\code{decontXcounts}:}{The decontaminated matrix, a sparse
 \code{dgCMatrix} whatever the class of \code{x}, or a
-\linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (backed by an
-HDF5 file when \code{x} is). Values obtained
+\linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (an
+\code{HDF5Matrix} when \code{x} is). Values obtained
 from the variational inference procedure may be non-integer. However,
 integer counts can be obtained by rounding,
 e.g. \code{round(decontXcounts)}.}

@@ -469,6 +469,17 @@ test_that("decontX names unsupported input classes", {
     decontX(textX, z = d$sim$z, verbose = FALSE),
     regexp = "'x' must be .*; it is a character matrix\\."
   )
+  expect_error(
+    decontX(DelayedArray::DelayedArray(textX), z = d$sim$z, verbose = FALSE),
+    regexp = "'x' must be .*; it is a character DelayedMatrix\\."
+  )
+  # Presence/absence isn't counts, whatever the storage
+  expect_error(
+    decontX(methods::as(x > 0, "CsparseMatrix"),
+      z = d$sim$z, verbose = FALSE
+    ),
+    regexp = "'x' must be .*; it is a lgCMatrix\\."
+  )
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
   textSce <- SingleCellExperiment::SingleCellExperiment(list(counts = textX))
   expect_error(

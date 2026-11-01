@@ -118,8 +118,8 @@
 #' \describe{
 #' \item{\code{decontXcounts}:}{The decontaminated matrix, a sparse
 #' \code{dgCMatrix} whatever the class of \code{x}, or a
-#' \linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (backed by an
-#' HDF5 file when \code{x} is). Values obtained
+#' \linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (an
+#' \code{HDF5Matrix} when \code{x} is). Values obtained
 #' from the variational inference procedure may be non-integer. However,
 #' integer counts can be obtained by rounding,
 #' e.g. \code{round(decontXcounts)}.}
@@ -338,6 +338,12 @@ setMethod("decontX", "ANY", function(x,
 
   countsBackground <- NULL
   if (!is.null(background)) {
+    # Objects without dimensions get .checkBackground()'s message
+    if (!is.null(dim(background))) {
+      .checkCountsMatrix(background, "'background'",
+        when = " when 'x' is a matrix"
+      )
+    }
     # Remove cells with the same ID between x and the background matrix
     # Also update bgBatch when background is updated and bgBatch is not null
     temp <- .checkBackground(
@@ -349,9 +355,6 @@ setMethod("decontX", "ANY", function(x,
     )
 
     background <- temp$background
-    .checkCountsMatrix(background, "'background'",
-      when = " when 'x' is a matrix"
-    )
     countsBackground <- background
     .checkCountsDecon(countsBackground, "background")
 
@@ -747,7 +750,7 @@ setMethod(
   if (inherits(counts, c("DelayedMatrix", "DelayedArray"))) {
     .logMessages(
       date(),
-      ".. Converting decontaminated matrix to", class(counts),
+      ".. Converting decontaminated matrix to a DelayedMatrix",
       logfile = logfile,
       append = TRUE,
       verbose = verbose
@@ -1122,12 +1125,18 @@ setMethod(
   }
 }
 
-## The matrix classes that .asDgCMatrix() converts
+## The numeric matrix classes that .asDgCMatrix() converts
 .isCountsMatrix <- function(x) {
-  (is.matrix(x) && is.numeric(x)) ||
-    methods::is(x, "Matrix") ||
-    methods::is(x, "DelayedMatrix") ||
+  if (is.matrix(x)) {
+    return(is.numeric(x))
+  }
+  if (methods::is(x, "Matrix")) {
+    # Logical and pattern Matrix classes aren't counts
+    return(methods::is(x, "dMatrix"))
+  }
+  isDelayed <- methods::is(x, "DelayedMatrix") ||
     (methods::is(x, "SparseArray") && length(dim(x)) == 2)
+  isDelayed && DelayedArray::type(x) %in% c("double", "integer")
 }
 
 ## Stops unless x is one of those classes; 'what' names it in the message
@@ -1136,7 +1145,13 @@ setMethod(
     return(invisible(NULL))
   }
   # A matrix of the wrong type is named by its type, e.g. "character matrix"
-  found <- if (is.matrix(x)) paste(typeof(x), "matrix") else class(x)[1]
+  found <- class(x)[1]
+  if (is.matrix(x)) {
+    found <- paste(typeof(x), "matrix")
+  } else if (methods::is(x, "DelayedArray") ||
+               methods::is(x, "SparseArray")) {
+    found <- paste(DelayedArray::type(x), found)
+  }
   stop(
     what, " must be ", choices, "a numeric matrix, a sparse matrix or a ",
     "DelayedMatrix", when, "; it is a ", found, ".", hint
