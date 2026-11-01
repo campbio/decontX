@@ -191,6 +191,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
                                                       verbose = TRUE) {
   .checkAssayName(x, assayName, "assayName", "x")
   mat <- SummarizedExperiment::assay(x, i = assayName)
+  .checkCountsMatrix(mat, "The 'x' assay")
   .checkDecontXArgs(
     counts = mat,
     z = z,
@@ -236,6 +237,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
     }
     .checkAssayName(background, bgAssayName, bgArg, "background")
     countsBackground <- SummarizedExperiment::assay(background, i = bgAssayName)
+    .checkCountsMatrix(countsBackground, "The 'background' assay")
     .checkCountsDecon(countsBackground, "background")
   }
 
@@ -309,16 +311,14 @@ setMethod("decontX", "ANY", function(x,
                                      legacyInit = FALSE,
                                      logfile = NULL,
                                      verbose = TRUE) {
-  if (!.isCountsMatrix(x)) {
-    hint <- ""
-    if (inherits(x, "SummarizedExperiment")) {
-      hint <- " Convert it with as(x, \"SingleCellExperiment\")."
-    }
-    stop(
-      "'x' must be a SingleCellExperiment, a numeric matrix, a sparse ",
-      "matrix or a DelayedMatrix; it is a ", class(x)[1], ".", hint
-    )
+  hint <- ""
+  if (inherits(x, "SummarizedExperiment")) {
+    hint <- " Convert it with as(x, \"SingleCellExperiment\")."
   }
+  .checkCountsMatrix(x, "'x'",
+    choices = "a SingleCellExperiment, ",
+    hint = hint
+  )
   .checkDecontXArgs(
     counts = x,
     z = z,
@@ -349,13 +349,9 @@ setMethod("decontX", "ANY", function(x,
     )
 
     background <- temp$background
-    if (!.isCountsMatrix(background)) {
-      stop(
-        "'background' must be a numeric matrix, a sparse matrix or a ",
-        "DelayedMatrix when 'x' is a matrix; it is a ", class(background)[1],
-        "."
-      )
-    }
+    .checkCountsMatrix(background, "'background'",
+      when = " when 'x' is a matrix"
+    )
     countsBackground <- background
     .checkCountsDecon(countsBackground, "background")
 
@@ -679,8 +675,6 @@ setMethod(
         )
       )
     }
-
-    ## Try to convert class of new matrix to class of original matrix
 
     .logMessages(
       date(),
@@ -1134,6 +1128,19 @@ setMethod(
     methods::is(x, "Matrix") ||
     methods::is(x, "DelayedMatrix") ||
     (methods::is(x, "SparseArray") && length(dim(x)) == 2)
+}
+
+## Stops unless x is one of those classes; 'what' names it in the message
+.checkCountsMatrix <- function(x, what, choices = "", when = "", hint = "") {
+  if (.isCountsMatrix(x)) {
+    return(invisible(NULL))
+  }
+  # A matrix of the wrong type is named by its type, e.g. "character matrix"
+  found <- if (is.matrix(x)) paste(typeof(x), "matrix") else class(x)[1]
+  stop(
+    what, " must be ", choices, "a numeric matrix, a sparse matrix or a ",
+    "DelayedMatrix", when, "; it is a ", found, ".", hint
+  )
 }
 
 ## as(x, "dgCMatrix") is deprecated or missing for several classes; the

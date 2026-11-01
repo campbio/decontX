@@ -4,8 +4,8 @@
 `batch`, has fewer than 3 cells (15 with `legacyInit = TRUE`), which the
 initialization needs. A one-cell batch used to stop with "subscript out
 of bounds" (#71).
-* `decontX()` accepts a DelayedMatrix over an in-memory matrix, which
-used to stop after the whole run, and dgRMatrix and dgTMatrix counts
+* `decontX()` accepts a DelayedMatrix over a dense matrix, which used to
+stop after the whole run, and dgRMatrix and dgTMatrix counts
 without errors or deprecation warnings. Other input classes, such as a
 data.frame or a SummarizedExperiment, stop with a message naming the
 class. With a SingleCellExperiment `x`, `background` must be a

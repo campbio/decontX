@@ -460,7 +460,28 @@ test_that("decontX names unsupported input classes", {
       "SingleCellExperiment\\."
     )
   )
+  # Counts stored as text, with the dimnames kept
+  textX <- x
+  storage.mode(textX) <- "character"
+  textBg <- d$bg
+  storage.mode(textBg) <- "character"
+  expect_error(
+    decontX(textX, z = d$sim$z, verbose = FALSE),
+    regexp = "'x' must be .*; it is a character matrix\\."
+  )
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
+  textSce <- SingleCellExperiment::SingleCellExperiment(list(counts = textX))
+  expect_error(
+    decontX(textSce, z = d$sim$z, verbose = FALSE),
+    regexp = "The 'x' assay must be .*; it is a character matrix\\."
+  )
+  textBgSce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = textBg)
+  )
+  expect_error(
+    decontX(sce, z = d$sim$z, background = textBgSce, verbose = FALSE),
+    regexp = "The 'background' assay must be .*; it is a character matrix\\."
+  )
   expect_error(
     decontX(sce, z = d$sim$z, background = d$bg, verbose = FALSE),
     regexp = paste0(
