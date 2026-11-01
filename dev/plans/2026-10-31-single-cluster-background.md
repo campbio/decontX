@@ -40,7 +40,10 @@ Reproduced on devel at 0040d2c.
 2. **k-means fallback on PCA.** `.decontxInitializeZScrapper()` also
    returns its PCA components, and the fallback runs k-means on them
    (cells x at most 50 PCs). `legacyInit = TRUE` keeps the dense
-   all-genes matrix, unchanged.
+   all-genes matrix, transposed with `Matrix::t()`: base `t()` failed
+   on the sparse log counts, so this path had always stopped with
+   "argument is not a matrix" (added after review, with the
+   maintainer's approval).
 3. **Docs:** `z` and `background` say that one cluster is allowed with
    `background`, and fits only when the cells are one cell type.
 
@@ -54,7 +57,9 @@ Written first; each fails on its assertion on devel.
   batch.
 - With `stats::kmeans` mocked and `dbscanEps = 0` (which forces the
   fallback), k-means gets one row per cell and at most 50 columns.
-  `legacyInit = TRUE` still gets all genes (skipped without scater).
+  `legacyInit = TRUE` runs, gets a dense cells x all genes matrix, and
+  returns two clusters (skipped without scater; on devel it fails on the
+  `t()` error).
 - No change elsewhere: the stored references still match, and
   `dev/compare-commits.R devel HEAD` reports every path identical, unless
   a path hits the fallback, which is then named in the PR.
@@ -62,7 +67,8 @@ Written first; each fails on its assertion on devel.
 ## NEWS, version, release
 
 - NEWS: one cluster allowed with background; the fallback's results
-  change (default initialization only, when dbscan finds one cluster).
+  change (default initialization only, when dbscan finds one cluster);
+  the legacy fallback no longer fails.
 - Version 1.11.7.
 - Devel only, with the other Phase I-b fixes.
 

@@ -1156,8 +1156,9 @@ setMethod(
     if (totalClusters == 1) {
       if (is.null(init$pcs)) {
         ## The legacy initialization clusters all genes
-        ## transpose before realizing so only one dense copy is allocated
-        cl <- stats::kmeans(as.matrix(t(init$normed)), 2)
+        ## transpose before realizing so only one dense copy is allocated;
+        ## Matrix::t() because base t() fails on the sparse log counts
+        cl <- stats::kmeans(as.matrix(Matrix::t(init$normed)), 2)
       } else {
         ## Cells x PCs, small and dense, instead of cells x all genes
         cl <- stats::kmeans(init$pcs, 2)

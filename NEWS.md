@@ -8,7 +8,11 @@ droplets. This fits only when the cells are a single cell type. Without
 * When dbscan finds only one cluster, the k-means fallback now runs on the
 PCA components instead of a dense matrix of all genes, which could need
 gigabytes of memory (#43). This changes the clusters and contamination
-estimates on that path only; `legacyInit = TRUE` is unchanged.
+estimates on that path only; `legacyInit = TRUE` still clusters all
+genes.
+* With `legacyInit = TRUE`, the k-means fallback no longer stops with
+"argument is not a matrix". It had failed on this path since
+`legacyInit` was added, so no earlier results change.
 
 # decontX 1.11.6
 
