@@ -69,7 +69,13 @@ PCA will be used to reduce the dimensionality of the dataset initially,
 '\link[scrapper]{runUmap}' from the 'scrapper' package
 will be used to further reduce the dataset to 2 dimensions and
 the '\link[dbscan]{dbscan}' function from the 'dbscan' package
-will be used to identify clusters of broad cell types. Default NULL.}
+will be used to identify clusters of broad cell types. If dbscan finds
+only one cluster, k-means on the PCA components (on all genes with
+\code{legacyInit = TRUE}) splits the cells into two. \code{z} needs at
+least two clusters in each batch, unless \code{background} is
+supplied: with \code{background}, one cluster is allowed, which fits
+only when the cells are a single cell type.
+Default NULL.}
 
 \item{batch}{Numeric or character vector. Batch labels for cells.
 If batch labels are supplied, DecontX is run on cells from each
@@ -86,7 +92,8 @@ will be used as the contamination distribution. When both have row
 names, its rows are matched to the genes of \code{x} by name: genes
 that aren't in \code{x} are dropped, and every gene of \code{x} must be
 present. Otherwise the rows are matched by position. Barcodes that are
-also in \code{x} are removed. Default NULL.}
+also in \code{x} are removed. With \code{background}, \code{z} may have
+a single cluster. Default NULL.}
 
 \item{bgAssayName}{Character. Name of the assay to use if \code{background}
 is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to

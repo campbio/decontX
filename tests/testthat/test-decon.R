@@ -318,7 +318,7 @@ test_that(desc = "Testing .decontXoneBatch", {
         deconSim$observedCounts
       ))
     ),
-    "No need to decontaminate when only one cluster is in the dataset."
+    "'z' has only one cluster. decontX needs at least two clusters"
   )
   countsNA <- deconSim$observedCounts
   countsNA[1, 1] <- NA
@@ -789,4 +789,99 @@ test_that("decontX handles one droplet per batch and duplicated extra genes", {
   }
   extra <- rbind(d$bg, Extra = 1L, Extra = 2L)
   expect_identical(run(extra)$contamination, run(d$bg)$contamination)
+})
+
+test_that("decontX allows one cluster when the batch has background", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  res <- decontX(x,
+    z = rep(1, ncol(x)), background = d$bg, maxIter = 5,
+    verbose = FALSE
+  )
+  expect_length(unique(res$z), 1)
+  expect_true(all(is.finite(res$contamination)))
+  expect_true(all(res$contamination >= 0 & res$contamination <= 1))
+
+  # One batch down to one cluster, the other with several
+  z <- ifelse(d$batch == "A", 1, d$sim$z)
+  res <- decontX(x,
+    z = z, batch = d$batch, background = d$bg, bgBatch = d$bgBatch,
+    maxIter = 5, verbose = FALSE
+  )
+  expect_length(unique(res$z[d$batch == "A"]), 1)
+  expect_true(all(is.finite(res$contamination)))
+})
+
+test_that("decontX names the batch with one cluster and no background", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  expect_error(
+    decontX(x, z = rep(1, ncol(x)), verbose = FALSE),
+    regexp = paste0(
+      "'z' has only one cluster\\. decontX needs at least two clusters ",
+      "to estimate contamination without 'background'"
+    )
+  )
+  z <- ifelse(d$batch == "B", 1, d$sim$z)
+  expect_error(
+    decontX(x, z = z, batch = d$batch, verbose = FALSE),
+    regexp = "'z' has only one cluster in batch 'B'"
+  )
+  # A batch the user named "all_cells" is named too
+  batch <- ifelse(d$batch == "A", "all_cells", "S2")
+  z <- ifelse(batch == "all_cells", 1, d$sim$z)
+  expect_error(
+    decontX(x, z = z, batch = batch, verbose = FALSE),
+    regexp = "'z' has only one cluster in batch 'all_cells'"
+  )
+})
+
+test_that("the k-means fallback clusters the PCA components", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  received <- NULL
+  kmeans <- stats::kmeans
+  local_mocked_bindings(
+    kmeans = function(x, centers, ...) {
+      received <<- x
+      kmeans(x, centers, ...)
+    },
+    .package = "stats"
+  )
+  # dbscanEps = 0 skips dbscan, so the fallback runs
+  decontX(x, dbscanEps = 0, maxIter = 5, verbose = FALSE)
+  # One row per cell, and at most 50 PCs rather than all 60 genes
+  expect_identical(nrow(received), ncol(x))
+  expect_lte(ncol(received), 50L)
+  # The PCs of the default initialization (varGenes = 5000, seed = 12345);
+  # decontX runs it on a dgCMatrix, so the last digits can differ
+  pcs <- .decontxInitializeZScrapper(x, varGenes = 5000, seed = 12345)$pcs
+  expect_equal(received, pcs)
+})
+
+test_that("the legacy k-means fallback clusters all genes", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  received <- NULL
+  kmeans <- stats::kmeans
+  local_mocked_bindings(
+    kmeans = function(x, centers, ...) {
+      received <<- x
+      kmeans(x, centers, ...)
+    },
+    .package = "stats"
+  )
+  # dbscanEps = 0 skips dbscan, so the fallback runs. The legacy path
+  # calls deprecated upstream functions, so warnings are suppressed.
+  res <- suppressWarnings(
+    decontX(x,
+      dbscanEps = 0, maxIter = 5, legacyInit = TRUE,
+      verbose = FALSE
+    )
+  )
+  # A dense cells x genes matrix
+  expect_true(is.matrix(received))
+  expect_identical(dim(received), rev(dim(x)))
+  expect_identical(length(unique(res$z)), 2L)
 })
