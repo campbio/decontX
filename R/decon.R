@@ -5,12 +5,15 @@
 #'
 #' @name decontX
 #'
-#' @param x A numeric matrix of counts or a
+#' @param x A matrix of counts or a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
-#' located in the assay slot under \code{assayName}.
+#' located in the assay slot under \code{assayName}. The matrix can be a
+#' numeric matrix, a sparse matrix from package \link[Matrix]{Matrix} or
+#' 'SparseArray', or a \linkS4class[DelayedArray]{DelayedMatrix}.
 #' Cells in each batch will be subsetted and converted to a sparse matrix
 #' of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
-#' analysis. This
+#' analysis. Each batch needs at least 3 cells (15 with
+#' \code{legacyInit = TRUE}) for the initialization. This
 #' object should only contain filtered cells after cell calling. Empty
 #' cell barcodes (low expression droplets before cell calling) are not needed
 #' to run DecontX.
@@ -34,11 +37,12 @@
 #' If batch labels are supplied, DecontX is run on cells from each
 #' batch separately. Cells run in different channels or assays
 #' should be considered different batches. Default NULL.
-#' @param background A numeric matrix of counts or a
+#' @param background A matrix of counts or a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
-#' located in the assay slot under \code{assayName}. It should have the same
-#' data format as \code{x}
-#' except it contains the empty droplets instead of cells. When supplied,
+#' located in the assay slot under \code{assayName}. It must be a
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} when \code{x} is
+#' one, and otherwise one of the matrix classes \code{x} accepts. It
+#' contains the empty droplets instead of cells. When supplied,
 #' empirical distribution of transcripts from these empty droplets
 #' will be used as the contamination distribution. When both have row
 #' names, its rows are matched to the genes of \code{x} by name: genes
@@ -112,7 +116,10 @@
 #' @return If \code{x} is a matrix-like object, a list will be returned
 #' with the following items:
 #' \describe{
-#' \item{\code{decontXcounts}:}{The decontaminated matrix. Values obtained
+#' \item{\code{decontXcounts}:}{The decontaminated matrix, a sparse
+#' \code{dgCMatrix} whatever the class of \code{x}, or a
+#' \linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (backed by an
+#' HDF5 file when \code{x} is). Values obtained
 #' from the variational inference procedure may be non-integer. However,
 #' integer counts can be obtained by rounding,
 #' e.g. \code{round(decontXcounts)}.}
@@ -203,6 +210,12 @@ setMethod("decontX", "SingleCellExperiment", function(x,
 
   countsBackground <- NULL
   if (!is.null(background)) {
+    if (!inherits(background, "SummarizedExperiment")) {
+      stop(
+        "'background' must be a SingleCellExperiment when 'x' is one; ",
+        "it is a ", class(background)[1], "."
+      )
+    }
     # Remove cells with the same ID between x and the background matrix
     # Also update bgBatch when background is updated and bgBatch is not null
     temp <- .checkBackground(
@@ -221,9 +234,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
       bgAssayName <- assayName
       bgArg <- "assayName"
     }
-    if (inherits(background, "SummarizedExperiment")) {
-      .checkAssayName(background, bgAssayName, bgArg, "background")
-    }
+    .checkAssayName(background, bgAssayName, bgArg, "background")
     countsBackground <- SummarizedExperiment::assay(background, i = bgAssayName)
     .checkCountsDecon(countsBackground, "background")
   }
@@ -298,6 +309,16 @@ setMethod("decontX", "ANY", function(x,
                                      legacyInit = FALSE,
                                      logfile = NULL,
                                      verbose = TRUE) {
+  if (!.isCountsMatrix(x)) {
+    hint <- ""
+    if (inherits(x, "SummarizedExperiment")) {
+      hint <- " Convert it with as(x, \"SingleCellExperiment\")."
+    }
+    stop(
+      "'x' must be a SingleCellExperiment, a numeric matrix, a sparse ",
+      "matrix or a DelayedMatrix; it is a ", class(x)[1], ".", hint
+    )
+  }
   .checkDecontXArgs(
     counts = x,
     z = z,
@@ -328,6 +349,13 @@ setMethod("decontX", "ANY", function(x,
     )
 
     background <- temp$background
+    if (!.isCountsMatrix(background)) {
+      stop(
+        "'background' must be a numeric matrix, a sparse matrix or a ",
+        "DelayedMatrix when 'x' is a matrix; it is a ", class(background)[1],
+        "."
+      )
+    }
     countsBackground <- background
     .checkCountsDecon(countsBackground, "background")
 
@@ -541,6 +569,7 @@ setMethod(
   runParams$batchBackground <- batchBackground
   batchIndex <- unique(batch)
   # Checked for every batch before any of them runs
+  .checkBatchSizes(batch, batchGiven, legacyInit)
   if (!is.null(z) && is.null(countsBackground)) {
     for (bat in batchIndex) {
       .checkOneCluster(z[batch == bat], if (batchGiven) bat)
@@ -589,7 +618,7 @@ setMethod(
     }
 
     zBat <- NULL
-    countsBat <- counts[, batch == bat]
+    countsBat <- counts[, batch == bat, drop = FALSE]
     bgBat <- countsBackground[, batchBackground == bat, drop = FALSE]
 
     ## Convert to sparse matrix
@@ -601,12 +630,10 @@ setMethod(
         append = TRUE,
         verbose = verbose
       )
-      countsBat <- methods::as(countsBat, "dgCMatrix")
+      countsBat <- .asDgCMatrix(countsBat)
     }
     if (!is.null(bgBat)) {
-      if (!inherits(bgBat, "dgCMatrix")) {
-        bgBat <- methods::as(bgBat, "dgCMatrix")
-      }
+      bgBat <- .asDgCMatrix(bgBat)
     }
 
     if (!is.null(z)) {
@@ -679,7 +706,7 @@ setMethod(
     subCol <- paste0("col_", which(batch == bat))
     colnames(estRmat.temp) <- subCol
 
-    estRmat <- estRmat[, !(allCol %in% subCol)]
+    estRmat <- estRmat[, !(allCol %in% subCol), drop = FALSE]
     estRmat <- cbind(estRmat, estRmat.temp)
 
     # Recover order and set names
@@ -732,29 +759,14 @@ setMethod(
       verbose = verbose
     )
 
-    ## Determine class of seed in DelayedArray
-    seed.class <- unique(DelayedArray::seedApply(counts, class))[[1]]
-    if (seed.class == "HDF5ArraySeed") {
+    ## Counts on disk in HDF5 give an HDF5Matrix; other seeds stay sparse
+    isHDF5 <- DelayedArray::seedApply(counts, methods::is, "HDF5ArraySeed")
+    if (any(unlist(isHDF5))) {
       returnResult$decontXcounts <-
         methods::as(returnResult$decontXcounts, "HDF5Matrix")
-    } else {
-      if (isTRUE(methods::canCoerce(returnResult$decontXcounts, seed.class))) {
-        returnResult$decontXcounts <-
-          methods::as(returnResult$decontXcounts, seed.class)
-      }
     }
     returnResult$decontXcounts <-
       DelayedArray::DelayedArray(returnResult$decontXcounts)
-  } else {
-    try(
-      {
-        if (methods::canCoerce(returnResult$decontXcounts, class(counts))) {
-          returnResult$decontXcounts <-
-            methods::as(returnResult$decontXcounts, class(counts))
-        }
-      },
-      silent = TRUE
-    )
   }
 
   endTime <- Sys.time()
@@ -1114,6 +1126,43 @@ setMethod(
   if (min(counts) < 0) {
     stop("Negative value in '", name, "' matrix.")
   }
+}
+
+## The matrix classes that .asDgCMatrix() converts
+.isCountsMatrix <- function(x) {
+  (is.matrix(x) && is.numeric(x)) ||
+    methods::is(x, "Matrix") ||
+    methods::is(x, "DelayedMatrix") ||
+    (methods::is(x, "SparseArray") && length(dim(x)) == 2)
+}
+
+## as(x, "dgCMatrix") is deprecated or missing for several classes; the
+## extra steps turn symmetric, triangular and logical matrices into dgCMatrix
+.asDgCMatrix <- function(x) {
+  x <- methods::as(x, "CsparseMatrix")
+  methods::as(methods::as(x, "generalMatrix"), "dMatrix")
+}
+
+## The initialization's PCA and UMAP need a few cells in each batch
+.checkBatchSizes <- function(batch, batchGiven, legacyInit) {
+  # uwot's 15 neighbors in the legacy UMAP; scrapper's PCA needs 3 cells
+  minCells <- if (isTRUE(legacyInit)) 15 else 3
+  legacy <- if (isTRUE(legacyInit)) " with 'legacyInit = TRUE'" else ""
+  sizes <- table(factor(batch, levels = unique(batch)))
+  small <- sizes[sizes < minCells]
+  if (length(small) == 0) {
+    return(invisible(NULL))
+  }
+  if (!batchGiven) {
+    stop(
+      "'x' needs at least ", minCells, " cells", legacy, "; it has ",
+      small[[1]], "."
+    )
+  }
+  stop(
+    "Each batch needs at least ", minCells, " cells", legacy, "; ",
+    .firstFew(paste0("batch '", names(small), "' has ", small)), "."
+  )
 }
 
 
