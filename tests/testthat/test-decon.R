@@ -885,3 +885,132 @@ test_that("the legacy k-means fallback clusters all genes", {
   expect_identical(dim(received), rev(dim(x)))
   expect_identical(length(unique(res$z)), 2L)
 })
+
+test_that("decontX returns the user's cluster labels as a factor", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  labels <- c("T", "B", "Mono")[d$sim$z]
+  res <- decontX(x, z = labels, maxIter = 5, verbose = FALSE)
+  expect_identical(res$z, factor(labels))
+
+  # Batched runs keep the labels, without the batch prefix
+  res <- decontX(x,
+    z = labels, batch = d$batch, maxIter = 5, verbose = FALSE
+  )
+  expect_identical(res$z, factor(labels))
+
+  # A factor keeps its level order, without unused levels
+  z <- factor(labels, levels = c("Mono", "unused", "T", "B"))
+  res <- decontX(x, z = z, batch = d$batch, maxIter = 5, verbose = FALSE)
+  expect_identical(res$z, droplevels(z))
+
+  # More than nine character labels, which used to be coded as text
+  z12 <- rep(paste0("c", 1:12), length.out = ncol(x))
+  res <- decontX(x, z = z12, maxIter = 5, verbose = FALSE)
+  expect_identical(as.character(res$z), z12)
+
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
+  sce <- decontX(sce, z = labels, maxIter = 5, verbose = FALSE)
+  expect_identical(sce$decontX_clusters, factor(labels))
+})
+
+test_that("phi and eta columns are named and ordered by the labels in z", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  res <- decontX(x,
+    z = d$sim$z, batch = d$batch, maxIter = 5, verbose = FALSE
+  )
+  for (est in res$estimates) {
+    expect_true(is.factor(est$z))
+    expect_identical(colnames(est$phi), levels(est$z))
+    expect_identical(colnames(est$eta), levels(est$z))
+  }
+
+  # Relabelling the clusters reorders the columns but not the values
+  relabelled <- decontX(x,
+    z = c(30, 10, 20)[d$sim$z], maxIter = 5, verbose = FALSE
+  )
+  res <- decontX(x, z = d$sim$z, maxIter = 5, verbose = FALSE)
+  est <- relabelled$estimates$all_cells
+  expect_identical(colnames(est$phi), c("10", "20", "30"))
+  expect_identical(
+    unname(est$phi[, c("30", "10", "20")]),
+    unname(res$estimates$all_cells$phi[, c("1", "2", "3")])
+  )
+  expect_identical(relabelled$contamination, res$contamination)
+  expect_identical(relabelled$decontXcounts, res$decontXcounts)
+})
+
+test_that("estimated clusters come back as a factor", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  res <- decontX(x, maxIter = 5, verbose = FALSE)
+  expect_true(is.factor(res$z))
+  expect_identical(levels(res$z), as.character(seq_len(nlevels(res$z))))
+
+  res <- decontX(x, batch = d$batch, maxIter = 5, verbose = FALSE)
+  expect_true(is.factor(res$z))
+  expect_true(all(startsWith(as.character(res$z), paste0(d$batch, "-"))))
+  expect_identical(levels(res$z), c(
+    paste0("A-", levels(res$estimates$A$z)),
+    paste0("B-", levels(res$estimates$B$z))
+  ))
+})
+
+test_that("unused cluster levels don't give NaN estimates", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  # An unused level before used ones
+  z <- factor(d$sim$z, levels = c(1, 4, 2, 3))
+  res <- decontX(x, z = z, maxIter = 5, verbose = FALSE)
+  expect_identical(levels(res$estimates$all_cells$z), c("1", "2", "3"))
+  expect_false(anyNA(res$estimates$all_cells$phi))
+
+  # A level that batch B doesn't have
+  z <- d$sim$z
+  z[d$batch == "B" & z == 2] <- 1
+  res <- decontX(x,
+    z = factor(z), batch = d$batch, maxIter = 5, verbose = FALSE
+  )
+  expect_identical(levels(res$estimates$B$z), c("1", "3"))
+  expect_false(anyNA(res$estimates$B$phi))
+})
+
+test_that("marker percentages are right for any cluster labels", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  markers <- d$sim$markers
+  ref <- plotDecontXMarkerPercentage(x, markers, z = d$sim$z)$data
+  for (codes in list(10:12, c(2, 5, 9), 0:2)) {
+    p <- plotDecontXMarkerPercentage(x, markers, z = codes[d$sim$z])$data
+    expect_identical(p$percent, ref$percent)
+    expect_identical(
+      as.character(p$cellTypeLabels),
+      as.character(codes[ref$cellType])
+    )
+  }
+
+  # An unused level is left out
+  z <- factor(d$sim$z, levels = 0:3)
+  p <- plotDecontXMarkerPercentage(x, markers, z = z)$data
+  expect_identical(p$percent, ref$percent)
+
+  # One marker gene
+  one <- list(One = markers[[1]][1])
+  p <- plotDecontXMarkerPercentage(x, one, z = d$sim$z)$data
+  expect_identical(nrow(p), 3L)
+})
+
+test_that("the marker expression plot gives each cell its own cluster", {
+  d <- refData()
+  order <- c(51:100, 1:50)
+  x <- d$sim$observedCounts[, order]
+  z <- d$sim$z[order]
+  # Numeric-like cell names, permuted or not 1..n
+  for (cells in list(as.character(order), as.character(1000 + order))) {
+    colnames(x) <- cells
+    df <- plotDecontXMarkerExpression(x, d$sim$markers[[1]], z = z)$data
+    expected <- z[match(as.character(df$Cell), cells)]
+    expect_identical(as.character(df$Cluster), as.character(expected))
+  }
+})
