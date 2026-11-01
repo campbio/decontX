@@ -1,3 +1,21 @@
+# decontX 1.11.8
+
+* `decontX()` returns `z` as a factor. A supplied `z` comes back with its
+own labels instead of integer codes, and without a batch prefix in
+batched runs; a factor keeps its level order. Estimated clusters keep
+their numbers (`"<batch>-<k>"` with `batch`). The `phi` and `eta`
+estimates are named by cluster label. `as.integer(result$z)` may give
+different values than before, and `groupClusters` in the marker plots
+now takes these labels for a supplied `z` (#70).
+* Unused levels in a factor `z`, including levels missing from one batch,
+no longer give `NaN` columns in `phi`. Contamination for such a `z`
+changes by about 1e-16; no other results change (#70).
+* `plotDecontXMarkerPercentage()` gives the right percentages and labels
+for any cluster labels; labels other than 1 to K used to stop, give NA
+labels or mislabel clusters. It also works with one marker gene, and
+`plotDecontXMarkerExpression()` no longer assigns cells to the wrong
+cluster when the cell names look like numbers (#70).
+
 # decontX 1.11.7
 
 * `decontX()` allows a `z` with one cluster when `background` is

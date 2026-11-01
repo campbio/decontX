@@ -111,7 +111,9 @@ plotDecontXContamination <- function(x,
 #' \code{z} to be regrouped and renamed on the fly. For example,
 #' \code{list(Tcells=c(1, 2), Bcells=7)} would recode
 #' clusters 1 and 2 to "Tcells"
-#' and cluster 7 to "Bcells". Note that if this is
+#' and cluster 7 to "Bcells". The values are the labels in \code{z}, such
+#' as the labels of a \code{z} supplied to \code{\link{decontX}}.
+#' Note that if this is
 #' used, clusters in \code{z} not found
 #' in \code{groupClusters} will be excluded from the barplot.
 #' Default \code{NULL}.
@@ -299,7 +301,9 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
 #' \code{z} to be regrouped and renamed on the fly. For example,
 #' \code{list(Tcells=c(1, 2), Bcells=7)} would recode clusters
 #' 1 and 2 to "Tcells"
-#' and cluster 7 to "Bcells". Note that if this is used, clusters
+#' and cluster 7 to "Bcells". The values are the labels in \code{z}, such
+#' as the labels of a \code{z} supplied to \code{\link{decontX}}.
+#' Note that if this is used, clusters
 #' in \code{z} not found
 #' in \code{groupClusters} will be excluded. Default \code{NULL}.
 #' @param assayName Character vector. Name(s) of the assay(s) to
