@@ -858,3 +858,30 @@ test_that("the k-means fallback clusters the PCA components", {
   pcs <- .decontxInitializeZScrapper(x, varGenes = 5000, seed = 12345)$pcs
   expect_equal(received, pcs)
 })
+
+test_that("the legacy k-means fallback clusters all genes", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  received <- NULL
+  kmeans <- stats::kmeans
+  local_mocked_bindings(
+    kmeans = function(x, centers, ...) {
+      received <<- x
+      kmeans(x, centers, ...)
+    },
+    .package = "stats"
+  )
+  # dbscanEps = 0 skips dbscan, so the fallback runs. The legacy path
+  # calls deprecated upstream functions, so warnings are suppressed.
+  res <- suppressWarnings(
+    decontX(x,
+      dbscanEps = 0, maxIter = 5, legacyInit = TRUE,
+      verbose = FALSE
+    )
+  )
+  # A dense cells x genes matrix
+  expect_true(is.matrix(received))
+  expect_identical(dim(received), rev(dim(x)))
+  expect_identical(length(unique(res$z)), 2L)
+})
