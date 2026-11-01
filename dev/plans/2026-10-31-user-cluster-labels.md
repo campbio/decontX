@@ -53,9 +53,9 @@ Reproduced on devel at 61a109c.
    isn't exported, and nothing can reach it with an empty cluster after
    this change.
 4. **Marker plots.**
-   - The shared input helper turns `z` into codes 1..K over its used
-     levels, with the level names as the cluster names, so the groups,
-     sizes and labels line up.
+   - The shared input helper drops unused levels, and the percentage
+     calculation numbers the levels 1..K, with the level names as the
+     cluster names, so the groups, sizes and labels line up.
    - `drop = FALSE` when subsetting to the marker genes.
    - `plotDecontXMarkerExpression()` attaches each cell's cluster by
      position, not by cell name.

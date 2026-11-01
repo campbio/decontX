@@ -901,6 +901,8 @@ test_that("decontX returns the user's cluster labels as a factor", {
 
   # A factor keeps its level order, without unused levels
   z <- factor(labels, levels = c("Mono", "unused", "T", "B"))
+  res <- decontX(x, z = z, maxIter = 5, verbose = FALSE)
+  expect_identical(res$z, droplevels(z))
   res <- decontX(x, z = z, batch = d$batch, maxIter = 5, verbose = FALSE)
   expect_identical(res$z, droplevels(z))
 
@@ -908,10 +910,24 @@ test_that("decontX returns the user's cluster labels as a factor", {
   z12 <- rep(paste0("c", 1:12), length.out = ncol(x))
   res <- decontX(x, z = z12, maxIter = 5, verbose = FALSE)
   expect_identical(as.character(res$z), z12)
+  # Each cell's column of phi and eta is the one named by its label
+  est <- res$estimates$all_cells
+  expect_identical(colnames(est$phi), levels(est$z))
+  expect_identical(colnames(est$phi)[as.integer(est$z)], z12)
+  native <- calculateNativeMatrix(
+    counts = methods::as(x, "dgCMatrix"), theta = est$theta,
+    eta = est$eta, phi = est$phi, z = as.integer(est$z),
+    pseudocount = 1e-20
+  )
+  expect_equal(unname(as.matrix(native)), unname(as.matrix(res$decontXcounts)))
 
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
-  sce <- decontX(sce, z = labels, maxIter = 5, verbose = FALSE)
-  expect_identical(sce$decontX_clusters, factor(labels))
+  sceOne <- decontX(sce, z = labels, maxIter = 5, verbose = FALSE)
+  expect_identical(sceOne$decontX_clusters, factor(labels))
+  sceBatched <- decontX(sce,
+    z = labels, batch = d$batch, maxIter = 5, verbose = FALSE
+  )
+  expect_identical(sceBatched$decontX_clusters, factor(labels))
 })
 
 test_that("phi and eta columns are named and ordered by the labels in z", {
@@ -994,6 +1010,7 @@ test_that("marker percentages are right for any cluster labels", {
   z <- factor(d$sim$z, levels = 0:3)
   p <- plotDecontXMarkerPercentage(x, markers, z = z)$data
   expect_identical(p$percent, ref$percent)
+  expect_identical(levels(p$cellTypeLabels), c("1", "2", "3"))
 
   # One marker gene
   one <- list(One = markers[[1]][1])
@@ -1013,4 +1030,24 @@ test_that("the marker expression plot gives each cell its own cluster", {
     expected <- z[match(as.character(df$Cell), cells)]
     expect_identical(as.character(df$Cluster), as.character(expected))
   }
+
+  # Two assays of a SingleCellExperiment, with and without groupClusters
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = x, decontXcounts = x)
+  )
+  sce$cluster <- z
+  df <- plotDecontXMarkerExpression(sce, d$sim$markers[[1]],
+    z = "cluster"
+  )$data
+  expected <- z[match(as.character(df$Cell), cells)]
+  expect_identical(as.character(df$Cluster), as.character(expected))
+  groups <- list(A = 1, B = 2)
+  df <- plotDecontXMarkerExpression(sce, d$sim$markers[[1]], groups,
+    z = "cluster"
+  )$data
+  expected <- z[match(as.character(df$Cell), cells)]
+  expect_identical(
+    as.character(df$Cell_Type),
+    c("A", "B")[expected]
+  )
 })

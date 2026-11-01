@@ -17,7 +17,8 @@
 #' @param assayName Character. Name of the assay to use if \code{x} is a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment}.
 #' @param z Numeric, character or factor vector. Cell cluster labels,
-#' returned as given in the result's \code{z}. If NULL,
+#' which the result's \code{z} returns as a factor of the same labels.
+#' If NULL,
 #' PCA will be used to reduce the dimensionality of the dataset initially,
 #' '\link[scrapper]{runUmap}' from the 'scrapper' package
 #' will be used to further reduce the dataset to 2 dimensions and
@@ -124,8 +125,10 @@
 #' \item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
 #' supplied \code{z} comes back with its own labels: a factor keeps its
 #' level order, without unused levels, and other vectors get sorted levels.
-#' Estimated clusters are numbered 1 to K, prefixed with the batch
-#' (\code{"<batch>-<k>"}) when \code{batch} is supplied.}
+#' Estimated clusters are numbered 1 to K in each batch, prefixed with the
+#' batch (\code{"<batch>-<k>"}) when \code{batch} is supplied, and ordered
+#' by the batch's first cell, then by number. The \code{z} in each batch's
+#' \code{estimates} has no prefix.}
 #' \item{\code{runParams}:}{List of arguments used in the function call.}
 #' }
 #'
