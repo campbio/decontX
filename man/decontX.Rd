@@ -49,12 +49,15 @@ decontX(x, ...)
 )
 }
 \arguments{
-\item{x}{A numeric matrix of counts or a
+\item{x}{A matrix of counts or a
 \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
-located in the assay slot under \code{assayName}.
+located in the assay slot under \code{assayName}. The matrix can be a
+numeric matrix, a sparse matrix from package \link[Matrix]{Matrix} or
+'SparseArray', or a \linkS4class[DelayedArray]{DelayedMatrix}.
 Cells in each batch will be subsetted and converted to a sparse matrix
 of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
-analysis. This
+analysis. Each batch needs at least 3 cells (15 with
+\code{legacyInit = TRUE}) for the initialization. This
 object should only contain filtered cells after cell calling. Empty
 cell barcodes (low expression droplets before cell calling) are not needed
 to run DecontX.}
@@ -84,11 +87,12 @@ If batch labels are supplied, DecontX is run on cells from each
 batch separately. Cells run in different channels or assays
 should be considered different batches. Default NULL.}
 
-\item{background}{A numeric matrix of counts or a
+\item{background}{A matrix of counts or a
 \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
-located in the assay slot under \code{assayName}. It should have the same
-data format as \code{x}
-except it contains the empty droplets instead of cells. When supplied,
+located in the assay slot under \code{assayName}. It must be a
+\linkS4class[SingleCellExperiment]{SingleCellExperiment} when \code{x} is
+one, and otherwise one of the matrix classes \code{x} accepts. It
+contains the empty droplets instead of cells. When supplied,
 empirical distribution of transcripts from these empty droplets
 will be used as the contamination distribution. When both have row
 names, its rows are matched to the genes of \code{x} by name: genes
@@ -175,7 +179,10 @@ stored in the results. Default FALSE.}
 If \code{x} is a matrix-like object, a list will be returned
 with the following items:
 \describe{
-\item{\code{decontXcounts}:}{The decontaminated matrix. Values obtained
+\item{\code{decontXcounts}:}{The decontaminated matrix, a sparse
+\code{dgCMatrix} whatever the class of \code{x}, or a
+\linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (an
+\code{HDF5Matrix} when \code{x} is). Values obtained
 from the variational inference procedure may be non-integer. However,
 integer counts can be obtained by rounding,
 e.g. \code{round(decontXcounts)}.}

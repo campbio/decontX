@@ -233,6 +233,11 @@ Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double> &counts,
   {
     stop("Length of 'z' must be equal to the number of columns in 'counts'.");
   }
+  // NA is INT_MIN, so this check catches it too
+  if (min(z) < 1)
+  {
+    stop("The entries in 'z' need to be at least 1.");
+  }
 
   // Declare variables and functions
   NumericMatrix new_phi(counts.rows(), max(z));

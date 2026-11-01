@@ -381,7 +381,7 @@ test_that("sparse and DelayedArray input give the dense-input results", {
     z = d$sim$z, maxIter = 2,
     verbose = FALSE
   )
-  # Today dense input returns a dgCMatrix (A1-14; #71 changes this)
+  # Dense input returns a dgCMatrix, which #71 kept (A1-14)
   expect_s4_class(dense$decontXcounts, "dgCMatrix")
 
   sparseCounts <- methods::as(d$sim$observedCounts, "CsparseMatrix")
@@ -400,6 +400,180 @@ test_that("sparse and DelayedArray input give the dense-input results", {
     methods::as(delayed$decontXcounts, "dgCMatrix"),
     dense$decontXcounts
   )
+})
+
+test_that("other sparse classes give the dense-input results as a dgCMatrix", {
+  d <- refData()
+  dense <- decontX(d$sim$observedCounts,
+    z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
+  for (cls in c("RsparseMatrix", "TsparseMatrix", "SVT_SparseMatrix")) {
+    counts <- methods::as(d$sim$observedCounts, cls)
+    expect_no_warning(
+      res <- decontX(counts, z = d$sim$z, maxIter = 2, verbose = FALSE)
+    )
+    expect_identical(res$contamination, dense$contamination)
+    expect_identical(res$decontXcounts, dense$decontXcounts)
+  }
+})
+
+test_that("a DelayedMatrix over a dense matrix gives a DelayedMatrix", {
+  d <- refData()
+  dense <- decontX(d$sim$observedCounts,
+    z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
+  delayed <- decontX(DelayedArray::DelayedArray(d$sim$observedCounts),
+    z = d$sim$z, maxIter = 2,
+    verbose = FALSE
+  )
+  expect_s4_class(delayed$decontXcounts, "DelayedMatrix")
+  expect_s4_class(DelayedArray::seed(delayed$decontXcounts), "dgCMatrix")
+  expect_identical(delayed$contamination, dense$contamination)
+  expect_identical(
+    methods::as(delayed$decontXcounts, "dgCMatrix"),
+    dense$decontXcounts
+  )
+})
+
+test_that("decontX names unsupported input classes", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  expect_error(
+    decontX(as.data.frame(x), z = d$sim$z, verbose = FALSE),
+    regexp = "'x' must be a SingleCellExperiment, .*; it is a data\\.frame\\."
+  )
+  se <- SummarizedExperiment::SummarizedExperiment(list(counts = x))
+  expect_error(
+    decontX(se, z = d$sim$z, verbose = FALSE),
+    regexp = paste0(
+      "it is a SummarizedExperiment\\. .*",
+      "as\\(x, \"SingleCellExperiment\"\\)"
+    )
+  )
+  sceBg <- SingleCellExperiment::SingleCellExperiment(list(counts = d$bg))
+  expect_error(
+    decontX(x, z = d$sim$z, background = sceBg, verbose = FALSE),
+    regexp = paste0(
+      "'background' must be .* when 'x' is a matrix; it is a ",
+      "SingleCellExperiment\\."
+    )
+  )
+  # Counts stored as text, with the dimnames kept
+  textX <- x
+  storage.mode(textX) <- "character"
+  textBg <- d$bg
+  storage.mode(textBg) <- "character"
+  expect_error(
+    decontX(textX, z = d$sim$z, verbose = FALSE),
+    regexp = "'x' must be .*; it is a character matrix\\."
+  )
+  expect_error(
+    decontX(DelayedArray::DelayedArray(textX), z = d$sim$z, verbose = FALSE),
+    regexp = "'x' must be .*; it is a character DelayedMatrix\\."
+  )
+  # Presence/absence isn't counts, whatever the storage
+  expect_error(
+    decontX(methods::as(x > 0, "CsparseMatrix"),
+      z = d$sim$z, verbose = FALSE
+    ),
+    regexp = "'x' must be .*; it is a lgCMatrix\\."
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
+  textSce <- SingleCellExperiment::SingleCellExperiment(list(counts = textX))
+  expect_error(
+    decontX(textSce, z = d$sim$z, verbose = FALSE),
+    regexp = "The 'x' assay must be .*; it is a character matrix\\."
+  )
+  textBgSce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = textBg)
+  )
+  expect_error(
+    decontX(sce, z = d$sim$z, background = textBgSce, verbose = FALSE),
+    regexp = "The 'background' assay must be .*; it is a character matrix\\."
+  )
+  expect_error(
+    decontX(sce, z = d$sim$z, background = d$bg, verbose = FALSE),
+    regexp = paste0(
+      "'background' must be a SingleCellExperiment when 'x' is one; ",
+      "it is a matrix\\."
+    )
+  )
+})
+
+test_that("decontX stops on batches too small to initialize", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  # Without z, nothing else catches a one-cell batch
+  expect_error(
+    decontX(x, batch = c(rep("A", 99), "B"), verbose = FALSE),
+    regexp = "Each batch needs at least 3 cells; batch 'B' has 1\\."
+  )
+  # With background, one cluster is allowed, so the size check stops it
+  expect_error(
+    decontX(x,
+      z = d$sim$z, batch = c(rep("A", 99), "B"), background = d$bg,
+      bgBatch = c(rep("A", 39), "B"), verbose = FALSE
+    ),
+    regexp = "Each batch needs at least 3 cells; batch 'B' has 1\\."
+  )
+  expect_error(
+    decontX(x, batch = c(rep("A", 98), "B", "B"), verbose = FALSE),
+    regexp = "batch 'B' has 2\\."
+  )
+  expect_error(
+    decontX(x[, 1:2], z = c(1, 2), verbose = FALSE),
+    regexp = "'x' needs at least 3 cells; it has 2\\."
+  )
+
+  # scrapper caps its neighbor count for tiny batches, with a warning
+  res <- suppressWarnings(
+    decontX(x,
+      z = c(d$sim$z[1:97], 1, 2, 2), batch = c(rep("A", 97), rep("B", 3)),
+      maxIter = 2, verbose = FALSE
+    )
+  )
+  expect_true(all(is.finite(res$contamination)))
+  res <- suppressWarnings(
+    decontX(x[, 1:3], z = c(1, 2, 2), maxIter = 2, verbose = FALSE)
+  )
+  expect_true(all(is.finite(res$contamination)))
+})
+
+test_that("legacyInit needs 15 cells in each batch", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  z <- rep(1:2, length.out = 15)
+  # The legacy path's upstream deprecation warnings are suppressed
+  expect_error(
+    suppressWarnings(
+      decontX(x[, 1:14], z = z[1:14], legacyInit = TRUE, verbose = FALSE)
+    ),
+    regexp = paste0(
+      "'x' needs at least 15 cells with 'legacyInit = TRUE'; ",
+      "it has 14\\."
+    )
+  )
+  res <- suppressWarnings(
+    decontX(x[, 1:15],
+      z = z, legacyInit = TRUE, maxIter = 2,
+      verbose = FALSE
+    )
+  )
+  expect_true(all(is.finite(res$contamination)))
+})
+
+test_that("decontXInitialize stops on cluster labels below 1", {
+  # Not symmetric, so it becomes a dgCMatrix
+  counts <- methods::as(matrix(as.numeric(1:9), 3, 3), "CsparseMatrix")
+  for (z in list(c(0L, 1L, 2L), c(NA, 1L, 2L), c(-1L, 1L, 2L))) {
+    expect_error(
+      decontXInitialize(counts, theta = rep(0.5, 3), z = z, pseudocount = 0),
+      regexp = "The entries in 'z' need to be"
+    )
+  }
 })
 
 test_that("decontX checks that z and batch have one value per cell", {

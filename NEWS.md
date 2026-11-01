@@ -1,3 +1,20 @@
+# decontX 1.11.9
+
+* `decontX()` stops with a clear message when a batch, or `x` without
+`batch`, has fewer than 3 cells (15 with `legacyInit = TRUE`), which the
+initialization needs. A one-cell batch used to stop with "subscript out
+of bounds" (#71).
+* `decontX()` accepts a DelayedMatrix over a dense matrix, which used to
+stop after the whole run, and dgRMatrix and dgTMatrix counts
+without errors or deprecation warnings. Other inputs, such as a
+data.frame, a SummarizedExperiment or a matrix of logical or character
+values (logical sparse matrices used to run as 0/1 counts), stop with a
+message naming the class. With a SingleCellExperiment `x`, `background` must be a
+SingleCellExperiment too (#71).
+* `decontXcounts` is always a dgCMatrix, or a DelayedMatrix for
+DelayedArray input. dgTMatrix and SVT_SparseMatrix input used to come
+back in their own class. No results change (#71).
+
 # decontX 1.11.8
 
 * `decontX()` returns `z` as a factor. A supplied `z` comes back with its
