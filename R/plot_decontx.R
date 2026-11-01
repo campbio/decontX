@@ -211,7 +211,7 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
     }
   } else {
     ## If 'x' is matrix, then calculate percentages directly
-    counts <- x[geneMarkerIndex, ]
+    counts <- x[geneMarkerIndex, , drop = FALSE]
     df <- .calculateDecontXBarplotPercent(
       counts,
       z,
@@ -395,9 +395,14 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     legend <- "none"
   }
 
-  # Create data.frame and add cell type groups back in
-  names(z) <- colnames(x)
-  df <- cbind(df, Cluster = z[df$Cell])
+  # Create data.frame and add cell type groups back in. melt() lists the
+  # cells in column order, one row per marker, so the clusters are added by
+  # position: melt() turns numeric-like cell names into numbers, which
+  # would index 'z' by position instead of by name.
+  cellClusters <- rep(z, each = length(geneMarkerIndex))
+  df <- cbind(df,
+    Cluster = rep(cellClusters, times = nrow(df) / length(cellClusters))
+  )
 
   ylab <- "Expression"
   if (isTRUE(log1p)) {
@@ -488,6 +493,8 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   if (!is.factor(z)) {
     z <- as.factor(z)
   }
+  # Unused levels would be clusters without cells
+  z <- droplevels(z)
 
   if (!is.null(groupClusters)) {
     if (!is(groupClusters, "list") || is.null(names(groupClusters))) {
@@ -563,6 +570,10 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
                                             z,
                                             geneMarkerCellTypeIndex,
                                             threshold) {
+  # Number the clusters 1..K in the order of their names, so the groups,
+  # the cluster sizes and the names all line up whatever the labels are
+  z <- as.integer(z)
+
   # Get counts matrix and convert to DelayedMatrix
   counts <- DelayedArray::DelayedArray(counts)
 
