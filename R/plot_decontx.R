@@ -532,7 +532,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     }
     na.ix <- is.na(labels)
     labels <- labels[!na.ix]
-    x <- x[, !na.ix]
+    x <- x[, !na.ix, drop = FALSE]
     z <- as.integer(factor(labels, levels = names(groupClusters)))
     xlab <- "Cell types"
   } else {

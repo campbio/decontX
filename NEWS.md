@@ -4,15 +4,17 @@
 own labels instead of integer codes, and without a batch prefix in
 batched runs; a factor keeps its level order. Estimated clusters keep
 their numbers (`"<batch>-<k>"` with `batch`). The `phi` and `eta`
-estimates are named by cluster label. `as.integer(result$z)` may give
-different values than before, and `groupClusters` in the marker plots
-now takes these labels for a supplied `z` (#70).
+estimates are named by cluster label, and each batch's `estimates` no
+longer holds `z` twice. `as.integer(result$z)` may give different values
+than before, and `groupClusters` in the marker plots now takes these
+labels for a supplied `z` (#70).
 * Unused levels in a factor `z`, including levels missing from one batch,
 no longer give `NaN` columns in `phi`. Contamination for such a `z`
 changes by about 1e-16; no other results change (#70).
 * `plotDecontXMarkerPercentage()` gives the right percentages and labels
 for any cluster labels; labels other than 1 to K used to stop, give NA
-labels or mislabel clusters. It also works with one marker gene, and
+labels or mislabel clusters. Both marker plots work with one marker
+gene or a `groupClusters` that keeps one cell, and
 `plotDecontXMarkerExpression()` no longer assigns cells to the wrong
 cluster when the cell names look like numbers (#70).
 

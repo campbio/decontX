@@ -1016,6 +1016,13 @@ test_that("marker percentages are right for any cluster labels", {
   one <- list(One = markers[[1]][1])
   p <- plotDecontXMarkerPercentage(x, one, z = d$sim$z)$data
   expect_identical(nrow(p), 3L)
+
+  # groupClusters that keeps one cell
+  z <- c(1, rep(2, ncol(x) - 1))
+  p <- plotDecontXMarkerPercentage(x, markers, list(A = 1), z = z)$data
+  expect_identical(as.character(unique(p$cellTypeLabels)), "A")
+  df <- plotDecontXMarkerExpression(x, markers[[1]], list(A = 1), z = z)$data
+  expect_identical(nrow(df), length(markers[[1]]))
 })
 
 test_that("the marker expression plot gives each cell its own cluster", {
