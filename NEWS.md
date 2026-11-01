@@ -6,9 +6,10 @@ initialization needs. A one-cell batch used to stop with "subscript out
 of bounds" (#71).
 * `decontX()` accepts a DelayedMatrix over a dense matrix, which used to
 stop after the whole run, and dgRMatrix and dgTMatrix counts
-without errors or deprecation warnings. Other input classes, such as a
-data.frame or a SummarizedExperiment, stop with a message naming the
-class. With a SingleCellExperiment `x`, `background` must be a
+without errors or deprecation warnings. Other inputs, such as a
+data.frame, a SummarizedExperiment or a matrix of logical or character
+values (logical sparse matrices used to run as 0/1 counts), stop with a
+message naming the class. With a SingleCellExperiment `x`, `background` must be a
 SingleCellExperiment too (#71).
 * `decontXcounts` is always a dgCMatrix, or a DelayedMatrix for
 DelayedArray input. dgTMatrix and SVT_SparseMatrix input used to come
