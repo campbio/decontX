@@ -31,7 +31,7 @@
   # On failure rstan prints the reason and returns a list or an empty
   # stanfit (mode 2). rstan exports no accessor for the mode.
   if (!methods::is(fit, "stanfit") || fit@mode != 0L) {
-    stop("Stan's variational inference failed; see the Stan messages above.")
+    stop("Stan's variational inference failed; Stan printed the reason above.")
   }
   fit
 }
