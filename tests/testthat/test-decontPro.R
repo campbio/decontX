@@ -297,7 +297,8 @@ test_that("decontPro recodes cell_type labels to 1..K for Stan", {
     character = c("B", "B", "M", "M", "NK", "NK", "T", "T"),
     factor = factor(c("T", "T", "B", "B", "NK", "NK", "M", "M"),
       levels = c("T", "B", "unused", "NK", "M")
-    )
+    ),
+    oneRowMatrix = matrix(c(2, 2, 4, 4, 6, 6, 8, 8), nrow = 1)
   )
   for (labels in labelSets) {
     decontPro(p$counts, labels, 1e-2, 1e-2)
@@ -330,6 +331,12 @@ test_that("decontPro requires whole-number counts", {
     decontPro(negative, p$k, 1e-2, 1e-2),
     regexp = "'filtered_counts' has negative values"
   )
+  infinite <- p$counts + 0
+  infinite[1, 1] <- Inf
+  expect_error(
+    decontPro(infinite, p$k, 1e-2, 1e-2),
+    regexp = "'filtered_counts' must hold whole-number counts"
+  )
   missing <- p$counts
   missing[1, 1] <- NA
   expect_error(
@@ -343,9 +350,17 @@ test_that("decontPro requires whole-number counts", {
 })
 
 test_that("decontPro reports a failed Stan fit", {
-  # rstan::vb() returns a list instead of a stanfit when it fails
-  local_mocked_bindings(vb = function(...) list(), .package = "rstan")
+  # When rstan::vb() fails it returns a list or an empty stanfit (mode 2)
   p <- refProData()
+  local_mocked_bindings(vb = function(...) list(), .package = "rstan")
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2),
+    regexp = "Stan's variational inference failed"
+  )
+  local_mocked_bindings(
+    vb = function(...) methods::new("stanfit", mode = 2L),
+    .package = "rstan"
+  )
   expect_error(
     decontPro(p$counts, p$k, 1e-2, 1e-2),
     regexp = "Stan's variational inference failed"

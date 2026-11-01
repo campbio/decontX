@@ -236,7 +236,10 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   if (any(counts < 0)) {
     stop("'filtered_counts' has negative values.")
   }
-  if (any(counts != round(counts))) {
+  # Integer matrices hold whole numbers already
+  wholeNumbers <- is.integer(counts) ||
+    all(is.finite(counts) & counts == round(counts))
+  if (!wholeNumbers) {
     stop("'filtered_counts' must hold whole-number counts.")
   }
 }
@@ -255,13 +258,13 @@ setMethod("decontPro", "ANY", function(filtered_counts,
     stop("'cell_type' has NA values. Give every droplet a cell type.")
   }
   if (is.factor(cell_type)) {
-    labels <- levels(droplevels(cell_type))
+    cell_type <- droplevels(cell_type)
   } else {
-    labels <- sort(unique(cell_type))
+    cell_type <- factor(cell_type)
   }
   list(
-    codes = match(cell_type, labels),
-    labels = as.character(labels)
+    codes = as.integer(cell_type),
+    labels = levels(cell_type)
   )
 }
 
