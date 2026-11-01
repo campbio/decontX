@@ -1,6 +1,6 @@
 Package: decontX
 Title: Decontamination of single cell genomics data
-Version: 1.11.8
+Version: 1.11.9
 Authors@R: 
     c(person("Yuan", "Yin", , "yuan_yin@outlook.com", role = c("aut"),
            comment = c(ORCID = "0000-0001-9261-6061")),
@@ -68,4 +68,4 @@ SystemRequirements: GNU make
 VignetteBuilder: knitr
 biocViews: SingleCell, Bayesian, GeneExpression, RNASeq, Proteomics,
     Preprocessing, Normalization, QualityControl
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1
