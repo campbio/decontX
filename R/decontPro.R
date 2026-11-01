@@ -3,12 +3,17 @@
 #' @name decontPro
 #'
 #' @param filtered_counts Count matrix NxM (feature x droplet) with only
-#' filtered droplets after cell calling. If this is a
+#' filtered droplets after cell calling. The counts must be non-negative
+#' whole numbers with no NA. If this is a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
 #' \linkS4class[SeuratObject]{Seurat} object,
-#' expect \code{counts} in the assay slot.
-#' @param cell_type 1xM 1-based integer vector indicating cell type of each
-#' droplet.
+#' expect \code{counts} in the assay slot. Split \code{counts} layers of a
+#' Seurat v5 assay are joined first, so the droplets follow
+#' \code{Cells()}.
+#' @param cell_type Vector of length M giving the cell type of each droplet,
+#' with no NA. Any labels can be used, such as integers, character strings
+#' or a factor. The rows of \code{r_est} in the returned parameters follow
+#' the sorted labels, or a factor's levels with unused levels dropped.
 #' @param delta_sd Prior variance for ambient contamination level.
 #' Default to 2e-5.
 #' @param background_sd Prior variance for background contamination level.
@@ -20,9 +25,11 @@
 #' that aren't in \code{filtered_counts} are dropped, and every ADT of
 #' \code{filtered_counts} must be present. Otherwise the rows are matched
 #' by position. Default to NULL.
-#' @param ... Additional arguments for generics.
+#' @param ... Not used. Any other argument stops with an error.
 #'
 #' @return A list containing decontaminated counts, and estimated parameters.
+#' The row names of \code{parameters$r_est}, the native ADT profile of each
+#' cell type, are the \code{cell_type} labels.
 #'
 #' @examples
 #' # Simulated count matrix with 100 features x 10 droplets
@@ -71,6 +78,7 @@ setMethod("decontPro", "SingleCellExperiment", function(filtered_counts,
                                                         background_sd = 2e-6,
                                                         ambient_counts = NULL,
                                                         ...) {
+  .checkDecontProDots(...)
   counts <- SummarizedExperiment::assay(filtered_counts, "counts")
   if (!is.null(ambient_counts)) {
     ambient_counts <- SummarizedExperiment::assay(ambient_counts, "counts")
@@ -94,9 +102,10 @@ setMethod("decontPro", "Seurat", function(filtered_counts,
                                           background_sd = 2e-6,
                                           ambient_counts = NULL,
                                           ...) {
-  counts <- SeuratObject::LayerData(filtered_counts, layer = "counts")
+  .checkDecontProDots(...)
+  counts <- .seuratCounts(filtered_counts)
   if (!is.null(ambient_counts)) {
-    ambient_counts <- SeuratObject::LayerData(ambient_counts, layer = "counts")
+    ambient_counts <- .seuratCounts(ambient_counts)
   }
   .decontPro(
     counts = counts,
@@ -116,6 +125,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
                                        background_sd = 2e-6,
                                        ambient_counts = NULL,
                                        ...) {
+  .checkDecontProDots(...)
   .decontPro(
     counts = filtered_counts,
     cell_type = cell_type,
@@ -132,8 +142,11 @@ setMethod("decontPro", "ANY", function(filtered_counts,
                        background_sd,
                        ambient_counts) {
   ## Prep data
+  counts <- as.matrix(counts)
+  .checkDecontProCounts(counts)
   N <- nrow(counts)
   M <- ncol(counts)
+  cellType <- .recodeCellType(cell_type, M)
 
   if (is.null(ambient_counts)) {
     temp <- counts
@@ -160,13 +173,11 @@ setMethod("decontPro", "ANY", function(filtered_counts,
     )
   }
 
-  counts <- as.matrix(counts)
-
   dat <- list(
     N = N,
     M = M,
-    K = length(unique(cell_type)),
-    cell_type = cell_type,
+    K = length(cellType$labels),
+    cell_type = cellType$codes,
     counts = counts,
     OC = OC,
     p = p,
@@ -193,8 +204,81 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 
 
   ## Process Stan output
+  dat$cell_type_labels <- cellType$labels
   re <- .process_stan_vb_out(out, dat)
 
 
   re
+}
+
+
+# Reads the counts of the default assay. Split Seurat v5 layers are joined
+# on the extracted assay, so the columns follow Cells() and the user's
+# object is left as it is.
+.seuratCounts <- function(x) {
+  assay <- x[[SeuratObject::DefaultAssay(x)]]
+  if (methods::is(assay, "Assay5") &&
+    length(SeuratObject::Layers(assay, search = "counts")) > 1) {
+    assay <- SeuratObject::JoinLayers(assay)
+  }
+  SeuratObject::LayerData(assay, layer = "counts")
+}
+
+
+# The Stan model declares the counts as non-negative integers
+.checkDecontProCounts <- function(counts) {
+  if (!is.numeric(counts)) {
+    stop("'filtered_counts' must be numeric, not ", typeof(counts), ".")
+  }
+  if (anyNA(counts)) {
+    stop("'filtered_counts' has NA values.")
+  }
+  if (any(counts < 0)) {
+    stop("'filtered_counts' has negative values.")
+  }
+  if (any(counts != round(counts))) {
+    stop("'filtered_counts' must hold whole-number counts.")
+  }
+}
+
+
+# Stan needs cell types coded 1..K with every code used. Labels are sorted,
+# or kept in a factor's level order with unused levels dropped.
+.recodeCellType <- function(cell_type, M) {
+  if (length(cell_type) != M) {
+    stop(
+      "'cell_type' has ", length(cell_type), " entries but ",
+      "'filtered_counts' has ", M, " droplets (columns)."
+    )
+  }
+  if (anyNA(cell_type)) {
+    stop("'cell_type' has NA values. Give every droplet a cell type.")
+  }
+  if (is.factor(cell_type)) {
+    labels <- levels(droplevels(cell_type))
+  } else {
+    labels <- sort(unique(cell_type))
+  }
+  list(
+    codes = match(cell_type, labels),
+    labels = as.character(labels)
+  )
+}
+
+
+.checkDecontProDots <- function(...) {
+  if (...length() == 0) {
+    return(invisible(NULL))
+  }
+  argNames <- names(substitute(list(...)))[-1]
+  if (is.null(argNames)) {
+    argNames <- rep("", ...length())
+  }
+  argNames <- ifelse(argNames == "", "an unnamed value",
+    paste0("'", argNames, "'")
+  )
+  stop(
+    "Unknown arguments to decontPro(): ",
+    paste(argNames, collapse = ", "), ". See ?decontPro."
+  )
 }

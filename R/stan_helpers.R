@@ -12,7 +12,7 @@
   # rstan allows (2) and retain draws for a single scalar parameter only.
   # rstan's Pareto k diagnostic is estimated from the draws; with 2 draws it
   # is always Inf and carries no information, so its warning is dropped.
-  withCallingHandlers(
+  fit <- withCallingHandlers(
     rstan::vb(
       object = stanmodels$shrinkage,
       init = initial_condition,
@@ -28,6 +28,11 @@
       }
     }
   )
+  # On failure rstan prints the reason and returns a list, not a stanfit
+  if (!methods::is(fit, "stanfit")) {
+    stop("Stan's variational inference failed; see the Stan messages above.")
+  }
+  fit
 }
 
 
@@ -56,6 +61,7 @@
   parameters[["delta_sd"]] <- dat$delta_sd
   parameters[["background_sd"]] <- dat$background_sd
   parameters[["r_est"]] <- r_est
+  rownames(parameters[["r_est"]]) <- dat$cell_type_labels
   parameters[["p_est"]] <- p_est
   parameters[["delta_est"]] <- delta_est
   parameters[["delta_mean_est"]] <- delta_mean_est
