@@ -217,8 +217,8 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 # object is left as it is.
 .seuratCounts <- function(x) {
   assay <- x[[SeuratObject::DefaultAssay(x)]]
-  if (methods::is(assay, "Assay5") &&
-    length(SeuratObject::Layers(assay, search = "counts")) > 1) {
+  countLayers <- SeuratObject::Layers(assay, search = "counts")
+  if (methods::is(assay, "Assay5") && length(countLayers) > 1) {
     assay <- SeuratObject::JoinLayers(assay)
   }
   SeuratObject::LayerData(assay, layer = "counts")

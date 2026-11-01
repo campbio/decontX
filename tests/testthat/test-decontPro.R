@@ -223,8 +223,8 @@ test_that("decontPro joins split Seurat layers in Cells() order", {
   ambientObj <- SeuratObject::CreateSeuratObject(
     counts = as(p$ambient, "CsparseMatrix")
   )
-  ambientObj[["RNA"]] <- split(ambientObj[["RNA"]],
-    f = c("a", "b", "a", "b", "a"))
+  ambientSample <- c("a", "b", "a", "b", "a")
+  ambientObj[["RNA"]] <- split(ambientObj[["RNA"]], f = ambientSample)
 
   received <- NULL
   local_mocked_bindings(
