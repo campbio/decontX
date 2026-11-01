@@ -1181,9 +1181,10 @@ setMethod(
       small[[1]], "."
     )
   }
+  found <- .firstFew(paste0("batch '", names(small), "' has ", small))
   stop(
     "Each batch needs at least ", minCells, " cells", legacy, "; ",
-    .firstFew(paste0("batch '", names(small), "' has ", small)), "."
+    found, "."
   )
 }
 
