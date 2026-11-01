@@ -111,7 +111,9 @@ plotDecontXContamination <- function(x,
 #' \code{z} to be regrouped and renamed on the fly. For example,
 #' \code{list(Tcells=c(1, 2), Bcells=7)} would recode
 #' clusters 1 and 2 to "Tcells"
-#' and cluster 7 to "Bcells". Note that if this is
+#' and cluster 7 to "Bcells". The values are the labels in \code{z}, such
+#' as the labels of a \code{z} supplied to \code{\link{decontX}}.
+#' Note that if this is
 #' used, clusters in \code{z} not found
 #' in \code{groupClusters} will be excluded from the barplot.
 #' Default \code{NULL}.
@@ -211,7 +213,7 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
     }
   } else {
     ## If 'x' is matrix, then calculate percentages directly
-    counts <- x[geneMarkerIndex, ]
+    counts <- x[geneMarkerIndex, , drop = FALSE]
     df <- .calculateDecontXBarplotPercent(
       counts,
       z,
@@ -299,7 +301,9 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
 #' \code{z} to be regrouped and renamed on the fly. For example,
 #' \code{list(Tcells=c(1, 2), Bcells=7)} would recode clusters
 #' 1 and 2 to "Tcells"
-#' and cluster 7 to "Bcells". Note that if this is used, clusters
+#' and cluster 7 to "Bcells". The values are the labels in \code{z}, such
+#' as the labels of a \code{z} supplied to \code{\link{decontX}}.
+#' Note that if this is used, clusters
 #' in \code{z} not found
 #' in \code{groupClusters} will be excluded. Default \code{NULL}.
 #' @param assayName Character vector. Name(s) of the assay(s) to
@@ -395,9 +399,14 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     legend <- "none"
   }
 
-  # Create data.frame and add cell type groups back in
-  names(z) <- colnames(x)
-  df <- cbind(df, Cluster = z[df$Cell])
+  # Create data.frame and add cell type groups back in. melt() lists the
+  # cells in column order, one row per marker, so the clusters are added by
+  # position: melt() turns numeric-like cell names into numbers, which
+  # would index 'z' by position instead of by name.
+  cellClusters <- rep(z, each = length(geneMarkerIndex))
+  df <- cbind(df,
+    Cluster = rep(cellClusters, times = nrow(df) / length(cellClusters))
+  )
 
   ylab <- "Expression"
   if (isTRUE(log1p)) {
@@ -488,6 +497,8 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   if (!is.factor(z)) {
     z <- as.factor(z)
   }
+  # Unused levels would be clusters without cells
+  z <- droplevels(z)
 
   if (!is.null(groupClusters)) {
     if (!is(groupClusters, "list") || is.null(names(groupClusters))) {
@@ -521,7 +532,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     }
     na.ix <- is.na(labels)
     labels <- labels[!na.ix]
-    x <- x[, !na.ix]
+    x <- x[, !na.ix, drop = FALSE]
     z <- as.integer(factor(labels, levels = names(groupClusters)))
     xlab <- "Cell types"
   } else {
@@ -563,6 +574,10 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
                                             z,
                                             geneMarkerCellTypeIndex,
                                             threshold) {
+  # Number the clusters 1..K in the order of their names, so the groups,
+  # the cluster sizes and the names all line up whatever the labels are
+  z <- as.integer(z)
+
   # Get counts matrix and convert to DelayedMatrix
   counts <- DelayedArray::DelayedArray(counts)
 

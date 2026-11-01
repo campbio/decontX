@@ -16,7 +16,9 @@
 #' to run DecontX.
 #' @param assayName Character. Name of the assay to use if \code{x} is a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment}.
-#' @param z Numeric or character vector. Cell cluster labels. If NULL,
+#' @param z Numeric, character or factor vector. Cell cluster labels,
+#' which the result's \code{z} returns as a factor of the same labels.
+#' If NULL,
 #' PCA will be used to reduce the dimensionality of the dataset initially,
 #' '\link[scrapper]{runUmap}' from the 'scrapper' package
 #' will be used to further reduce the dataset to 2 dimensions and
@@ -117,8 +119,19 @@
 #' \item{\code{contamination}:}{Percentage of contamination in each cell.}
 #' \item{\code{estimates}:}{List of estimated parameters for each batch. If z
 #' was not supplied, then the UMAP coordinates used to generated cell
-#' cluster labels will also be stored here.}
-#' \item{\code{z}:}{Cell population/cluster labels used for analysis.}
+#' cluster labels will also be stored here. The columns of \code{phi} and
+#' \code{eta} are named by cluster label, in the order of the levels of the
+#' batch's \code{z}.}
+#' \item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
+#' supplied \code{z} comes back with its own labels: a factor keeps its
+#' level order, without unused levels, and other vectors get sorted levels.
+#' Estimated clusters are numbered 1 to K in each batch. When \code{batch}
+#' is supplied, the labels are prefixed with the batch
+#' (\code{"<batch>-<label>"}) for estimated clusters, and for a supplied
+#' \code{z} that has a label in more than one batch, since the same label
+#' may then name different clusters. Prefixed labels are ordered by the
+#' batch's first cell, then by label. The \code{z} in each batch's
+#' \code{estimates} has no prefix.}
 #' \item{\code{runParams}:}{List of arguments used in the function call.}
 #' }
 #'
@@ -236,7 +249,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
 
   ## Add results into column annotation
   SummarizedExperiment::colData(x)$decontX_contamination <- result$contamination
-  SummarizedExperiment::colData(x)$decontX_clusters <- as.factor(result$z)
+  SummarizedExperiment::colData(x)$decontX_clusters <- result$z
 
   ## Put estimated UMAPs into SCE
   batchIndex <- unique(result$runParams$batch)
@@ -534,9 +547,23 @@ setMethod(
     }
   }
 
+  ## User labels come back as given, without unused levels
+  if (!is.null(z)) {
+    zLabels <- if (is.factor(z)) droplevels(z) else factor(z)
+  }
+  ## Batched results get the batch prefix when a label could name different
+  ## clusters: estimated clusters, which are numbered within each batch, and
+  ## user labels found in more than one batch
+  prefixZ <- length(batchIndex) > 1
+  if (prefixZ && !is.null(z)) {
+    batchesPerLabel <- tapply(batch, zLabels, function(b) length(unique(b)))
+    prefixZ <- any(batchesPerLabel > 1)
+  }
+
   ## Set result lists upfront for all cells from different batches
   estConp <- rep(NA, nC)
-  returnZ <- rep(NA, nC)
+  returnZ <- character(nC)
+  zLevels <- character()
   resBatch <- list()
 
   ## Cycle through each sample/batch and run DecontX
@@ -659,27 +686,33 @@ setMethod(
     estRmat <- estRmat[, allCol]
     dimnames(estRmat) <- list(geneNames, allCellNames)
 
+    labels <- if (is.null(z)) res$z else zLabels[batch == bat]
+    labelled <- .labelEstimates(res, labels)
     resBatch[[bat]] <- list(
-      z = res$z,
-      phi = res$phi,
-      eta = res$eta,
+      z = labelled$z,
+      phi = labelled$phi,
+      eta = labelled$eta,
       delta = res$delta,
       theta = res$theta,
       contamination = res$contamination,
       logLikelihood = res$logLikelihood,
       UMAP = res$UMAP,
-      z = res$z,
       iteration = res$iteration
     )
 
     estConp[batch == bat] <- res$contamination
-    if (length(batchIndex) > 1) {
-      returnZ[batch == bat] <- paste0(bat, "-", res$z)
-    } else {
-      returnZ[batch == bat] <- res$z
-    }
+    prefix <- if (prefixZ) paste0(bat, "-") else ""
+    returnZ[batch == bat] <- paste0(prefix, labelled$z)
+    zLevels <- c(zLevels, paste0(prefix, levels(labelled$z)))
   }
   names(resBatch) <- batchIndex
+
+  # Unprefixed user labels keep the level order of the whole 'z'
+  if (is.null(z) || prefixZ) {
+    returnZ <- factor(returnZ, levels = zLevels)
+  } else {
+    returnZ <- zLabels
+  }
 
   returnResult <- list(
     "runParams" = runParams,
@@ -1112,11 +1145,30 @@ setMethod(
       " 'counts' matrix."
     )
   }
-  if (!is.factor(z)) {
+  if (is.factor(z)) {
+    # An unused level would be an empty cluster, which gives NaN estimates
+    z <- droplevels(z)
+  } else {
     z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
     z <- as.factor(z)
   }
   z
+}
+
+
+## The EM numbers the clusters with the codes of res$z. Name the phi and
+## eta columns by each cluster's label in 'labels' (one per cell), ordered
+## as the levels of 'labels'. Only the columns move, not the values.
+.labelEstimates <- function(res, labels) {
+  labels <- droplevels(labels)
+  codes <- as.integer(res$z)
+  codeLabels <- as.character(labels)[match(seq_len(ncol(res$phi)), codes)]
+  columns <- match(levels(labels), codeLabels)
+  phi <- res$phi[, columns, drop = FALSE]
+  eta <- res$eta[, columns, drop = FALSE]
+  colnames(phi) <- levels(labels)
+  colnames(eta) <- levels(labels)
+  list(z = labels, phi = phi, eta = eta)
 }
 
 

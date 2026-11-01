@@ -64,7 +64,9 @@ to run DecontX.}
 \item{assayName}{Character. Name of the assay to use if \code{x} is a
 \linkS4class[SingleCellExperiment]{SingleCellExperiment}.}
 
-\item{z}{Numeric or character vector. Cell cluster labels. If NULL,
+\item{z}{Numeric, character or factor vector. Cell cluster labels,
+which the result's \code{z} returns as a factor of the same labels.
+If NULL,
 PCA will be used to reduce the dimensionality of the dataset initially,
 '\link[scrapper]{runUmap}' from the 'scrapper' package
 will be used to further reduce the dataset to 2 dimensions and
@@ -180,8 +182,19 @@ e.g. \code{round(decontXcounts)}.}
 \item{\code{contamination}:}{Percentage of contamination in each cell.}
 \item{\code{estimates}:}{List of estimated parameters for each batch. If z
 was not supplied, then the UMAP coordinates used to generated cell
-cluster labels will also be stored here.}
-\item{\code{z}:}{Cell population/cluster labels used for analysis.}
+cluster labels will also be stored here. The columns of \code{phi} and
+\code{eta} are named by cluster label, in the order of the levels of the
+batch's \code{z}.}
+\item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
+supplied \code{z} comes back with its own labels: a factor keeps its
+level order, without unused levels, and other vectors get sorted levels.
+Estimated clusters are numbered 1 to K in each batch. When \code{batch}
+is supplied, the labels are prefixed with the batch
+(\code{"<batch>-<label>"}) for estimated clusters, and for a supplied
+\code{z} that has a label in more than one batch, since the same label
+may then name different clusters. Prefixed labels are ordered by the
+batch's first cell, then by label. The \code{z} in each batch's
+\code{estimates} has no prefix.}
 \item{\code{runParams}:}{List of arguments used in the function call.}
 }
 
