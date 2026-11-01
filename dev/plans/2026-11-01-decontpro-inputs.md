@@ -37,11 +37,13 @@ Reproduced on devel at f380a36 (1.11.8) with the 10 x 8 fixture.
    sorted unique values, or a factor's levels with unused levels
    dropped. Valid 1..K input gets the same codes, so its numbers don't
    change. `parameters$r_est` gets the labels as row names.
-3. **`filtered_counts`.** Must be numeric whole numbers, with no NA and
-   no negatives (the model declares `int<lower = 0>`).
-4. **Stan failure.** If `.call_stan_vb()` doesn't return a `stanfit`,
+3. **`filtered_counts`.** Must be numeric, finite whole numbers, with no
+   NA and no negatives (the model declares `int<lower = 0>`).
+4. **Stan failure.** If `.call_stan_vb()` gets a list or an empty
+   `stanfit` (mode 2, which most `rstan::vb()` failure paths return),
    decontPro stops with "Stan's variational inference failed" instead of
-   the `@` error.
+   the `@` error. Added at code review: the list case alone missed most
+   failures.
 5. **`...`.** Any extra argument, named or not, stops in all three
    methods, naming the arguments.
 6. **Docs.** `@param cell_type` (labels and the `r_est` row order),
