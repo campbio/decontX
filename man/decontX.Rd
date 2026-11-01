@@ -188,9 +188,12 @@ batch's \code{z}.}
 \item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
 supplied \code{z} comes back with its own labels: a factor keeps its
 level order, without unused levels, and other vectors get sorted levels.
-Estimated clusters are numbered 1 to K in each batch, prefixed with the
-batch (\code{"<batch>-<k>"}) when \code{batch} is supplied, and ordered
-by the batch's first cell, then by number. The \code{z} in each batch's
+Estimated clusters are numbered 1 to K in each batch. When \code{batch}
+is supplied, the labels are prefixed with the batch
+(\code{"<batch>-<label>"}) for estimated clusters, and for a supplied
+\code{z} that has a label in more than one batch, since the same label
+may then name different clusters. Prefixed labels are ordered by the
+batch's first cell, then by label. The \code{z} in each batch's
 \code{estimates} has no prefix.}
 \item{\code{runParams}:}{List of arguments used in the function call.}
 }

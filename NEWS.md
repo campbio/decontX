@@ -1,8 +1,9 @@
 # decontX 1.11.8
 
 * `decontX()` returns `z` as a factor. A supplied `z` comes back with its
-own labels instead of integer codes, and without a batch prefix in
-batched runs; a factor keeps its level order. Estimated clusters keep
+own labels instead of integer codes; a factor keeps its level order. In
+batched runs the labels get the batch prefix (`"<batch>-<label>"`) only
+when a label is found in more than one batch. Estimated clusters keep
 their numbers (`"<batch>-<k>"` with `batch`). The `phi` and `eta`
 estimates are named by cluster label, and each batch's `estimates` no
 longer holds `z` twice. `as.integer(result$z)` may give different values

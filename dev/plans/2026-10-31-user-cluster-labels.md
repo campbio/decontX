@@ -35,9 +35,13 @@ Reproduced on devel at 61a109c.
 ## What changes
 
 1. **`result$z` is always a factor.**
-   - User `z`: the user's labels, unprefixed even when batched. A factor
-     keeps its level order minus unused levels; any other `z` gets
-     sorted levels, as `factor()` gives.
+   - User `z`: the user's labels. A factor keeps its level order minus
+     unused levels; any other `z` gets sorted levels, as `factor()`
+     gives. In batched runs every label gets the `"<batch>-<label>"`
+     prefix when any label is found in more than one batch (amended
+     2026-11-01 at hand-off: per-sample cluster numbers such as 1..K in
+     every batch would otherwise merge), ordered by batch, then label;
+     labels unique to one batch come back unprefixed.
    - Estimated `z`: the same values as today, now as a factor. Unbatched
      levels are `1..K`, so `as.integer()` gives today's codes; batched
      labels stay `"<batch>-<k>"`, ordered by batch, then numerically.
@@ -80,7 +84,8 @@ Reproduced on devel at 61a109c.
 Written first; each fails on its assertion on devel.
 
 - Character and factor `z`, unbatched and batched: `result$z` is a factor
-  with the user's labels and levels; the SCE `decontX_clusters` matches.
+  with the user's labels and levels, prefixed by batch when a label is in
+  more than one batch; the SCE `decontX_clusters` matches.
 - 12 character clusters: each cell gets its own label back.
 - `phi`/`eta` column names equal `levels(estimates$z)`; numeric `z`
   given out of sorted order gives the same values as sorted `z`, with

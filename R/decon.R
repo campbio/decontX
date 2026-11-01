@@ -125,9 +125,12 @@
 #' \item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
 #' supplied \code{z} comes back with its own labels: a factor keeps its
 #' level order, without unused levels, and other vectors get sorted levels.
-#' Estimated clusters are numbered 1 to K in each batch, prefixed with the
-#' batch (\code{"<batch>-<k>"}) when \code{batch} is supplied, and ordered
-#' by the batch's first cell, then by number. The \code{z} in each batch's
+#' Estimated clusters are numbered 1 to K in each batch. When \code{batch}
+#' is supplied, the labels are prefixed with the batch
+#' (\code{"<batch>-<label>"}) for estimated clusters, and for a supplied
+#' \code{z} that has a label in more than one batch, since the same label
+#' may then name different clusters. Prefixed labels are ordered by the
+#' batch's first cell, then by label. The \code{z} in each batch's
 #' \code{estimates} has no prefix.}
 #' \item{\code{runParams}:}{List of arguments used in the function call.}
 #' }
@@ -548,6 +551,14 @@ setMethod(
   if (!is.null(z)) {
     zLabels <- if (is.factor(z)) droplevels(z) else factor(z)
   }
+  ## Batched results get the batch prefix when a label could name different
+  ## clusters: estimated clusters, which are numbered within each batch, and
+  ## user labels found in more than one batch
+  prefixZ <- length(batchIndex) > 1
+  if (prefixZ && !is.null(z)) {
+    batchesPerLabel <- tapply(batch, zLabels, function(b) length(unique(b)))
+    prefixZ <- any(batchesPerLabel > 1)
+  }
 
   ## Set result lists upfront for all cells from different batches
   estConp <- rep(NA, nC)
@@ -690,17 +701,14 @@ setMethod(
     )
 
     estConp[batch == bat] <- res$contamination
-    # Estimated clusters are numbered within each batch, so batched runs
-    # prefix them with the batch
-    if (is.null(z)) {
-      prefix <- if (length(batchIndex) > 1) paste0(bat, "-") else ""
-      returnZ[batch == bat] <- paste0(prefix, labelled$z)
-      zLevels <- c(zLevels, paste0(prefix, levels(labelled$z)))
-    }
+    prefix <- if (prefixZ) paste0(bat, "-") else ""
+    returnZ[batch == bat] <- paste0(prefix, labelled$z)
+    zLevels <- c(zLevels, paste0(prefix, levels(labelled$z)))
   }
   names(resBatch) <- batchIndex
 
-  if (is.null(z)) {
+  # Unprefixed user labels keep the level order of the whole 'z'
+  if (is.null(z) || prefixZ) {
     returnZ <- factor(returnZ, levels = zLevels)
   } else {
     returnZ <- zLabels

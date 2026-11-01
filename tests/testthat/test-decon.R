@@ -893,18 +893,34 @@ test_that("decontX returns the user's cluster labels as a factor", {
   res <- decontX(x, z = labels, maxIter = 5, verbose = FALSE)
   expect_identical(res$z, factor(labels))
 
-  # Batched runs keep the labels, without the batch prefix
+  # Labels found in only one batch each come back without a prefix
+  own <- paste0(labels, ifelse(d$batch == "A", "", "2"))
+  res <- decontX(x, z = own, batch = d$batch, maxIter = 5, verbose = FALSE)
+  expect_identical(res$z, factor(own))
+
+  # Labels found in more than one batch get the batch prefix, ordered by
+  # batch and then by label
   res <- decontX(x,
     z = labels, batch = d$batch, maxIter = 5, verbose = FALSE
   )
-  expect_identical(res$z, factor(labels))
+  expected <- c("A-B", "A-Mono", "A-T", "B-B", "B-Mono", "B-T")
+  expect_identical(
+    res$z,
+    factor(paste0(d$batch, "-", labels), levels = expected)
+  )
+  # The estimates of each batch keep the labels without the prefix
+  expect_identical(colnames(res$estimates$B$phi), c("B", "Mono", "T"))
 
   # A factor keeps its level order, without unused levels
   z <- factor(labels, levels = c("Mono", "unused", "T", "B"))
   res <- decontX(x, z = z, maxIter = 5, verbose = FALSE)
   expect_identical(res$z, droplevels(z))
   res <- decontX(x, z = z, batch = d$batch, maxIter = 5, verbose = FALSE)
-  expect_identical(res$z, droplevels(z))
+  expected <- c("A-Mono", "A-T", "A-B", "B-Mono", "B-T", "B-B")
+  expect_identical(
+    res$z,
+    factor(paste0(d$batch, "-", z), levels = expected)
+  )
 
   # More than nine character labels, which used to be coded as text
   z12 <- rep(paste0("c", 1:12), length.out = ncol(x))
@@ -925,9 +941,16 @@ test_that("decontX returns the user's cluster labels as a factor", {
   sceOne <- decontX(sce, z = labels, maxIter = 5, verbose = FALSE)
   expect_identical(sceOne$decontX_clusters, factor(labels))
   sceBatched <- decontX(sce,
+    z = own, batch = d$batch, maxIter = 5, verbose = FALSE
+  )
+  expect_identical(sceBatched$decontX_clusters, factor(own))
+  sceBatched <- decontX(sce,
     z = labels, batch = d$batch, maxIter = 5, verbose = FALSE
   )
-  expect_identical(sceBatched$decontX_clusters, factor(labels))
+  expect_identical(
+    as.character(sceBatched$decontX_clusters),
+    paste0(d$batch, "-", labels)
+  )
 })
 
 test_that("phi and eta columns are named and ordered by the labels in z", {
