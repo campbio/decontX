@@ -1,3 +1,23 @@
+# decontX 1.11.11
+
+* `plotDensity()` smooths the original and decontaminated curves of an ADT
+with one bandwidth, computed from both. Each curve used to get its own,
+which made the less spread-out curve's peaks look up to 1.6 times taller
+(#73).
+* `plotDensity()` and `plotBoxByCluster()` save to `file` as given when
+it ends in ".pdf"; `file = "x.pdf"` used to write `x.pdf.pdf`. Without
+the extension, ".pdf" is still added. The help pages now say the path is
+returned invisibly (#73).
+* When `groupClusters` names labels that aren't in `z`, the marker plots
+also list the labels `z` has. After a batched `decontX()` run, those can
+carry the batch as a prefix, such as `"b1-1"`, which the help pages now
+explain (#73).
+* `plotDecontXContamination()` reads the UMAP columns by position, so a
+UMAP without column names, as after an h5ad round trip, plots instead of
+failing with `.data[[NULL]]` (#73).
+* The `decontX()` help page says a re-run keeps UMAPs from an earlier run
+with different batches in `reducedDims` (#73).
+
 # decontX 1.11.10
 
 * `decontPro()` reads every counts layer of a Seurat v5 object whose
