@@ -1,6 +1,8 @@
 # Plot fixes: shared bandwidth, `file`, `groupClusters` labels, unnamed UMAPs (#73)
 
-Status: draft for the maintainer. Roadmap Phase I-b; audit findings
+Status: approved by the maintainer, 2026-11-01 (pooled bandwidth, after
+comparing it with per-curve and smaller-of-two bandwidths on the
+decontPro vignette data). Roadmap Phase I-b; audit findings
 A1-24, A1-25, A7-17 and A6-04.
 
 ## Why
