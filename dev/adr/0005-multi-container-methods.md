@@ -76,7 +76,11 @@ SCE. AnnData is R6, so the object is modified in place; the docs show
 an `inherits(x, "AbstractAnnData")` redirect in the `ANY` methods, not
 `setOldClass` (amendment, 2026-10-27). anndataR's own error for views
 is let through; a read-only backed object gets a clear error with a
-`mode = "r+"` hint where the mode can be queried (A6-10). The
+`mode = "r+"` hint where the mode can be queried (A6-10). `uns` drops
+names and dimnames, so the getter that rebuilds the estimates from
+`uns`/`obsm` must restore them, including the UMAP column names; the
+positional UMAP indexing in `plotDecontXContamination()` (#73) is only
+a stopgap (A6-04, to be resolved here). The
 h5ad -> SCE -> h5ad route through anndataR is documented as an
 alternative. zellkonverter was rejected: it needs a conda Python
 environment at runtime and returns an SCE, not an AnnData object.
