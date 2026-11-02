@@ -23,7 +23,8 @@ the saved pdf, invisibly.
 }
 \description{
 Both curves of an ADT are smoothed with the same bandwidth, computed from
-the raw and decontaminated counts together, so their heights compare.
+the raw and decontaminated counts together, so their heights can be
+compared.
 }
 \examples{
 # Simulate a dataset with 3 cells and 2 ADTs

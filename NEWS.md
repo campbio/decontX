@@ -2,7 +2,7 @@
 
 * `plotDensity()` smooths the original and decontaminated curves of an ADT
 with one bandwidth, computed from both. Each curve used to get its own,
-which made the less spread-out curve's peaks look up to 1.6 times taller
+which made the less spread-out curve's peaks look taller than they are
 (#73).
 * `plotDensity()` and `plotBoxByCluster()` save to `file` as given when
 it ends in ".pdf"; `file = "x.pdf"` used to write `x.pdf.pdf`. Without

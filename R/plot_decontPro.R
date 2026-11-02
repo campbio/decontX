@@ -1,7 +1,8 @@
 #' Density of each ADT, raw counts overlapped with decontaminated counts
 #'
 #' Both curves of an ADT are smoothed with the same bandwidth, computed from
-#' the raw and decontaminated counts together, so their heights compare.
+#' the raw and decontaminated counts together, so their heights can be
+#' compared.
 #'
 #' @param counts original count matrix of nADT x nDroplet.
 #' @param decontaminated_counts decontaminated count matrix.
@@ -62,8 +63,9 @@ plotDensity <- function(counts,
     df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
     # One bandwidth for both curves, on the pseudo-log scale the density is
-    # computed on: asinh(x / 2) is "pseudo_log" with its default sigma and base
-    bw <- stats::bw.nrd0(asinh(df.m$value / 2))
+    # computed on: asinh(x / 2) is "pseudo_log" with its default sigma and
+    # base. NAs are left out, as geom_density() drops them
+    bw <- stats::bw.nrd0(asinh(stats::na.omit(df.m$value) / 2))
 
     # Plot
     p1 <- ggplot2::ggplot(
