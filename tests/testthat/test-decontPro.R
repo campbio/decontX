@@ -211,3 +211,220 @@ test_that("decontPro names ambient_counts when it isn't a matrix", {
     regexp = "'ambient_counts' must be a matrix"
   )
 })
+
+test_that("decontPro joins split Seurat layers in Cells() order", {
+  skip_if_not_installed("SeuratObject")
+  p <- refProData()
+  sample <- rep(c("a", "b"), 4)
+  obj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$counts, "CsparseMatrix")
+  )
+  obj[["RNA"]] <- split(obj[["RNA"]], f = sample)
+  ambientObj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$ambient, "CsparseMatrix")
+  )
+  ambientSample <- c("a", "b", "a", "b", "a")
+  ambientObj[["RNA"]] <- split(ambientObj[["RNA"]], f = ambientSample)
+
+  received <- NULL
+  local_mocked_bindings(
+    .decontPro = function(counts, cell_type, delta_sd, background_sd,
+                          ambient_counts) {
+      received <<- list(counts = counts, ambient = ambient_counts)
+      list()
+    }
+  )
+  expect_no_warning(
+    decontPro(obj, p$k, 1e-2, 1e-2, ambient_counts = ambientObj)
+  )
+  expect_identical(colnames(received$counts), SeuratObject::Cells(obj))
+  expect_equal(as.matrix(received$counts), p$counts)
+  expect_equal(as.matrix(received$ambient), p$ambient)
+  # The user's object keeps its layers
+  expect_identical(SeuratObject::Layers(obj), c("counts.a", "counts.b"))
+})
+
+test_that("decontPro reads a Seurat v3 assay", {
+  skip_if_not_installed("SeuratObject")
+  withr::local_options(Seurat.object.assay.version = "v3")
+  p <- refProData()
+  obj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$counts, "CsparseMatrix")
+  )
+  expect_false(methods::is(obj[["RNA"]], "Assay5"))
+
+  received <- NULL
+  local_mocked_bindings(
+    .decontPro = function(counts, cell_type, ...) {
+      received <<- counts
+      list()
+    }
+  )
+  decontPro(obj, p$k, 1e-2, 1e-2)
+  expect_equal(as.matrix(received), p$counts)
+})
+
+test_that("decontPro checks the length of cell_type and NA", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts, p$k[-1], 1e-2, 1e-2),
+    regexp = "'cell_type' has 7 entries but 'filtered_counts' has 8 droplets"
+  )
+  expect_error(
+    decontPro(p$counts, c(p$k, 1), 1e-2, 1e-2),
+    regexp = "'cell_type' has 9 entries but 'filtered_counts' has 8 droplets"
+  )
+  expect_error(
+    decontPro(p$counts, c(p$k[-8], NA), 1e-2, 1e-2),
+    regexp = "'cell_type' has NA values"
+  )
+})
+
+test_that("decontPro recodes cell_type labels to 1..K for Stan", {
+  p <- refProData()
+  received <- NULL
+  local_mocked_bindings(
+    .call_stan_vb = function(data, initial_condition) {
+      received <<- data
+      NULL
+    },
+    .process_stan_vb_out = function(stan_vb_output, dat) list()
+  )
+  codes <- c(1, 1, 2, 2, 3, 3, 4, 4)
+  labelSets <- list(
+    gaps = c(1, 1, 3, 3, 5, 5, 7, 7),
+    zeroBased = c(0, 0, 1, 1, 2, 2, 3, 3),
+    character = c("B", "B", "M", "M", "NK", "NK", "T", "T"),
+    factor = factor(c("T", "T", "B", "B", "NK", "NK", "M", "M"),
+      levels = c("T", "B", "unused", "NK", "M")
+    ),
+    oneRowMatrix = matrix(c(2, 2, 4, 4, 6, 6, 8, 8), nrow = 1)
+  )
+  for (labels in labelSets) {
+    decontPro(p$counts, labels, 1e-2, 1e-2)
+    expect_equal(received$cell_type, codes)
+    expect_identical(received$K, 4L)
+  }
+})
+
+test_that("decontPro names the r_est rows by cell_type label", {
+  # One real Stan fit per labelling (10 x 8, about a second each)
+  p <- refProData()
+  out <- decontPro(p$counts, p$k, 1e-2, 1e-2)
+  gapped <- decontPro(p$counts, p$k * 2 + 1, 1e-2, 1e-2)
+
+  expect_identical(rownames(out$parameters$r_est), c("1", "2", "3", "4"))
+  expect_identical(rownames(gapped$parameters$r_est), c("3", "5", "7", "9"))
+  rownames(gapped$parameters$r_est) <- rownames(out$parameters$r_est)
+  expect_identical(gapped, out)
+})
+
+test_that("decontPro requires whole-number counts", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts + 0.5, p$k, 1e-2, 1e-2),
+    regexp = "'filtered_counts' must hold whole-number counts"
+  )
+  negative <- p$counts
+  negative[1, 1] <- -1
+  expect_error(
+    decontPro(negative, p$k, 1e-2, 1e-2),
+    regexp = "'filtered_counts' has negative values"
+  )
+  infinite <- p$counts + 0
+  infinite[1, 1] <- Inf
+  expect_error(
+    decontPro(infinite, p$k, 1e-2, 1e-2),
+    regexp = "'filtered_counts' must hold whole-number counts"
+  )
+  missing <- p$counts
+  missing[1, 1] <- NA
+  expect_error(
+    decontPro(missing, p$k, 1e-2, 1e-2),
+    regexp = "'filtered_counts' has NA values"
+  )
+  expect_error(
+    decontPro(p$counts > 5, p$k, 1e-2, 1e-2),
+    regexp = "'filtered_counts' must be numeric"
+  )
+})
+
+test_that("decontPro reports a failed Stan fit", {
+  # When rstan::vb() fails it returns a list or an empty stanfit (mode 2)
+  p <- refProData()
+  local_mocked_bindings(vb = function(...) list(), .package = "rstan")
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2),
+    regexp = "Stan's variational inference failed"
+  )
+  local_mocked_bindings(
+    vb = function(...) methods::new("stanfit", mode = 2L),
+    .package = "rstan"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2),
+    regexp = "Stan's variational inference failed"
+  )
+})
+
+test_that("decontPro rejects unknown arguments", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts, p$k, seed = 1),
+    regexp = "Unknown arguments to decontPro\\(\\): 'seed'"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, delta_SD = 1e-2, batch = 1),
+    regexp = "Unknown arguments to decontPro\\(\\): 'delta_SD', 'batch'"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2, NULL, 5),
+    regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
+  )
+
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = p$counts))
+  expect_error(
+    decontPro(sce, p$k, altExpName = "ADT"),
+    regexp = "Unknown arguments to decontPro\\(\\): 'altExpName'"
+  )
+  expect_error(
+    decontPro(sce, p$k, 1e-2, 1e-2, NULL, 5),
+    regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
+  )
+
+  skip_if_not_installed("SeuratObject")
+  obj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$counts, "CsparseMatrix")
+  )
+  expect_error(
+    decontPro(obj, p$k, assay = "ADT"),
+    regexp = "Unknown arguments to decontPro\\(\\): 'assay'"
+  )
+  expect_error(
+    decontPro(obj, p$k, 1e-2, 1e-2, NULL, 5),
+    regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
+  )
+})
+
+test_that("decontPro rejects NA and negative values in ambient_counts", {
+  # Checked before any Stan call, so no fit runs
+  p <- refProData()
+  missing <- p$ambient
+  missing[2, 3] <- NA
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2, ambient_counts = missing),
+    regexp = "Missing value in 'ambient_counts' matrix"
+  )
+  negative <- p$ambient
+  negative[2, 3] <- -1L
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2, ambient_counts = negative),
+    regexp = "Negative value in 'ambient_counts' matrix"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, 1e-2,
+      ambient_counts = as(negative, "CsparseMatrix")
+    ),
+    regexp = "Negative value in 'ambient_counts' matrix"
+  )
+})

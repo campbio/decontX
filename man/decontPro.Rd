@@ -38,15 +38,20 @@ decontPro(filtered_counts, cell_type, ...)
 }
 \arguments{
 \item{filtered_counts}{Count matrix NxM (feature x droplet) with only
-filtered droplets after cell calling. If this is a
+filtered droplets after cell calling. The counts must be non-negative
+whole numbers with no NA. If this is a
 \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
 \linkS4class[SeuratObject]{Seurat} object,
-expect \code{counts} in the assay slot.}
+expect \code{counts} in the assay slot. Split \code{counts} layers of a
+Seurat v5 assay are joined first, so the droplets follow
+\code{Cells()}.}
 
-\item{cell_type}{1xM 1-based integer vector indicating cell type of each
-droplet.}
+\item{cell_type}{Vector of length M giving the cell type of each droplet,
+with no NA. Any labels can be used, such as integers, character strings
+or a factor. The rows of \code{r_est} in the returned parameters follow
+the sorted labels, or a factor's levels with unused levels dropped.}
 
-\item{...}{Additional arguments for generics.}
+\item{...}{Not used. Any other argument stops with an error.}
 
 \item{delta_sd}{Prior variance for ambient contamination level.
 Default to 2e-5.}
@@ -60,10 +65,13 @@ expect \code{counts} in the assay slot. When both have row names, its
 rows are matched to the ADTs of \code{filtered_counts} by name: ADTs
 that aren't in \code{filtered_counts} are dropped, and every ADT of
 \code{filtered_counts} must be present. Otherwise the rows are matched
-by position. Default to NULL.}
+by position. The ADTs used must have no NA or negative counts.
+Default to NULL.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.
+The row names of \code{parameters$r_est}, the native ADT profile of each
+cell type, are the \code{cell_type} labels.
 }
 \description{
 Decontaminate using decontPro
