@@ -139,6 +139,54 @@ test_that(desc = "Testing simulateContamination", {
   )
 })
 
+test_that("simulateContamination uses NRange when its ends are equal", {
+  sim <- simulateContamination(C = 20, G = 30, K = 2, NRange = c(500, 500))
+  expect_equal(sim$NByC, rep(500L, 20))
+  expect_equal(colSums(sim$observedCounts), rep(500, 20), ignore_attr = TRUE)
+})
+
+test_that("simulateContamination needs at least two populations", {
+  expect_error(simulateContamination(K = 1),
+    regexp = "'K' must be at least 2"
+  )
+  expect_error(simulateContamination(K = 2, C = 1),
+    regexp = "Only 1 cell population was simulated"
+  )
+})
+
+test_that("retrieveFeatureIndex never matches an NA feature", {
+  counts <- matrix(1:6, nrow = 3, dimnames = list(c("A", NA, "C"), NULL))
+  expect_warning(
+    idx <- retrieveFeatureIndex(c("A", NA), counts),
+    regexp = "not present in 'x': NA"
+  )
+  expect_equal(idx, c(1L, NA))
+  expect_warning(
+    idx <- retrieveFeatureIndex(c("A", NA), counts, exactMatch = FALSE),
+    regexp = "not present in 'x': NA"
+  )
+  expect_equal(idx, c(1L, NA))
+})
+
+test_that("retrieveFeatureIndex needs 'by' to be a single string", {
+  counts <- matrix(1:6, nrow = 3, dimnames = list(c("A", "B", "C"), NULL))
+  expect_error(retrieveFeatureIndex("A", counts, by = c("rownames", "x")),
+    regexp = "'by' must be a single character string"
+  )
+  expect_error(retrieveFeatureIndex("A", counts, by = NA),
+    regexp = "'by' must be a single character string"
+  )
+})
+
+test_that("runParams holds seed and iterLogLik", {
+  res <- decontX(deconSim$observedCounts,
+    z = deconSim$z, maxIter = 2,
+    iterLogLik = 5, seed = 3, verbose = FALSE
+  )
+  expect_equal(res$runParams$seed, 3)
+  expect_equal(res$runParams$iterLogLik, 5)
+})
+
 test_that(desc = "decontX recovers simulated contamination (oracle)", {
   # Behavioral oracle: without this, a no-op decontX (returning its input
   # unchanged) would pass the suite. Uses the simulator's ground truth to
@@ -335,7 +383,7 @@ test_that("decontX stops when batch and bgBatch don't go together", {
       z = d$sim$z, background = d$bg,
       bgBatch = d$bgBatch, verbose = FALSE
     ),
-    regexp = "background should also default to no batch"
+    regexp = "'bgBatch' was given without 'batch'"
   )
   expect_error(
     decontX(d$sim$observedCounts,
@@ -361,8 +409,8 @@ test_that("decontX checks varGenes and dbscanEps even when z is given", {
   )
 })
 
-test_that("misspelled messages keep their current wording", {
-  # #74 fixes the spelling; the snapshots show that change
+test_that("the bgBatch error and the cluster warning read correctly", {
+  # The snapshots show the wording #74 fixed
   d <- refData()
   expect_snapshot(
     decontX(d$sim$observedCounts,

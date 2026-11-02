@@ -50,10 +50,10 @@ Default \code{c("counts", "decontXcounts")}.}
 Indicates the cluster labels for each cell.
 If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}
 and \code{z = NULL},
-then the cluster labels from \code{\link{decontX}} will be retreived from the
+then the cluster labels from \code{\link{decontX}} will be retrieved from the
 \code{colData} of \code{x} (i.e. \code{colData(x)$decontX_clusters}).
 If \code{z} is a single character or integer, then that column will be
-retrived from \code{colData} of \code{x}. (i.e. \code{colData(x)[,z]}).
+retrieved from \code{colData} of \code{x}. (i.e. \code{colData(x)[,z]}).
 If \code{x} is a counts matrix, then \code{z} will need to be a vector
 the same length as the number of columns in \code{x} that indicate
 the cluster to which each cell belongs. Default \code{NULL}.}
