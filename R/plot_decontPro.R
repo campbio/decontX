@@ -8,11 +8,10 @@
 #' @param decontaminated_counts decontaminated count matrix.
 #' @param features names of ADT to plot
 #' @param file file name to save the plot into as a pdf. ".pdf" is added
-#' unless \code{file} already ends in ".pdf". If omitted, return a
-#' \code{ggplot} object.
+#' unless \code{file} already ends in ".pdf". If omitted, return the plot.
 #'
-#' @return A \code{ggplot} object, or, if \code{file} is given, the path of
-#' the saved pdf, invisibly.
+#' @return A \code{patchwork} object with one \code{ggplot} per feature, or,
+#' if \code{file} is given, the path of the saved pdf, invisibly.
 #'
 #' @examples
 #' # Simulate a dataset with 3 cells and 2 ADTs
@@ -62,10 +61,17 @@ plotDensity <- function(counts,
     )
     df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
-    # One bandwidth for both curves, on the pseudo-log scale the density is
-    # computed on: asinh(x / 2) is "pseudo_log" with its default sigma and
-    # base. NAs are left out, as geom_density() drops them
-    bw <- stats::bw.nrd0(asinh(stats::na.omit(df.m$value) / 2))
+    xScale <- ggplot2::scale_x_continuous(
+      transform = "pseudo_log",
+      breaks = c(1, 5, 10^seq(1, 4))
+    )
+
+    # One bandwidth for both curves, on the scale the density is computed
+    # on. Values that geom_density() drops are left out; with fewer than 2
+    # left, it keeps its default
+    values <- xScale$get_transformation()$transform(df.m$value)
+    values <- values[is.finite(values)]
+    bw <- if (length(values) >= 2) stats::bw.nrd0(values) else "nrd0"
 
     # Plot
     p1 <- ggplot2::ggplot(
@@ -73,10 +79,7 @@ plotDensity <- function(counts,
       ggplot2::aes(.data$value, fill = .data$variable)
     ) +
       ggplot2::geom_density(alpha = 0.7, bw = bw) +
-      ggplot2::scale_x_continuous(
-        transform = "pseudo_log",
-        breaks = c(1, 5, 10^seq(1, 4))
-      ) +
+      xScale +
       ggplot2::scale_fill_manual(
         values = c("#E64B35B2", "#4DBBD5B2"),
         labels = c("Original", "Decontaminated")
@@ -127,11 +130,10 @@ plotDensity <- function(counts,
 #' @param cell_type 1xnDroplet vector of cell_type.
 #' @param features names of ADT to plot
 #' @param file file name to save the plot into as a pdf. ".pdf" is added
-#' unless \code{file} already ends in ".pdf". If omitted, return a
-#' \code{ggplot} object.
+#' unless \code{file} already ends in ".pdf". If omitted, return the plot.
 #'
-#' @return A \code{ggplot} object, or, if \code{file} is given, the path of
-#' the saved pdf, invisibly.
+#' @return A \code{patchwork} object with one \code{ggplot} per feature, or,
+#' if \code{file} is given, the path of the saved pdf, invisibly.
 #'
 #' @examples
 #' # Simulate a dataset with 3 cells and 2 ADTs

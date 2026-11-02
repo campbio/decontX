@@ -447,6 +447,22 @@ test_that("plotDensity smooths both curves of a panel with one bandwidth", {
       stats::bw.nrd0(asinh(values / 2))
     )
   }
+
+  # NA and Inf are left out, as geom_density() drops them; with fewer
+  # than 2 values left, the default bandwidth is used. ggplot2 warns about
+  # the rows it drops
+  decontaminated[1, 1] <- NA
+  decontaminated[1, 2] <- Inf
+  p <- suppressWarnings(plotDensity(counts, decontaminated, "A"))
+  values <- c(counts[1, ], decontaminated[1, -(1:2)])
+  expect_equal(
+    p[[1]]$layers[[1]]$stat_params$bw,
+    stats::bw.nrd0(asinh(values / 2))
+  )
+  p <- suppressWarnings(plotDensity(counts[, 1, drop = FALSE],
+    decontaminated[, 1, drop = FALSE], "A"
+  ))
+  expect_identical(p[[1]]$layers[[1]]$stat_params$bw, "nrd0")
 })
 
 test_that("plotDensity and plotBoxByCluster save to the file given", {

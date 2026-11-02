@@ -1293,6 +1293,14 @@ test_that("the contamination plot reads the UMAP columns by position", {
   expect_identical(b$plot$labels$x, "UMAP_1")
   expect_identical(b$plot$labels$y, "UMAP_2")
 
+  # So are empty and NA names
+  for (names in list(c("", ""), c(NA, NA))) {
+    colnames(res$estimates[[1]]$UMAP) <- names
+    b <- ggplot2::ggplot_build(plotDecontXContamination(res))
+    expect_identical(b$plot$labels$x, "UMAP_1")
+    expect_identical(b$plot$labels$y, "UMAP_2")
+  }
+
   # Named columns are the axis titles
   colnames(res$estimates[[1]]$UMAP) <- c("DecontX_UMAP_1", "DecontX_UMAP_2")
   b <- ggplot2::ggplot_build(plotDecontXContamination(res))

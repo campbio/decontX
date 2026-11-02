@@ -62,6 +62,18 @@ Reproduced on devel at d15a881 (1.11.10).
    `uns` drops when it rebuilds the estimates (A6-04); the #73 fix is a
    stopgap. The ROADMAP #73 line drops "clear stale per-batch UMAPs".
 
+7. **Added at review.** `plotDensity()` leaves NA and Inf values out of
+   the bandwidth, as `geom_density()` drops them, and keeps the default
+   bandwidth with fewer than 2 values left (the pooled bandwidth stopped
+   with "need at least 2 data points"). The transform comes from the
+   plot's own x scale, not a separate `asinh(x / 2)`. The UMAP axis
+   titles also fall back for empty or NA names. The `groupClusters`
+   message uses the existing `.firstFew()`. `@return` names the
+   patchwork object. Not taken: removing old UMAPs (maintainer decision
+   above), a shape check on the UMAP (decontX always writes two columns;
+   Phase II), and asserting on built density grids instead of the
+   layer's `bw` (more fragile).
+
 ## Tests
 
 Written first; each fails on its assertion on devel.

@@ -14,12 +14,11 @@ plotDensity(counts, decontaminated_counts, features, file = NULL)
 \item{features}{names of ADT to plot}
 
 \item{file}{file name to save the plot into as a pdf. ".pdf" is added
-unless \code{file} already ends in ".pdf". If omitted, return a
-\code{ggplot} object.}
+unless \code{file} already ends in ".pdf". If omitted, return the plot.}
 }
 \value{
-A \code{ggplot} object, or, if \code{file} is given, the path of
-the saved pdf, invisibly.
+A \code{patchwork} object with one \code{ggplot} per feature, or,
+if \code{file} is given, the path of the saved pdf, invisibly.
 }
 \description{
 Both curves of an ADT are smoothed with the same bandwidth, computed from
