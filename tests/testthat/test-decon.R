@@ -1255,3 +1255,55 @@ test_that("the marker expression plot gives each cell its own cluster", {
     c("A", "B")[expected]
   )
 })
+
+test_that("the groupClusters error lists the labels in z", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  markers <- d$sim$markers
+  # Batched decontX runs prefix the labels with the batch
+  z <- paste0("b1-", d$sim$z)
+  groups <- list(T = c(1, 2))
+  expect_error(
+    plotDecontXMarkerPercentage(x, markers, groups, z = z),
+    regexp = "not found in 'z': 1,2. Labels in 'z': b1-1, b1-2, b1-3"
+  )
+  expect_error(
+    plotDecontXMarkerExpression(x, markers[[1]], groups, z = z),
+    regexp = "Labels in 'z': b1-1, b1-2, b1-3",
+    fixed = TRUE
+  )
+  # Only the first 10 labels are listed
+  z <- paste0("b", rep(1:4, each = 25), "-", d$sim$z)
+  expect_error(
+    plotDecontXMarkerPercentage(x, markers, groups, z = z),
+    regexp = "b4-1, \\.\\.\\.$"
+  )
+})
+
+test_that("the contamination plot reads the UMAP columns by position", {
+  umap <- withr::with_seed(1, matrix(rnorm(10), ncol = 2))
+  res <- list(estimates = list(all_cells = list(
+    contamination = seq(0.1, 0.5, by = 0.1),
+    UMAP = umap
+  )))
+  # Unnamed columns, as after an h5ad round trip
+  b <- ggplot2::ggplot_build(plotDecontXContamination(res))
+  expect_equal(b$data[[1]]$x, umap[, 1])
+  expect_equal(b$data[[1]]$y, umap[, 2])
+  expect_identical(b$plot$labels$x, "UMAP_1")
+  expect_identical(b$plot$labels$y, "UMAP_2")
+
+  # So are empty and NA names
+  for (names in list(c("", ""), c(NA, NA))) {
+    colnames(res$estimates[[1]]$UMAP) <- names
+    b <- ggplot2::ggplot_build(plotDecontXContamination(res))
+    expect_identical(b$plot$labels$x, "UMAP_1")
+    expect_identical(b$plot$labels$y, "UMAP_2")
+  }
+
+  # Named columns are the axis titles
+  colnames(res$estimates[[1]]$UMAP) <- c("DecontX_UMAP_1", "DecontX_UMAP_2")
+  b <- ggplot2::ggplot_build(plotDecontXContamination(res))
+  expect_identical(b$plot$labels$x, "DecontX_UMAP_1")
+  expect_identical(b$plot$labels$y, "DecontX_UMAP_2")
+})

@@ -428,3 +428,72 @@ test_that("decontPro rejects NA and negative values in ambient_counts", {
     regexp = "Negative value in 'ambient_counts' matrix"
   )
 })
+
+test_that("plotDensity smooths both curves of a panel with one bandwidth", {
+  counts <- withr::with_seed(1, matrix(rnbinom(200, mu = 50, size = 2),
+    nrow = 2, dimnames = list(c("A", "B"), paste0("c", seq_len(100)))
+  ))
+  # Most droplets drop to zero, so the two curves differ in spread
+  decontaminated <- counts
+  decontaminated[, 1:60] <- 0
+  p <- plotDensity(counts, decontaminated, c("A", "B"))
+  for (i in 1:2) {
+    values <- c(counts[i, ], decontaminated[i, ])
+    # The bandwidth is computed on the scale the density is drawn on
+    scale <- ggplot2::layer_scales(p[[i]])$x$get_transformation()
+    expect_equal(scale$transform(values), asinh(values / 2))
+    expect_equal(
+      p[[i]]$layers[[1]]$stat_params$bw,
+      stats::bw.nrd0(asinh(values / 2))
+    )
+  }
+
+  # NA and Inf are left out, as geom_density() drops them; with fewer
+  # than 2 values left, the default bandwidth is used. ggplot2 warns about
+  # the rows it drops
+  decontaminated[1, 1] <- NA
+  decontaminated[1, 2] <- Inf
+  p <- suppressWarnings(plotDensity(counts, decontaminated, "A"))
+  values <- c(counts[1, ], decontaminated[1, -(1:2)])
+  expect_equal(
+    p[[1]]$layers[[1]]$stat_params$bw,
+    stats::bw.nrd0(asinh(values / 2))
+  )
+  p <- suppressWarnings(plotDensity(counts[, 1, drop = FALSE],
+    decontaminated[, 1, drop = FALSE], "A"
+  ))
+  expect_identical(p[[1]]$layers[[1]]$stat_params$bw, "nrd0")
+})
+
+test_that("plotDensity and plotBoxByCluster save to the file given", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  decontaminated <- counts - 1
+  plots <- list(
+    density = function(file) {
+      plotDensity(counts, decontaminated, "CD3", file = file)
+    },
+    box = function(file) {
+      plotBoxByCluster(counts, decontaminated, c(1, 2, 1), "CD3", file = file)
+    }
+  )
+  dir <- withr::local_tempdir()
+  for (name in names(plots)) {
+    # A name ending in ".pdf", in any case, is used as given
+    for (ext in c(".pdf", ".PDF")) {
+      path <- file.path(dir, paste0(name, ext))
+      res <- withVisible(plots[[name]](path))
+      expect_false(res$visible)
+      expect_identical(res$value, path)
+      expect_true(file.exists(path))
+      expect_false(file.exists(paste0(path, ".pdf")))
+    }
+    # Otherwise ".pdf" is added
+    path <- file.path(dir, paste0(name, "_plot"))
+    res <- withVisible(plots[[name]](path))
+    expect_false(res$visible)
+    expect_identical(res$value, paste0(path, ".pdf"))
+    expect_true(file.exists(paste0(path, ".pdf")))
+  }
+})

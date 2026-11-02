@@ -32,7 +32,10 @@ cell clusters labels coded in
 \code{list(Tcells=c(1, 2), Bcells=7)} would recode clusters
 1 and 2 to "Tcells"
 and cluster 7 to "Bcells". The values are the labels in \code{z}, such
-as the labels of a \code{z} supplied to \code{\link{decontX}}.
+as the labels of a \code{z} supplied to \code{\link{decontX}}. After a
+batched \code{\link{decontX}} run, the labels can have the batch as a
+prefix (\code{"<batch>-<label>"}, such as \code{"b1-1"}); use the labels
+as they appear in \code{z}.
 Note that if this is used, clusters
 in \code{z} not found
 in \code{groupClusters} will be excluded. Default \code{NULL}.}

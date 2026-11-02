@@ -69,10 +69,10 @@ One issue per PR, each starting with a failing test. P1 first.
 - decontPro: join Seurat split layers before reading (minimal fix;
   Phase II rebuilds the method), validate `cell_type`, report Stan
   failures clearly, error on unknown arguments (#72; A1-04, A1-11, A1-13).
-- Plots: one shared bandwidth in `plotDensity()`, clear stale per-batch
-  UMAPs on re-run, the `file` argument, positional UMAP columns (#73;
-  A1-24,
-  A1-25, A7-17, A6-04).
+- Plots: one shared bandwidth in `plotDensity()`, the `file` argument,
+  `groupClusters` labels after batched runs, positional UMAP columns;
+  earlier runs' UMAPs are kept and documented (#73; A1-24, A1-25,
+  A7-17, A6-04).
 - Cosmetic (#74; A1-21, A1-26).
 
 ### I-c: coverage, #75
@@ -141,7 +141,9 @@ carries the whole API change.
   - AnnData via anndataR (Suggests): extract the matrix, call the core,
     write to `layers`/`obs`/`obsm`/`uns`; dispatch by an `inherits()`
     redirect in the ANY methods; clear errors for read-only backed
-    objects (A6-03, A6-10).
+    objects (A6-03, A6-10). Restore the names and dimnames `uns`
+    drops, including UMAP column names, when rebuilding the estimates
+    (A6-04; #73's positional plot fix is a stopgap).
   - SCE: decontPro reads and writes an altExp (`altExpName`).
   - Plots accept any supported object through an internal getter
     (A4-18, A4-19).

@@ -212,7 +212,11 @@ counts will be stored as an assay and can be accessed with
 will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
 will be stored in \code{metadata(x)$decontX}. The UMAPs used to generated
 cell cluster labels will be stored in
-\code{reducedDims} slot in \code{x}.
+\code{reducedDims} slot in \code{x}. Running \code{decontX} again on
+\code{x} replaces the assay, the \code{colData} columns and
+\code{metadata(x)$decontX}. A UMAP from an earlier run with different
+batches (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
+\code{reducedDims} and doesn't match the new results.
 }
 \description{
 Identifies contamination from factors such as ambient RNA
