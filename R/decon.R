@@ -1444,7 +1444,9 @@ setMethod(
 #'  decontamination.
 #' @param C Integer. Number of cells to be simulated. Default \code{300}.
 #' @param G Integer. Number of genes to be simulated. Default \code{100}.
-#' @param K Integer. Number of cell populations to be simulated.
+#' @param K Integer. Number of cell populations to be simulated, at least 2,
+#' since the contamination comes from the other populations. With few cells,
+#' fewer populations may be drawn; at least 2 are still needed.
 #' Default \code{3}.
 #' @param NRange Integer vector. A vector of length 2 that specifies the lower
 #'  and upper bounds of the number of counts generated for each cell. Default
@@ -1534,13 +1536,13 @@ simulateContamination <- function(C = 300,
   }
 
   z <- sample(seq(K), size = C, replace = TRUE)
+  if (length(unique(z)) == 1) {
+    stop(
+      "Only 1 cell population was simulated. Increase the number of ",
+      "cells 'C'."
+    )
+  }
   if (length(unique(z)) < K) {
-    if (length(unique(z)) == 1) {
-      stop(
-        "Only 1 cell population was simulated. Increase the number of ",
-        "cells 'C'."
-      )
-    }
     warning(
       "Only ",
       length(unique(z)),

@@ -20,7 +20,9 @@ simulateContamination(
 
 \item{G}{Integer. Number of genes to be simulated. Default \code{100}.}
 
-\item{K}{Integer. Number of cell populations to be simulated.
+\item{K}{Integer. Number of cell populations to be simulated, at least 2,
+since the contamination comes from the other populations. With few cells,
+fewer populations may be drawn; at least 2 are still needed.
 Default \code{3}.}
 
 \item{NRange}{Integer vector. A vector of length 2 that specifies the lower
