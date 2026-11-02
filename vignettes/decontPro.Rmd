@@ -95,8 +95,14 @@ adt_seurat <- RunUMAP(adt_seurat,
 DimPlot(adt_seurat, reduction = "adtUMAP", label = TRUE)
 FeaturePlot(adt_seurat, 
             features = c("CD3", "CD4", "CD8", "CD19", "CD14", "CD16", "CD56"))
+```
 
-clusters <- as.integer(Idents(adt_seurat))
+`decontPro` accepts any cluster labels, so we pass Seurat's cluster
+identities as they are. The cluster numbers in the plots below then match
+the Seurat plots above.
+
+```{r}
+clusters <- Idents(adt_seurat)
 ```
 
 # Run DecontPro

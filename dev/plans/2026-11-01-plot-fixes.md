@@ -74,6 +74,14 @@ Reproduced on devel at d15a881 (1.11.10).
    Phase II), and asserting on built density grids instead of the
    layer's `bw` (more fragile).
 
+8. **Added at hand-off** (maintainer request, 2026-11-02). The decontPro
+   vignette passes `Idents(adt_seurat)` to `decontPro()` instead of
+   `as.integer(Idents(adt_seurat))`, which turned Seurat's 0-based
+   clusters into codes 1..K, so the `plotBoxByCluster()` numbers were one
+   higher than the Seurat plots. decontPro has accepted any labels since
+   #72; on the vignette data the decontaminated counts are identical, and
+   the `r_est` rows are named "0" to "8".
+
 ## Tests
 
 Written first; each fails on its assertion on devel.

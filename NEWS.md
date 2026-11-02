@@ -17,6 +17,10 @@ UMAP without column names, as after an h5ad round trip, plots instead of
 failing with `.data[[NULL]]` (#73).
 * The `decontX()` help page says a re-run keeps UMAPs from an earlier run
 with different batches in `reducedDims` (#73).
+* The decontPro vignette passes Seurat's cluster identities to
+`decontPro()` as they are, so the cluster numbers in `plotBoxByCluster()`
+match the Seurat plots; they used to be shifted by one. Results don't
+change (#73).
 
 # decontX 1.11.10
 
