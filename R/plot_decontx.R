@@ -57,7 +57,7 @@ plotDecontXContamination <- function(x,
 
   ## Create data.frame. The columns are taken by position, since their
   ## names can be lost outside decontX (such as in an h5ad round trip)
-  axisLabels <- colnames(umap)[1:2]
+  axisLabels <- colnames(umap)[seq_len(2)]
   if (length(axisLabels) < 2 || anyNA(axisLabels) || any(axisLabels == "")) {
     axisLabels <- c("UMAP_1", "UMAP_2")
   }
