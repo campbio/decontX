@@ -56,8 +56,8 @@
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment}
 #' object to search.
 #' @param by A single character string. Where to search for features in
-#' \code{x}. If set to \code{"rownames"} then the features will be searched for among
-#' \code{rownames(x)}. If \code{x} inherits from class
+#' \code{x}. If set to \code{"rownames"} then the features will be searched
+#' for among \code{rownames(x)}. If \code{x} inherits from class
 #' \linkS4class[SummarizedExperiment]{SummarizedExperiment}, then \code{by}
 #' can be one of the
 #' fields in the row annotation data.frame (i.e. one of

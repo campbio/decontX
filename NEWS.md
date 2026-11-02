@@ -3,8 +3,9 @@
 * `simulateContamination()` gives every cell `NRange[1]` counts when both
 ends of `NRange` are equal; it used to draw totals from 1 to that value.
 `K = 1` now stops with a clear message: the simulated contamination
-comes from the other cell populations, so it needs at least two. It
-used to fail with "Division by 0" (#74).
+comes from the other cell populations, so it needs at least two. So does
+a `C` too small to give two populations (for example `C = 1`). Both used
+to fail with "Division by 0" (#74).
 * `retrieveFeatureIndex()` never matches a feature that is `NA`, even when
 a row is named `NA`, and stops with a clear message when `by` isn't a
 single string (#74).

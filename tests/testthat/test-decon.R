@@ -161,10 +161,12 @@ test_that("retrieveFeatureIndex never matches an NA feature", {
     regexp = "not present in 'x': NA"
   )
   expect_equal(idx, c(1L, NA))
-  expect_warning(
-    idx <- retrieveFeatureIndex(c("A", NA), counts, exactMatch = FALSE),
-    regexp = "not present in 'x': NA"
+  # Only the "not present" warning, not one about NA matching every row
+  warnings <- capture_warnings(
+    idx <- retrieveFeatureIndex(c("A", NA), counts, exactMatch = FALSE)
   )
+  expect_length(warnings, 1)
+  expect_match(warnings, "not present in 'x': NA")
   expect_equal(idx, c(1L, NA))
 })
 
