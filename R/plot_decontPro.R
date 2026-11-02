@@ -1,12 +1,17 @@
 #' Density of each ADT, raw counts overlapped with decontaminated counts
 #'
+#' Both curves of an ADT are smoothed with the same bandwidth, computed from
+#' the raw and decontaminated counts together, so their heights compare.
+#'
 #' @param counts original count matrix of nADT x nDroplet.
 #' @param decontaminated_counts decontaminated count matrix.
 #' @param features names of ADT to plot
-#' @param file file name to save plot into a pdf. If omit, return \code{ggplot}
-#' object.
+#' @param file file name to save the plot into as a pdf. ".pdf" is added
+#' unless \code{file} already ends in ".pdf". If omitted, return a
+#' \code{ggplot} object.
 #'
-#' @return Return a pdf file named \code{file} or a \code{ggplot} object.
+#' @return A \code{ggplot} object, or, if \code{file} is given, the path of
+#' the saved pdf, invisibly.
 #'
 #' @examples
 #' # Simulate a dataset with 3 cells and 2 ADTs
@@ -56,13 +61,16 @@ plotDensity <- function(counts,
     )
     df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
+    # One bandwidth for both curves, on the pseudo-log scale the density is
+    # computed on: asinh(x / 2) is "pseudo_log" with its default sigma and base
+    bw <- stats::bw.nrd0(asinh(df.m$value / 2))
 
     # Plot
     p1 <- ggplot2::ggplot(
       df.m,
       ggplot2::aes(.data$value, fill = .data$variable)
     ) +
-      ggplot2::geom_density(alpha = 0.7) +
+      ggplot2::geom_density(alpha = 0.7, bw = bw) +
       ggplot2::scale_x_continuous(
         transform = "pseudo_log",
         breaks = c(1, 5, 10^seq(1, 4))
@@ -105,12 +113,7 @@ plotDensity <- function(counts,
   if (is.null(file)) {
     p_wrap
   } else {
-    ggplot2::ggsave(paste0(file, ".pdf"),
-      p_wrap,
-      width = 8.5,
-      height = 11,
-      units = "in"
-    )
+    .savePlotPdf(p_wrap, file)
   }
 }
 
@@ -121,10 +124,12 @@ plotDensity <- function(counts,
 #' @param decontaminated_counts decontaminated count matrix.
 #' @param cell_type 1xnDroplet vector of cell_type.
 #' @param features names of ADT to plot
-#' @param file file name to save plot into a pdf. If omit, return \code{ggplot}
-#' object.
+#' @param file file name to save the plot into as a pdf. ".pdf" is added
+#' unless \code{file} already ends in ".pdf". If omitted, return a
+#' \code{ggplot} object.
 #'
-#' @return Return a pdf file named \code{file} or a \code{ggplot} object.
+#' @return A \code{ggplot} object, or, if \code{file} is given, the path of
+#' the saved pdf, invisibly.
 #'
 #' @examples
 #' # Simulate a dataset with 3 cells and 2 ADTs
@@ -237,11 +242,22 @@ plotBoxByCluster <- function(counts,
   if (is.null(file)) {
     p_wrap
   } else {
-    ggplot2::ggsave(paste0(file, ".pdf"),
-      p_wrap,
-      width = 8.5,
-      height = 11,
-      units = "in"
-    )
+    .savePlotPdf(p_wrap, file)
   }
+}
+
+
+## Save a plot as a letter-size pdf, adding ".pdf" unless 'file' has it,
+## and return the path invisibly
+.savePlotPdf <- function(p, file) {
+  if (!grepl("\\.pdf$", file, ignore.case = TRUE)) {
+    file <- paste0(file, ".pdf")
+  }
+  ggplot2::ggsave(file,
+    p,
+    width = 8.5,
+    height = 11,
+    units = "in"
+  )
+  invisible(file)
 }

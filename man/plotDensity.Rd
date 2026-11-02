@@ -13,14 +13,17 @@ plotDensity(counts, decontaminated_counts, features, file = NULL)
 
 \item{features}{names of ADT to plot}
 
-\item{file}{file name to save plot into a pdf. If omit, return \code{ggplot}
-object.}
+\item{file}{file name to save the plot into as a pdf. ".pdf" is added
+unless \code{file} already ends in ".pdf". If omitted, return a
+\code{ggplot} object.}
 }
 \value{
-Return a pdf file named \code{file} or a \code{ggplot} object.
+A \code{ggplot} object, or, if \code{file} is given, the path of
+the saved pdf, invisibly.
 }
 \description{
-Density of each ADT, raw counts overlapped with decontaminated counts
+Both curves of an ADT are smoothed with the same bandwidth, computed from
+the raw and decontaminated counts together, so their heights compare.
 }
 \examples{
 # Simulate a dataset with 3 cells and 2 ADTs

@@ -21,11 +21,13 @@ plotBoxByCluster(
 
 \item{features}{names of ADT to plot}
 
-\item{file}{file name to save plot into a pdf. If omit, return \code{ggplot}
-object.}
+\item{file}{file name to save the plot into as a pdf. ".pdf" is added
+unless \code{file} already ends in ".pdf". If omitted, return a
+\code{ggplot} object.}
 }
 \value{
-Return a pdf file named \code{file} or a \code{ggplot} object.
+A \code{ggplot} object, or, if \code{file} is given, the path of
+the saved pdf, invisibly.
 }
 \description{
 Boxplot of features grouped by cell type
