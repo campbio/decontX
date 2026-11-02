@@ -55,8 +55,17 @@ plotDecontXContamination <- function(x,
   contamin <- estimates[[i]]$contamination
   umap <- estimates[[i]]$UMAP
 
-  ## Create data.frame
-  df <- data.frame(umap, "Contamination" = contamin)
+  ## Create data.frame. The columns are taken by position, since their
+  ## names can be lost outside decontX (such as in an h5ad round trip)
+  axisLabels <- colnames(umap)
+  if (is.null(axisLabels)) {
+    axisLabels <- c("UMAP_1", "UMAP_2")
+  }
+  df <- data.frame(
+    UMAP_1 = umap[, 1],
+    UMAP_2 = umap[, 2],
+    "Contamination" = contamin
+  )
   naIx <- is.na(umap[, 1]) | is.na(umap[, 2])
   df <- df[!naIx, ]
 
@@ -64,8 +73,8 @@ plotDecontXContamination <- function(x,
   gg <- ggplot2::ggplot(
     df,
     ggplot2::aes(
-      x = .data[[colnames(umap)[1]]],
-      y = .data[[colnames(umap)[2]]]
+      x = .data$UMAP_1,
+      y = .data$UMAP_2
     )
   ) +
     ggplot2::geom_point(
@@ -73,6 +82,7 @@ plotDecontXContamination <- function(x,
       size = size,
       ggplot2::aes(color = .data$Contamination)
     ) +
+    ggplot2::labs(x = axisLabels[1], y = axisLabels[2]) +
     ggplot2::theme_bw() +
     ggplot2::scale_colour_gradientn(
       colors = colorScale,
@@ -112,7 +122,10 @@ plotDecontXContamination <- function(x,
 #' \code{list(Tcells=c(1, 2), Bcells=7)} would recode
 #' clusters 1 and 2 to "Tcells"
 #' and cluster 7 to "Bcells". The values are the labels in \code{z}, such
-#' as the labels of a \code{z} supplied to \code{\link{decontX}}.
+#' as the labels of a \code{z} supplied to \code{\link{decontX}}. After a
+#' batched \code{\link{decontX}} run, the labels can have the batch as a
+#' prefix (\code{"<batch>-<label>"}, such as \code{"b1-1"}); use the labels
+#' as they appear in \code{z}.
 #' Note that if this is
 #' used, clusters in \code{z} not found
 #' in \code{groupClusters} will be excluded from the barplot.
@@ -302,7 +315,10 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
 #' \code{list(Tcells=c(1, 2), Bcells=7)} would recode clusters
 #' 1 and 2 to "Tcells"
 #' and cluster 7 to "Bcells". The values are the labels in \code{z}, such
-#' as the labels of a \code{z} supplied to \code{\link{decontX}}.
+#' as the labels of a \code{z} supplied to \code{\link{decontX}}. After a
+#' batched \code{\link{decontX}} run, the labels can have the batch as a
+#' prefix (\code{"<batch>-<label>"}, such as \code{"b1-1"}); use the labels
+#' as they appear in \code{z}.
 #' Note that if this is used, clusters
 #' in \code{z} not found
 #' in \code{groupClusters} will be excluded. Default \code{NULL}.
@@ -509,9 +525,14 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     cellMappings <- unlist(groupClusters)
     if (any(!(cellMappings %in% z))) {
       missing <- cellMappings[!(cellMappings %in% z)]
+      zLabels <- levels(z)
+      if (length(zLabels) > 10) {
+        zLabels <- c(zLabels[seq_len(10)], "...")
+      }
       stop(
         "'groupClusters' not found in 'z': ",
-        paste(missing, collapse = ",")
+        paste(missing, collapse = ","),
+        ". Labels in 'z': ", paste(zLabels, collapse = ", ")
       )
     }
 
