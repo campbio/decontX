@@ -20,7 +20,9 @@ simulateContamination(
 
 \item{G}{Integer. Number of genes to be simulated. Default \code{100}.}
 
-\item{K}{Integer. Number of cell populations to be simulated.
+\item{K}{Integer. Number of cell populations to be simulated, at least 2,
+since the contamination comes from the other populations. With few cells,
+fewer populations may be drawn; at least 2 are still needed.
 Default \code{3}.}
 
 \item{NRange}{Integer vector. A vector of length 2 that specifies the lower
@@ -31,8 +33,8 @@ and upper bounds of the number of counts generated for each cell. Default
 
 \item{delta}{Numeric or Numeric vector. Concentration parameter for Theta.
 If input as a single numeric value, symmetric values for beta
-distribution are specified; if input as a vector of lenght 2, the two
-values will be the shape1 and shape2 paramters of the beta distribution
+distribution are specified; if input as a vector of length 2, the two
+values will be the shape1 and shape2 parameters of the beta distribution
 respectively. Default \code{c(1, 5)}.}
 
 \item{numMarkers}{Integer. Number of markers for each cell population.
@@ -43,8 +45,8 @@ For reproducibility, a default value of 12345 is used. If NULL, no calls to
 \code{\link[withr]{with_seed}} are made.}
 }
 \value{
-A list containing the \code{nativeMatirx} (real expression),
-\code{observedMatrix} (real expression + contamination), as well as other
+A list containing the \code{nativeCounts} (real expression),
+\code{observedCounts} (real expression + contamination), as well as other
 parameters used in the simulation.
 }
 \description{

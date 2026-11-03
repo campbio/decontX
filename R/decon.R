@@ -500,8 +500,10 @@ setMethod(
     delta = delta,
     estimateDelta = estimateDelta,
     convergence = convergence,
+    iterLogLik = iterLogLik,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
+    seed = seed,
     legacyInit = legacyInit,
     logfile = logfile,
     verbose = verbose
@@ -530,10 +532,7 @@ setMethod(
 
     # If batch null, bgBatch has to be null
     if (!is.null(batchBackground)) {
-      stop(
-        "When experiment default to no bacth, background should ",
-        "also default to no batch."
-      )
+      stop("'bgBatch' was given without 'batch'; give both or neither.")
     }
 
     if (!is.null(countsBackground)) {
@@ -1445,7 +1444,9 @@ setMethod(
 #'  decontamination.
 #' @param C Integer. Number of cells to be simulated. Default \code{300}.
 #' @param G Integer. Number of genes to be simulated. Default \code{100}.
-#' @param K Integer. Number of cell populations to be simulated.
+#' @param K Integer. Number of cell populations to be simulated, at least 2,
+#' since the contamination comes from the other populations. With few cells,
+#' fewer populations may be drawn; at least 2 are still needed.
 #' Default \code{3}.
 #' @param NRange Integer vector. A vector of length 2 that specifies the lower
 #'  and upper bounds of the number of counts generated for each cell. Default
@@ -1453,16 +1454,16 @@ setMethod(
 #' @param beta Numeric. Concentration parameter for Phi. Default \code{0.1}.
 #' @param delta Numeric or Numeric vector. Concentration parameter for Theta.
 #'  If input as a single numeric value, symmetric values for beta
-#'  distribution are specified; if input as a vector of lenght 2, the two
-#'  values will be the shape1 and shape2 paramters of the beta distribution
+#'  distribution are specified; if input as a vector of length 2, the two
+#'  values will be the shape1 and shape2 parameters of the beta distribution
 #'  respectively. Default \code{c(1, 5)}.
 #' @param numMarkers Integer. Number of markers for each cell population.
 #' Default \code{3}.
 #' @param seed Integer. Passed to \code{\link[withr]{with_seed}}.
 #' For reproducibility, a default value of 12345 is used. If NULL, no calls to
 #'  \code{\link[withr]{with_seed}} are made.
-#' @return A list containing the \code{nativeMatirx} (real expression),
-#' \code{observedMatrix} (real expression + contamination), as well as other
+#' @return A list containing the \code{nativeCounts} (real expression),
+#' \code{observedCounts} (real expression + contamination), as well as other
 #' parameters used in the simulation.
 #' @author Shiyi Yang, Yuan Yin, Joshua Campbell
 #' @examples
@@ -1513,6 +1514,13 @@ simulateContamination <- function(C = 300,
                                         beta = 0.5,
                                         delta = c(1, 2),
                                         numMarkers = 3) {
+  # The contamination of each population comes from the other populations
+  if (K < 2) {
+    stop(
+      "'K' must be at least 2, since contamination comes from the other ",
+      "cell populations."
+    )
+  }
   if (length(delta) == 1) {
     cpByC <- stats::rbeta(
       n = C,
@@ -1528,21 +1536,26 @@ simulateContamination <- function(C = 300,
   }
 
   z <- sample(seq(K), size = C, replace = TRUE)
+  if (length(unique(z)) == 1) {
+    stop(
+      "Only 1 cell population was simulated. Increase the number of ",
+      "cells 'C'."
+    )
+  }
   if (length(unique(z)) < K) {
     warning(
       "Only ",
       length(unique(z)),
-      " clusters are simulated. Try to increase numebr of cells 'C' if",
+      " clusters are simulated. Try to increase number of cells 'C' if",
       " more clusters are needed"
     )
     K <- length(unique(z))
     z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
   }
 
-  NbyC <- sample(seq(min(NRange), max(NRange)),
-    size = C,
-    replace = TRUE
-  )
+  # sample() on a single value would draw from 1 to that value instead
+  nValues <- seq(min(NRange), max(NRange))
+  NbyC <- nValues[sample.int(length(nValues), size = C, replace = TRUE)]
   cNbyC <- vapply(seq(C), function(i) {
     stats::rbinom(
       n = 1,
@@ -1653,7 +1666,7 @@ simulateContamination <- function(C = 300,
     dupBarcode <- FALSE
     warning(
       "No column names were found for the 'background' matrix. ",
-      "No checking was performed between the ids in the 'backgroud' ",
+      "No checking was performed between the ids in the 'background' ",
       "matrix and 'x'.",
       " Please ensure that no true cells are included in the background ",
       "matrix. Otherwise, results will be incorrect."

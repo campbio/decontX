@@ -51,13 +51,13 @@
 #' Partial matching (i.e. grepping) can be used by setting
 #' \code{exactMatch = FALSE}.
 #' @param features Character vector of feature names to find in the rows of
-#' \code{x}.
+#' \code{x}. Features that are \code{NA} never match.
 #' @param x A data.frame, matrix, or
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment}
 #' object to search.
-#' @param by Character. Where to search for features in \code{x}. If set to
-#' \code{"rownames"} then the features will be searched for among
-#' \code{rownames(x)}. If \code{x} inherits from class
+#' @param by A single character string. Where to search for features in
+#' \code{x}. If set to \code{"rownames"} then the features will be searched
+#' for among \code{rownames(x)}. If \code{x} inherits from class
 #' \linkS4class[SummarizedExperiment]{SummarizedExperiment}, then \code{by}
 #' can be one of the
 #' fields in the row annotation data.frame (i.e. one of
@@ -86,6 +86,9 @@ retrieveFeatureIndex <- function(features,
                                  by = "rownames",
                                  exactMatch = TRUE,
                                  removeNA = FALSE) {
+  if (!is.character(by) || length(by) != 1 || is.na(by)) {
+    stop("'by' must be a single character string.")
+  }
 
   # Extract vector to search through
   if (by == "rownames") {
@@ -114,6 +117,9 @@ retrieveFeatureIndex <- function(features,
   if (!isTRUE(exactMatch)) {
     featuresIndices <- rep(NA, length(features))
     for (i in seq_along(features)) {
+      if (is.na(features[i])) {
+        next
+      }
       g <- grep(features[i], search)
       if (length(g) == 1) {
         featuresIndices[i] <- g
@@ -127,7 +133,7 @@ retrieveFeatureIndex <- function(features,
       }
     }
   } else {
-    featuresIndices <- match(features, search)
+    featuresIndices <- match(features, search, incomparables = NA)
   }
 
   if (sum(is.na(featuresIndices)) > 0) {

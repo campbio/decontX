@@ -57,10 +57,10 @@ Default \code{c("counts", "decontXcounts")}.}
 for each cell.
 If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}
 and \code{z = NULL},
-then the cluster labels from \code{\link{decontX}} will be retived from the
+then the cluster labels from \code{\link{decontX}} will be retrieved from the
 \code{colData} of \code{x} (i.e. \code{colData(x)$decontX_clusters}).
 If \code{z} is a single character or integer,
-then that column will be retrived
+then that column will be retrieved
 from \code{colData} of \code{x}. (i.e. \code{colData(x)[,z]}). If \code{x}
 is a counts matrix, then \code{z} will need
 to be a vector the same length as
