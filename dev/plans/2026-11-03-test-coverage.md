@@ -1,6 +1,6 @@
 # Test coverage to target (#75)
 
-Proposed 2026-11-03, awaiting approval. Audit findings A3-02 to A3-20
+Approved in chat, 2026-11-03. Audit findings A3-02 to A3-20
 (`dev/audits/2026-10-deep-review.md`). Version 1.11.13.
 
 ## Starting point
