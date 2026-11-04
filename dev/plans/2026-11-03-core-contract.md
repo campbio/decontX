@@ -120,7 +120,9 @@ are not changed to pass.
 
 ## Tests
 
-Written first; each fails on devel on its assertion.
+Written first. Each fails on devel on its assertion, except the method
+half of the formals test, which already passes (the two methods agree
+today) and guards against future drift.
 
 - **No defaults in the core:** every formal of `.decontX()` (now) and
   `.decontXParams()` (once it exists) is an empty symbol. On devel this
