@@ -13,3 +13,14 @@ simulate_oracle <- function(seed = 12345,
                             delta = c(1, 10)) {
   simulateContamination(C = C, G = G, K = K, delta = delta, seed = seed)
 }
+
+# The 10-cluster simulation shared by the older tests in test-decon.R
+simulateDeconSim <- function() {
+  simulateContamination(K = 10, delta = c(1, 5))
+}
+
+# Runs a real decontPro Stan fit without printing rstan's progress
+quietStan <- function(expr) {
+  utils::capture.output(res <- expr)
+  res
+}

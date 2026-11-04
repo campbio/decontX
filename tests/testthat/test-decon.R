@@ -1,8 +1,5 @@
-library(decontX)
-
-deconSim <- simulateContamination(K = 10, delta = c(1, 5))
-
 test_that(desc = "decontX does not call deprecated normalization functions", {
+  deconSim <- simulateDeconSim()
   # Regression guard for the Bioc 3.24 scuttle deprecations
   # (logNormCounts/normalizeCounts -> scrapper): decontX initialization
   # must not emit these deprecation warnings, which R CMD check flags
@@ -10,13 +7,14 @@ test_that(desc = "decontX does not call deprecated normalization functions", {
   # the functions decontX calls so unrelated upstream deprecations
   # cannot fail this test.
   expect_no_warning(
-    decontX(deconSim$observedCounts, seed = 1, maxIter = 2),
+    decontX(deconSim$observedCounts, seed = 1, maxIter = 2, verbose = FALSE),
     message = "'(normalizeCounts|logNormCounts)' is deprecated"
   )
 })
 
 test_that(desc = "decontX initialization without z returns valid results", {
-  res <- decontX(deconSim$observedCounts, seed = 1, maxIter = 2)
+  deconSim <- simulateDeconSim()
+  res <- decontX(deconSim$observedCounts, seed = 1, verbose = FALSE)
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
   expect_equal(length(res$z), ncol(deconSim$observedCounts))
   expect_gt(length(unique(res$z)), 1)
@@ -24,7 +22,7 @@ test_that(desc = "decontX initialization without z returns valid results", {
   expect_equal(dim(umap), c(ncol(deconSim$observedCounts), 2))
 
   # Same seed twice gives identical results
-  res2 <- decontX(deconSim$observedCounts, seed = 1, maxIter = 2)
+  res2 <- decontX(deconSim$observedCounts, seed = 1, verbose = FALSE)
   expect_equal(res$contamination, res2$contamination)
   expect_equal(res$z, res2$z)
 })
@@ -42,11 +40,12 @@ test_that(desc = "decontX initialization handles very sparse data", {
     )
   )
   lowCounts[1, Matrix::colSums(lowCounts) == 0] <- 1
-  res <- decontX(lowCounts, seed = 1, maxIter = 2)
+  res <- decontX(lowCounts, seed = 1, verbose = FALSE)
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
 })
 
 test_that(desc = "decontX initialization handles duplicated gene names", {
+  deconSim <- simulateDeconSim()
   # Regression test: real 10x data labeled with gene symbols often has
   # duplicated rownames, which scrapper::modelGeneVariances rejects.
   counts <- deconSim$observedCounts
@@ -54,31 +53,50 @@ test_that(desc = "decontX initialization handles duplicated gene names", {
     "DUP", "DUP",
     paste0("g", seq_len(nrow(counts) - 2))
   )
-  res <- decontX(counts, seed = 1, maxIter = 2)
+  res <- decontX(counts, seed = 1, verbose = FALSE)
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
 })
 
 test_that(desc = "decontX gives an informative error for empty cells", {
+  deconSim <- simulateDeconSim()
   counts <- deconSim$observedCounts
   counts[, 1] <- 0
-  expect_error(decontX(counts, seed = 1, maxIter = 2),
+  expect_error(decontX(counts, seed = 1, maxIter = 2, verbose = FALSE),
     regexp = "at least one count"
   )
 })
 
-test_that(desc = "legacyInit reproduces the scater-based initialization", {
+test_that("legacyInit with z given changes only the UMAP", {
   skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
   # The legacy path calls upstream functions that are deprecated on
   # Bioconductor devel (by design -- it exists to reproduce old results
   # while they still work), so warnings are suppressed here.
+  default <- decontX(x, z = d$sim$z, verbose = FALSE)
+  legacy <- suppressWarnings(
+    decontX(x, z = d$sim$z, legacyInit = TRUE, verbose = FALSE)
+  )
+  expect_identical(legacy$contamination, default$contamination)
+  expect_identical(legacy$decontXcounts, default$decontXcounts)
+  expect_false(isTRUE(all.equal(
+    legacy$estimates$all_cells$UMAP,
+    default$estimates$all_cells$UMAP
+  )))
+})
+
+test_that("legacyInit without z estimates the clusters", {
+  skip_if_not_installed("scater")
+  deconSim <- simulateDeconSim()
   res <- suppressWarnings(
     decontX(deconSim$observedCounts,
-      seed = 1, maxIter = 2,
-      legacyInit = TRUE
+      seed = 1, legacyInit = TRUE,
+      verbose = FALSE
     )
   )
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
   expect_equal(length(res$z), ncol(deconSim$observedCounts))
+  expect_gt(length(unique(res$z)), 1)
 })
 
 test_that("numeric batch labels are not used as positional indices", {
@@ -95,11 +113,11 @@ test_that("numeric batch labels are not used as positional indices", {
 
   resNum <- decontX(combined,
     z = z, batch = numBatch,
-    maxIter = 2, seed = 12345
+    seed = 12345, verbose = FALSE
   )
   resChar <- decontX(combined,
     z = z, batch = charBatch,
-    maxIter = 2, seed = 12345
+    seed = 12345, verbose = FALSE
   )
 
   expect_equal(resNum$contamination, resChar$contamination)
@@ -110,6 +128,7 @@ test_that("numeric batch labels are not used as positional indices", {
 })
 
 test_that(desc = "Testing simulateContamination", {
+  deconSim <- simulateDeconSim()
   expect_equal(
     object = colSums(deconSim$observedCounts),
     expected = deconSim$NByC,
@@ -181,6 +200,7 @@ test_that("retrieveFeatureIndex needs 'by' to be a single string", {
 })
 
 test_that("runParams holds seed and iterLogLik", {
+  deconSim <- simulateDeconSim()
   res <- decontX(deconSim$observedCounts,
     z = deconSim$z, maxIter = 2,
     iterLogLik = 5, seed = 3, verbose = FALSE
@@ -198,7 +218,10 @@ test_that(desc = "decontX recovers simulated contamination (oracle)", {
   sim <- simulate_oracle()
   # iterLogLik = 1 records the log-likelihood every iteration so the
   # monotonicity check below sees the full EM sequence.
-  res <- decontX(sim$observedCounts, z = sim$z, seed = 12345, iterLogLik = 1)
+  res <- decontX(sim$observedCounts,
+    z = sim$z, seed = 12345, iterLogLik = 1,
+    verbose = FALSE
+  )
 
   # (a) Estimated per-cell contamination tracks the true fraction.
   expect_gt(stats::cor(res$contamination, sim$contamination), 0.7)
@@ -218,39 +241,43 @@ test_that(desc = "decontX recovers simulated contamination (oracle)", {
 })
 
 ## DecontX
-test_that(desc = "Testing DecontX on counts matrix", {
+test_that("decontX on a matrix gives results the plots show", {
   s <- simulateContamination()
-  res <- decontX(s$observedCounts)
+  res <- decontX(s$observedCounts, verbose = FALSE)
   expect_equal(dim(res$decontXcounts), dim(s$observedCounts))
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
   expect_equal(length(res$z), ncol(s$observedCounts))
 
-  p <- plotDecontXMarkerPercentage(s$observedCounts,
-    z = res$z,
-    markers = s$markers
-  )
-  expect_s3_class(p, "ggplot")
-  p <- plotDecontXMarkerPercentage(res$decontXcounts,
-    z = res$z,
-    markers = s$markers
-  )
-  expect_s3_class(p, "ggplot")
-  p <- plotDecontXMarkerExpression(s$observedCounts,
-    s$markers[[1]],
-    z = s$z
-  )
-  expect_s3_class(p, "ggplot")
-  p <- plotDecontXContamination(res)
-  expect_s3_class(p, "ggplot")
+  # The contamination plot colours each cell by its contamination
+  b <- ggplot2::ggplot_build(plotDecontXContamination(res))
+  expect_equal(b$plot$data$Contamination, unname(res$contamination))
 
-  # test with background input
-  b <- s$observedCounts[, 1:5]
-  colnames(b) <- paste(colnames(b), "_", sep = "")
-  resBg <- decontX(s$observedCounts,
-    background = b
+  # Decontamination only removes counts, so no cluster has more cells
+  # expressing a marker afterwards
+  percent <- function(counts) {
+    p <- plotDecontXMarkerPercentage(counts, z = res$z, markers = s$markers)
+    ggplot2::ggplot_build(p)$plot$data$percent
+  }
+  before <- percent(s$observedCounts)
+  after <- percent(res$decontXcounts)
+  expect_true(all(after <= before))
+  expect_true(any(after < before))
+
+  b <- ggplot2::ggplot_build(
+    plotDecontXMarkerExpression(s$observedCounts, s$markers[[1]], z = s$z)
   )
+  expect_setequal(as.character(b$plot$data$Marker), s$markers[[1]])
+
+  # With background, eta is the background's gene profile
+  bg <- s$observedCounts[, 1:5]
+  colnames(bg) <- paste(colnames(bg), "_", sep = "")
+  resBg <- decontX(s$observedCounts, background = bg, verbose = FALSE)
   expect_equal(dim(resBg$decontXcounts), dim(s$observedCounts))
   expect_true(all(resBg$contamination >= 0 & resBg$contamination <= 1))
+  profile <- Matrix::rowSums(bg) + 1e-20
+  profile <- profile / sum(profile)
+  eta <- resBg$estimates$all_cells$eta
+  expect_equal(eta, matrix(profile, nrow(eta), ncol(eta)), ignore_attr = TRUE)
 })
 
 test_that("marker plots build for matrix and SCE input without warnings", {
@@ -290,12 +317,12 @@ test_that("marker plots build for matrix and SCE input without warnings", {
   expect_no_warning(ggplot2::ggplot_build(plotDecontXContamination(sce)))
 })
 
-test_that(desc = "Testing DecontX on SCE", {
+test_that("decontX on an SCE stores results the plots read", {
   s <- simulateContamination()
   sce <- SingleCellExperiment::SingleCellExperiment(
     list(counts = s$observedCounts)
   )
-  sce <- decontX(sce)
+  sce <- decontX(sce, verbose = FALSE)
   expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
   expect_equal(dim(decontXcounts(sce)), dim(s$observedCounts))
   contam <- sce$decontX_contamination
@@ -307,54 +334,64 @@ test_that(desc = "Testing DecontX on SCE", {
     c(ncol(sce), 2)
   )
 
-  p <- plotDecontXContamination(sce)
-  expect_s3_class(p, "ggplot")
-  p <- plotDecontXMarkerPercentage(sce,
-    z = s$z,
-    markers = s$markers,
-    assayName = "decontXcounts"
-  )
-  expect_s3_class(p, "ggplot")
-  p <- plotDecontXMarkerExpression(sce, s$markers[[1]])
-  expect_s3_class(p, "ggplot")
-  newz <- paste0("X", s$z)
-  sce$newz2 <- newz
-  p <- plotDecontXMarkerPercentage(sce,
-    z = "newz2",
-    markers = s$markers,
-    assayName = "decontXcounts"
-  )
-  expect_s3_class(p, "ggplot")
-  sce <- decontX(sce, estimateDelta = FALSE)
+  b <- ggplot2::ggplot_build(plotDecontXContamination(sce))
+  expect_equal(b$plot$data$Contamination, unname(contam))
 
-  # test with background input
+  # z as a colData column gives the same percentages as the labels
+  percent <- function(z) {
+    p <- plotDecontXMarkerPercentage(sce,
+      z = z, markers = s$markers,
+      assayName = "decontXcounts"
+    )
+    ggplot2::ggplot_build(p)$plot$data$percent
+  }
+  sce$newz2 <- paste0("X", s$z)
+  expect_identical(percent("newz2"), percent(s$z))
+
+  # The marker plot defaults to the decontX clusters
+  b <- ggplot2::ggplot_build(plotDecontXMarkerExpression(sce, s$markers[[1]]))
+  expect_setequal(
+    as.character(b$layout$layout$Cell_Type),
+    levels(sce$decontX_clusters)
+  )
+
+  # With estimateDelta = FALSE, delta stays at its starting value
+  sce <- decontX(sce, estimateDelta = FALSE, verbose = FALSE)
+  delta <- S4Vectors::metadata(sce)$decontX$estimates$all_cells$delta
+  expect_equal(delta, c(10, 10), ignore_attr = TRUE)
+
+  # With background, eta is the background's gene profile
   bg <- sce[, 1:5]
   colnames(bg) <- paste(colnames(bg), "_", sep = "")
-  sce <- decontX(sce, background = bg)
-  expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
+  sce <- decontX(sce, background = bg, verbose = FALSE)
+  profile <- Matrix::rowSums(SummarizedExperiment::assay(bg, "counts"))
+  profile <- (profile + 1e-20) / sum(profile + 1e-20)
+  eta <- S4Vectors::metadata(sce)$decontX$estimates$all_cells$eta
+  expect_equal(eta, matrix(profile, nrow(eta), ncol(eta)), ignore_attr = TRUE)
 })
 
 
 ## .decontXoneBatch
 test_that(desc = "Testing .decontXoneBatch", {
+  deconSim <- simulateDeconSim()
   expect_error(
     decontX(
       x = deconSim$observedCounts,
-      z = deconSim$z, delta = c(1, -1)
+      z = deconSim$z, delta = c(1, -1), verbose = FALSE
     ),
     regexp = "'delta' needs to be a numeric vector of length 2"
   )
   expect_error(
     decontX(
       x = deconSim$observedCounts,
-      z = deconSim$z, delta = c(1, 1, 1)
+      z = deconSim$z, delta = c(1, 1, 1), verbose = FALSE
     ),
     regexp = "'delta' needs to be a numeric vector of length 2"
   )
   expect_error(
     decontX(
       x = deconSim$observedCounts,
-      z = c(deconSim$z, 1)
+      z = c(deconSim$z, 1), verbose = FALSE
     ),
     paste0(
       "'z' must be of the same length as the number of cells in the",
