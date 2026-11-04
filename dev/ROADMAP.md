@@ -20,73 +20,28 @@ pushed, one at a time.
   ExperimentSubset issues filed: #2-#5, #57-#59. The work below was
   opened as #65-#84 (2026-10-29); replies posted on #40, #43, #44, #46,
   #39 and #56, ADR-0004 to ADR-0007 drafted as Proposed.
-- The `expect_equivalent()` test warning (#55, A3-07), fixed by an
-  outside contribution, #64.
+- **Phase I-a to I-c (1.11.3 to 1.11.13), 2026-10-30 to 2026-11-04,
+  on a devel (Bioc 3.24) library set through an untracked `.Renviron`:**
+  - Stopgap: the decontX vignette's Seurat section (#65, PR #86; A7-02).
+  - I-a: stored reference outputs and `dev/compare-commits.R` (#66,
+    PR #87; A3-01 and the pins).
+  - I-b: input validation (#67, PR #88); `background` and
+    `ambient_counts` matched by row name, `bgBatch` checked (#68,
+    PR #89); one cluster with background, k-means on PCs (#69, PR #90);
+    user cluster labels and marker plots (#70, PR #91); small batches
+    and input classes (#71, PR #92); decontPro inputs (#72, PR #93);
+    plots (#73, PR #94); cosmetic (#74, PR #95). Follow-up: #96.
+  - I-c: coverage 92.5% overall and 98.4% on `R/`, every exported
+    method and `stop()` path tested, a warning-free and quiet suite
+    (#75, PR #97). The `expect_equivalent()` warning (#55, A3-07) was
+    fixed by an outside contribution, #64.
+  - #43 closed once #68 and #69 merged.
 - From the 2026-09 waves: green devel CI, celda removed from Imports
   (ADR-0003 Stage 1), the numeric-`batch` fix, the defunct Seurat call,
   the #46 memory fix (1.11.1), metadata and CITATION, lint backlog
   cleared.
 
-## Before Phase I
-
-- Set up a devel (Bioc 3.24) library through an untracked repo-root
-  `.Renviron` (`R_LIBS_USER`), not renv, and check that `.gitignore` and
-  `.Rbuildignore` cover it.
-
 ## Phase I: fixes, coverage, quality, speed
-
-### Stopgap
-
-- Fix the decontX vignette's Seurat section (A7-02; #65). Small, and it fails
-  for users today.
-
-### I-a: regression net (before any fix), #66
-
-- Committed RDS reference outputs in `tests/testthat/fixtures/` on
-  `simulateContamination(C = 100, G = 60, K = 3, seed = 1)`, compared at
-  1e-10 on the user-`z` paths; a `dev/` script that installs two commits
-  and compares them with `identical()` (no-`z`, legacyInit, decontPro)
-  (A3-01).
-- Pin current behaviour the fixes will touch, following the pinning plan
-  in the drafts: distinct batched fixtures (A3-05), patterns on bare
-  `expect_error()` (A3-06), the `ambient_counts` path with a mocked
-  `.call_stan_vb` (A3-10), sparse and DelayedArray inputs (A3-19), and
-  `simulateContamination()` before the `rowsum()` swap (A3-17).
-
-### I-b: correctness fixes
-
-One issue per PR, each starting with a failing test. P1 first.
-- Validate `z`, `batch` and scalar parameters, with `assayName` checked
-  against `assayNames(x)` (#67; A1-01, A1-10, A1-17, A1-18, A1-19, A6-01,
-  A5-07); fix the misleading docs and message about `z` (A7-13, A1-16).
-- Match `background` and `ambient_counts` rows by name, and require a
-  matching `bgBatch` (#68; A1-02, A1-03, A1-12; #43).
-- Allow a single cluster per batch that has background, and run the
-  k-means fallback on PCA components (#69; A8-01, A8-02; #43). NEWS.
-- Return user cluster labels as a factor, together with the marker-plot
-  fixes (#70; A1-09, A1-07, A1-20, A1-22, D2-08). NEWS.
-- Crashes and input classes: one-cell batches, a DelayedMatrix over a
-  dense seed, dgR/dgT and data.frame inputs, the `decontXInitialize`
-  guard (#71; A1-08, A1-06, A1-14, A1-15, D2-02).
-- decontPro: join Seurat split layers before reading (minimal fix;
-  Phase II rebuilds the method), validate `cell_type`, report Stan
-  failures clearly, error on unknown arguments (#72; A1-04, A1-11, A1-13).
-- Plots: one shared bandwidth in `plotDensity()`, the `file` argument,
-  `groupClusters` labels after batched runs, positional UMAP columns;
-  earlier runs' UMAPs are kept and documented (#73; A1-24, A1-25,
-  A7-17, A6-04).
-- Cosmetic (#74; A1-21, A1-26).
-
-### I-c: coverage, #75
-
-- Reach >= 85% on `R/` and >= 80% overall on codecov's denominator, with
-  every exported method and `stop()` path tested (A3-02). Add
-  `.covrignore` for generated Stan code (A3-03).
-- Replace hollow tests (A3-04); fix the test warnings (A3-07, A3-08,
-  #55); test the C++ guards directly (A3-18); merge Stan fits and add a
-  Stan-free output test (A3-09); a `.hasScater()` helper (A3-14); quiet
-  test output (A3-15); snapshots for message wording, withr for state
-  (A3-16); realistic `maxIter` (A3-20). No fast/slow split.
 
 ### I-d: core refactor (ADR-0004 first), #76-#78
 
