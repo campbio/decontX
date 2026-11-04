@@ -141,8 +141,8 @@
 #' \code{estimates} has no prefix.}
 #' \item{\code{runParams}:}{List of arguments used in the function call.
 #' Its \code{batch} and \code{batchBackground} are the batch of each cell
-#' and of each background droplet used for the run; \code{batchBackground}
-#' is \code{NULL} without \code{background}.}
+#' and of each background droplet used for the run. It always has
+#' \code{batchBackground}, which is \code{NULL} without \code{background}.}
 #' \item{\code{batch}:}{Character vector of the batch of each cell used for
 #' the run, \code{"all_cells"} for every cell when \code{batch} is NULL.}
 #' }

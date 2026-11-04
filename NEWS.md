@@ -2,7 +2,8 @@
 
 * `decontX()` on a matrix also returns `batch`, the batch of each cell
 used for the run (`"all_cells"` when `batch` isn't given). The
-SingleCellExperiment results don't change (#76).
+SingleCellExperiment results don't change, apart from `runParams` below
+(#76).
 * `runParams` in the `decontX()` results always has `batchBackground`,
 which is `NULL` without `background`. It used to be missing then (#96).
 
