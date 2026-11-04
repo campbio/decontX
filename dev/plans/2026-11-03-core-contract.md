@@ -186,3 +186,14 @@ today) and guards against future drift.
   keeps today's list; ADR-0005 decides what containers write and
   ADR-0006 the argument names. A decontPro params constructor waits for
   ADR-0006.
+
+## Amendments
+
+- 2026-11-04, approved by the maintainer: two existing tests call
+  internals whose signatures change, so they are ported with the same
+  inputs and assertions. "decontX still accepts integer, factor and Inf
+  arguments" calls `.decontXParams()` with the same parameter values, and
+  `.checkCellValues()` for the same `z` and `batch`. "Testing
+  .decontXoneBatch" passes `background = NULL` and
+  `params = defaultParams()`, a new helper in `helper-decontx.R` that
+  builds `.decontXParams()` from the `ANY` method's defaults.
