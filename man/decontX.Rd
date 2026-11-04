@@ -111,7 +111,8 @@ same as
 those in \code{batch}, such that each batch of cells have their
 corresponding batch of empty droplets as background, pointed by this
 parameter: every batch needs at least one droplet, after barcodes that are
-also in \code{x} are removed. Default to NULL.}
+also in \code{x} are removed. It needs \code{batch} and \code{background}.
+Default to NULL.}
 
 \item{maxIter}{Integer. Maximum iterations of the EM algorithm. Default 500.}
 

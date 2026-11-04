@@ -525,23 +525,19 @@ test_that(desc = "Testing .decontXoneBatch", {
     )
   )
   expect_error(
-    .decontXoneBatch(
-      counts = deconSim$observedCounts,
+    decontX(
+      x = deconSim$observedCounts,
       z = rep(1, ncol(
         deconSim$observedCounts
       )),
-      background = NULL,
-      params = defaultParams()
+      verbose = FALSE
     ),
     "'z' has only one cluster. decontX needs at least two clusters"
   )
   countsNA <- deconSim$observedCounts
   countsNA[1, 1] <- NA
   expect_error(
-    .decontXoneBatch(
-      counts = countsNA, z = deconSim$z,
-      background = NULL, params = defaultParams()
-    ),
+    decontX(x = countsNA, z = deconSim$z, verbose = FALSE),
     "Missing value in 'counts' matrix."
   )
 })
@@ -1617,6 +1613,23 @@ test_that("seed = NULL with legacyInit uses the session's random numbers", {
     unseeded$estimates$all_cells$UMAP,
     seeded$estimates$all_cells$UMAP
   )
+})
+
+test_that(".withSeed seeds the code only when given a seed", {
+  withr::local_seed(1)
+  expect_identical(
+    .withSeed(10, stats::runif(2)),
+    withr::with_seed(10, stats::runif(2))
+  )
+  # A seeded run leaves the caller's stream where it was
+  withr::with_seed(5, {
+    .withSeed(10, stats::runif(3))
+    afterSeeded <- stats::runif(1)
+  })
+  expect_identical(afterSeeded, withr::with_seed(5, stats::runif(1)))
+  # NULL draws from the caller's stream
+  withr::with_seed(5, unseeded <- .withSeed(NULL, stats::runif(2)))
+  expect_identical(unseeded, withr::with_seed(5, stats::runif(2)))
 })
 
 test_that("decontX writes its log to logfile, not the console", {

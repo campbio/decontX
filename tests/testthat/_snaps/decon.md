@@ -75,7 +75,7 @@
       decontX(d$sim$observedCounts, z = d$sim$z, background = d$bg, bgBatch = d$
         bgBatch, verbose = FALSE)
     Condition
-      Error in `.decontX()`:
+      Error in `.decontXBatches()`:
       ! 'bgBatch' was given without 'batch'; give both or neither.
 
 ---
