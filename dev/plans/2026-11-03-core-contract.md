@@ -1,6 +1,6 @@
 # Container-agnostic core contract for decontX (#76, PR 1 of 5)
 
-Agreed in chat, 2026-11-03; this file waits for the maintainer's review.
+Agreed in chat on 2026-11-03; approved by the maintainer on 2026-11-04.
 ADR-0004 (`dev/adr/0004-container-agnostic-core.md`), audit findings
 A4-01, A4-02, A4-04 and A4-05 (`dev/audits/2026-10-deep-review.md`), and
 #96. Version 1.11.14.

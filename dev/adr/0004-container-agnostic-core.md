@@ -2,10 +2,10 @@
 
 ## Status
 
-Proposed (2026-10-27), completed 2026-11-03 for the maintainer's
-review. The decisions below were made during the Phase 0 review
-(2026-10-18 to 2026-10-27); the points that stub left open were decided
-on 2026-11-03 (see "Decided 2026-11-03").
+Accepted (2026-11-04). Proposed as a stub on 2026-10-27. The decisions
+below were made during the Phase 0 review (2026-10-18 to 2026-10-27);
+the points that stub left open were decided on 2026-11-03 (see "Decided
+2026-11-03").
 
 ## Context
 
