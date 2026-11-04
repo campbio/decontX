@@ -1363,7 +1363,7 @@ setMethod(
 ## deprecated upstream in favor of 'scrapper'; this path keeps working
 ## for as long as scater/scuttle continue to export them.
 .decontxInitializeZLegacy <- function(counts, varGenes, seed) {
-  if (!requireNamespace("scater", quietly = TRUE)) {
+  if (!.hasScater()) {
     stop(
       "'legacyInit = TRUE' requires the 'scater' package. Install it ",
       "with BiocManager::install(\"scater\") or use the default ",
@@ -1393,6 +1393,11 @@ setMethod(
   }
 
   list(normed = SingleCellExperiment::logcounts(sce), umap = resUmap)
+}
+
+## A function of its own so tests can mock a missing scater
+.hasScater <- function() {
+  requireNamespace("scater", quietly = TRUE)
 }
 
 

@@ -1357,3 +1357,15 @@ test_that("the contamination plot reads the UMAP columns by position", {
   expect_identical(b$plot$labels$x, "DecontX_UMAP_1")
   expect_identical(b$plot$labels$y, "DecontX_UMAP_2")
 })
+
+test_that("legacyInit asks for scater when it isn't installed", {
+  d <- refData()
+  local_mocked_bindings(.hasScater = function() FALSE)
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, legacyInit = TRUE,
+      verbose = FALSE
+    ),
+    regexp = "'legacyInit = TRUE' requires the 'scater' package"
+  )
+})
