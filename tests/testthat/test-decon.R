@@ -296,6 +296,8 @@ test_that("the decontX methods have the same arguments and defaults", {
     setdiff(names(anyArgs), c(containerArgs, dataArgs)),
     names(formals(.decontXParams))
   )
+  # Every parameter reaches the list that runParams records
+  expect_identical(names(defaultParams()), names(formals(.decontXParams)))
 })
 
 test_that(".decontXUMAPs pads each batch's UMAP to every cell", {

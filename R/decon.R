@@ -142,7 +142,8 @@
 #' \item{\code{runParams}:}{List of arguments used in the function call.
 #' Its \code{batch} and \code{batchBackground} are the batch of each cell
 #' and of each background droplet used for the run. It always has
-#' \code{batchBackground}, which is \code{NULL} without \code{background}.}
+#' \code{batchBackground}, which is \code{NULL} when \code{background} and
+#' \code{bgBatch} are both NULL.}
 #' \item{\code{batch}:}{Character vector of the batch of each cell used for
 #' the run, \code{"all_cells"} for every cell when \code{batch} is NULL.}
 #' }
@@ -704,8 +705,7 @@ setMethod(
 
 
 # This function updates decontamination for one batch
-# seed passed to this function is to be furhter passed to
-# function .decontxInitializeZ()
+# params$seed is passed on to .decontxInitializeZ()
 #
 # Do not remove the @importFrom below: fit_dirichlet is fetched from the
 # MCMCprecision namespace by the C++ EM step (src/DecontX.cpp, via
@@ -954,7 +954,8 @@ setMethod(
 
 ## The UMAPs to store with one row per cell, named as the SCE reducedDims:
 ## a single batch's UMAP as it is, or each batch's padded with NA for the
-## cells of the other batches
+## cells of the other batches. The single UMAP keeps its DecontX_UMAP_1/2
+## columns and the padded ones get UMAP_1/2, as decontX always stored them
 .decontXUMAPs <- function(result, cellNames) {
   batches <- names(result$estimates)
   if (length(batches) == 1) {

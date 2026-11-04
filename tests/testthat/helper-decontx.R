@@ -28,13 +28,11 @@ quietStan <- function(expr) {
   res
 }
 
-# The arguments of a decontX() method, with their defaults. A method with
-# more arguments than the generic keeps them in an inner .local function
+# The arguments of a decontX() method, with their defaults, including those
+# the methods package moves into an inner .local function
 decontXMethodFormals <- function(signature) {
   method <- methods::getMethod("decontX", signature)
-  local <- body(method)[[2]]
-  stopifnot(identical(local[[2]], as.name(".local")))
-  formals(eval(local[[3]]))
+  formals(methods::unRematchDefinition(method))
 }
 
 # The decontX parameters with the ANY method's defaults, for tests that

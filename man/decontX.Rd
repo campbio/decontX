@@ -205,7 +205,8 @@ batch's first cell, then by label. The \code{z} in each batch's
 \item{\code{runParams}:}{List of arguments used in the function call.
 Its \code{batch} and \code{batchBackground} are the batch of each cell
 and of each background droplet used for the run. It always has
-\code{batchBackground}, which is \code{NULL} without \code{background}.}
+\code{batchBackground}, which is \code{NULL} when \code{background} and
+\code{bgBatch} are both NULL.}
 \item{\code{batch}:}{Character vector of the batch of each cell used for
 the run, \code{"all_cells"} for every cell when \code{batch} is NULL.}
 }
