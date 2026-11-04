@@ -1576,3 +1576,73 @@ test_that("the marker expression plot can log1p and add dots", {
     as.character(unique(d$sim$z))
   )
 })
+
+test_that("internal checks stop on input no exported function passes", {
+  # The exported functions check these first; the internal checks guard
+  # other callers
+  expect_error(.logMessages("text", logfile = 1),
+    regexp = "The log file parameter needs to be a single character string"
+  )
+  expect_error(.checkCountsDecon(1:10),
+    regexp = "At least 2 genes need to have non-zero expressions"
+  )
+  expect_error(.processCellLabels(1:3, numCells = 4),
+    regexp = "'z' must be of the same length as the number of cells"
+  )
+})
+
+test_that("the C++ EM functions check the shapes of their arguments", {
+  counts <- methods::as(matrix(as.numeric(1:12), 4, 3), "CsparseMatrix")
+  valid <- list(
+    counts = counts,
+    counts_colsums = Matrix::colSums(counts),
+    theta = rep(0.5, 3),
+    estimate_eta = TRUE,
+    eta = matrix(0.25, 4, 2),
+    phi = matrix(0.25, 4, 2),
+    z = c(1L, 2L, 1L),
+    estimate_delta = FALSE,
+    delta = c(10, 10),
+    pseudocount = 1e-20
+  )
+  # Each change breaks one check; the checks run in this order
+  changes <- list(
+    theta = list(theta = rep(0.5, 2), regexp = "Length of 'theta'"),
+    z = list(z = c(1L, 2L), regexp = "Length of 'z'"),
+    colsums = list(
+      counts_colsums = c(1, 2),
+      regexp = "Length of 'counts_colsums'"
+    ),
+    phiRows = list(phi = matrix(0.25, 3, 2), regexp = "rows in 'phi'"),
+    etaRows = list(eta = matrix(0.25, 3, 2), regexp = "rows in 'eta'"),
+    etaCols = list(
+      eta = matrix(0.25, 4, 3),
+      regexp = "columns in 'eta' must be equal to the number of columns"
+    ),
+    zRange = list(
+      z = c(1L, 3L, 1L),
+      regexp = "between 1 and the number of columns in eta and phi"
+    ),
+    delta = list(delta = c(10, -1), regexp = "'delta' must be a numeric")
+  )
+  checks <- list(
+    decontXEM = names(changes),
+    decontXLogLik = c("theta", "z", "phiRows", "etaRows", "etaCols", "zRange"),
+    calculateNativeMatrix = c(
+      "theta", "z", "phiRows", "etaRows", "etaCols", "zRange"
+    ),
+    decontXInitialize = c("theta", "z")
+  )
+  for (fun in names(checks)) {
+    f <- get(fun)
+    for (check in checks[[fun]]) {
+      change <- changes[[check]]
+      args <- utils::modifyList(valid, change[names(change) != "regexp"])
+      expect_error(do.call(f, args[names(formals(f))]),
+        regexp = change$regexp, info = paste(fun, check)
+      )
+    }
+    # The valid arguments pass every check
+    expect_no_error(do.call(f, valid[names(formals(f))]))
+  }
+})
