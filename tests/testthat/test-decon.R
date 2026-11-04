@@ -1369,3 +1369,210 @@ test_that("legacyInit asks for scater when it isn't installed", {
     regexp = "'legacyInit = TRUE' requires the 'scater' package"
   )
 })
+
+test_that("seed = NULL uses the session's random numbers", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  seeded <- decontX(x, z = d$sim$z, seed = 7, verbose = FALSE)
+  unseeded <- withr::with_seed(7,
+    decontX(x, z = d$sim$z, seed = NULL, verbose = FALSE)
+  )
+  expect_identical(unseeded$contamination, seeded$contamination)
+  expect_identical(unseeded$decontXcounts, seeded$decontXcounts)
+
+  expect_identical(
+    withr::with_seed(3, simulateContamination(C = 50, G = 40, seed = NULL)),
+    simulateContamination(C = 50, G = 40, seed = 3)
+  )
+})
+
+test_that("seed = NULL with legacyInit uses the session's random numbers", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  # The legacy path's upstream deprecation warnings are suppressed
+  seeded <- suppressWarnings(
+    decontX(x, z = d$sim$z, seed = 7, legacyInit = TRUE, verbose = FALSE)
+  )
+  unseeded <- suppressWarnings(withr::with_seed(7,
+    decontX(x, z = d$sim$z, seed = NULL, legacyInit = TRUE, verbose = FALSE)
+  ))
+  expect_equal(
+    unseeded$estimates$all_cells$UMAP,
+    seeded$estimates$all_cells$UMAP
+  )
+})
+
+test_that("decontX writes its log to logfile, not the console", {
+  d <- refData()
+  logfile <- withr::local_tempfile(fileext = ".log")
+  expect_silent(decontX(d$sim$observedCounts, z = d$sim$z, logfile = logfile))
+  log <- readLines(logfile)
+  expect_match(log, "Starting DecontX", all = FALSE)
+  expect_match(log, "Estimating contamination", all = FALSE)
+  expect_match(log, "Completed DecontX", all = FALSE)
+})
+
+test_that("decontX warns when the background has no column names", {
+  d <- refData()
+  bg <- d$bg
+  colnames(bg) <- NULL
+  expect_warning(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, background = bg,
+      verbose = FALSE
+    ),
+    regexp = "No column names were found for the 'background' matrix"
+  )
+})
+
+test_that("decontX says when an SCE has no named assays", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(d$sim$observedCounts)
+  )
+  expect_error(decontX(sce, z = d$sim$z, verbose = FALSE),
+    regexp = "is not an assay of 'x'\\. It has no named assays\\."
+  )
+})
+
+test_that("varGenes = NULL uses 5000 genes", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  umap <- function(varGenes) {
+    res <- decontX(x, z = d$sim$z, varGenes = varGenes, verbose = FALSE)
+    res$estimates$all_cells$UMAP
+  }
+  expect_identical(umap(NULL), umap(5000))
+  # The fixture has fewer than 2000 genes, so check the number itself
+  expect_identical(.processvarGenes(NULL), 5000)
+})
+
+test_that("simulateContamination uses one delta value for both shapes", {
+  expect_identical(
+    simulateContamination(C = 50, G = 40, delta = 2),
+    simulateContamination(C = 50, G = 40, delta = c(2, 2))
+  )
+})
+
+test_that("retrieveFeatureIndex searches rowData and data.frame columns", {
+  counts <- matrix(1:12, nrow = 4, dimnames = list(paste0("g", 1:4), NULL))
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = counts))
+  SummarizedExperiment::rowData(sce)$symbol <- c("A", "B", "C", "D")
+  expect_identical(
+    retrieveFeatureIndex(c("C", "A"), sce, by = "symbol"),
+    c(3L, 1L)
+  )
+  expect_error(retrieveFeatureIndex("A", sce, by = "id"),
+    regexp = "'by' is not a column in 'rowData\\(x\\)'\\."
+  )
+
+  df <- data.frame(symbol = c("A", "B", "C", "D"))
+  expect_identical(retrieveFeatureIndex(c("D", "B"), df, by = "symbol"),
+    c(4L, 2L)
+  )
+  expect_error(retrieveFeatureIndex("A", df, by = "id"),
+    regexp = "'by' is not a column in 'x'\\."
+  )
+})
+
+test_that("retrieveFeatureIndex reports features it can't place", {
+  counts <- matrix(1:16,
+    nrow = 4,
+    dimnames = list(c("CD3D", "CD3E", "CD4", "CD8A"), NULL)
+  )
+  expect_error(retrieveFeatureIndex("CD4", unname(counts)),
+    regexp = "'rownames' of 'x' are 'NULL'"
+  )
+
+  # A partial match with several rows keeps the first
+  expect_warning(
+    res <- retrieveFeatureIndex(c("CD3", "CD4"), counts, exactMatch = FALSE),
+    regexp = "Feature 'CD3' matched multiple items in 'rownames': CD3D,CD3E"
+  )
+  expect_identical(res, c(1L, 3L))
+
+  expect_error(retrieveFeatureIndex(c("X", "Y"), counts),
+    regexp = "None of the provided features .* try setting 'exactMatch"
+  )
+  expect_error(retrieveFeatureIndex(c("X", "Y"), counts, exactMatch = FALSE),
+    regexp = "None of the provided features .* make sure 'by' is set"
+  )
+
+  # removeNA drops the features that weren't found
+  expect_warning(
+    res <- retrieveFeatureIndex(c("CD4", "X"), counts, removeNA = TRUE),
+    regexp = "not present in 'x': X"
+  )
+  expect_identical(res, 3L)
+})
+
+test_that("plotDecontXContamination plots the batch asked for", {
+  d <- refData()
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, batch = d$batch,
+    verbose = FALSE
+  )
+  b <- ggplot2::ggplot_build(plotDecontXContamination(res, batch = "B"))
+  expect_equal(b$data[[1]]$x, unname(res$estimates$B$UMAP[, 1]))
+  expect_equal(
+    b$plot$data$Contamination,
+    unname(res$estimates$B$contamination)
+  )
+
+  expect_error(plotDecontXContamination(res, batch = "C"),
+    regexp = "'C' is not one of the batches in 'x'\\. .* plotting: 'A,B'"
+  )
+  expect_error(plotDecontXContamination(list()),
+    regexp = "decontX estimates not found"
+  )
+})
+
+test_that("the marker plots check markers, groupClusters and z", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  z <- d$sim$z
+  markers <- d$sim$markers
+  expect_error(plotDecontXMarkerPercentage(x, unlist(markers), z = z),
+    regexp = "'markers' needs to be a named list\\."
+  )
+  expect_error(
+    plotDecontXMarkerPercentage(x, markers, list(1, 2), z = z),
+    regexp = "'groupClusters' needs to be a named list\\."
+  )
+  expect_error(
+    plotDecontXMarkerPercentage(x, markers, list(A = 1:2, B = 2), z = z),
+    regexp = "duplicate values for the following clusters: 2\\."
+  )
+  expect_error(plotDecontXMarkerPercentage(x, markers, z = z[-1]),
+    regexp = "the length of 'z' needs to\\s+be the same as the number"
+  )
+
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
+  expect_error(plotDecontXMarkerExpression(sce, markers[[1]]),
+    regexp = "'decontX_clusters' not found in 'colData\\(x\\)'"
+  )
+  expect_error(plotDecontXMarkerExpression(sce, markers[[1]], z = "cluster"),
+    regexp = "'cluster' not found in 'colData\\(x\\)'\\."
+  )
+})
+
+test_that("the marker expression plot can log1p and add dots", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  markers <- d$sim$markers[[1]]
+  p <- plotDecontXMarkerExpression(x, markers,
+    z = d$sim$z,
+    log1p = TRUE, plotDots = TRUE
+  )
+  b <- ggplot2::ggplot_build(p)
+  expect_equal(sort(b$plot$data$Expression), sort(log1p(x[markers, ])))
+  expect_identical(b$plot$labels$y, "Expression (log1p)")
+  expect_s3_class(b$plot$layers[[2]]$position, "PositionJitter")
+
+  # Without groups, each cluster is its own group
+  expect_setequal(
+    as.character(b$layout$layout$Cell_Type),
+    as.character(unique(d$sim$z))
+  )
+})

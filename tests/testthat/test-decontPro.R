@@ -497,3 +497,24 @@ test_that("plotDensity and plotBoxByCluster save to the file given", {
     expect_true(file.exists(paste0(path, ".pdf")))
   }
 })
+
+test_that("plotBoxByCluster returns a box plot per feature", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  decontaminated <- counts - 1
+  p <- plotBoxByCluster(counts, decontaminated, c(1, 2, 1), c("CD4", "CD3"))
+  expect_s3_class(p, "patchwork")
+  expect_length(p, 2)
+  cd3 <- p[[2]]
+  expect_identical(cd3$labels$title, "CD3 counts by cell clusters")
+  expect_equal(
+    cd3$data$value,
+    unname(c(counts["CD3", ], decontaminated["CD3", ]))
+  )
+  expect_identical(
+    as.character(cd3$data$variable),
+    rep(c("con", "decon"), each = 3)
+  )
+  expect_identical(cd3$data$cell_type, factor(c(1, 2, 1, 1, 2, 1)))
+})
