@@ -601,6 +601,13 @@ test_that("decontX writes the same log text", {
     maxIter = 3, iterLogLik = 1, logfile = logfile
   )
   expect_snapshot(writeLines(maskLog(readLines(logfile))))
+
+  # Without z, decontX also estimates the cell types
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(d$sim$observedCounts,
+    maxIter = 3, iterLogLik = 1, logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
 })
 
 test_that("decontX writes the same messages to the console", {
@@ -1630,6 +1637,15 @@ test_that(".withSeed seeds the code only when given a seed", {
   # NULL draws from the caller's stream
   withr::with_seed(5, unseeded <- .withSeed(NULL, stats::runif(2)))
   expect_identical(unseeded, withr::with_seed(5, stats::runif(2)))
+})
+
+test_that("decontX logs to standard output when logfile is empty", {
+  # As cat(file = "") did
+  d <- refData()
+  expect_output(
+    decontX(d$sim$observedCounts, z = d$sim$z, maxIter = 1, logfile = ""),
+    "Starting DecontX"
+  )
 })
 
 test_that("decontX writes its log to logfile, not the console", {

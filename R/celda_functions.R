@@ -11,12 +11,11 @@
           " string."
         )
       }
-      # The same text cat() wrote: each piece ends with " \n" (with the
-      # default sep), and pieces are joined by a space
+      # The text cat() wrote: each piece ends with " \n" (with the default
+      # sep), and pieces are joined by a space. write() adds the last
+      # newline, and treats logfile as cat() does ("" is the console)
       text <- paste(paste(..., "\n", sep = sep), collapse = " ")
-      con <- file(logfile, open = if (isTRUE(append)) "a" else "w")
-      on.exit(close(con))
-      writeLines(text, con, sep = "")
+      write(sub("\n$", "", text), file = logfile, append = append)
     } else {
       m <- paste(..., sep = sep)
       message(m)

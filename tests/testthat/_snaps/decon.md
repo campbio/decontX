@@ -49,6 +49,26 @@
       Completed DecontX. Total time: <time> |
       -------------------------------------------------- |
 
+---
+
+    Code
+      writeLines(maskLog(readLines(logfile)))
+    Output
+      -------------------------------------------------- |
+      Starting DecontX |
+      -------------------------------------------------- |
+      <date> .. Analyzing all cells |
+      <date> .... Converting to sparse matrix |
+      <date> .... Generating UMAP and estimating cell types |
+      <date> .... Estimating contamination |
+      <date> ...... Completed iteration: <n> | converge: <x> |
+      <date> ...... Completed iteration: <n> | converge: <x> |
+      <date> ...... Completed iteration: <n> | converge: <x> |
+      <date> .. Calculating final decontaminated matrix |
+      -------------------------------------------------- |
+      Completed DecontX. Total time: <time> |
+      -------------------------------------------------- |
+
 # decontX writes the same messages to the console
 
     Code

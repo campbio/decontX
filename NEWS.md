@@ -1,7 +1,8 @@
 # decontX 1.11.15
 
 * `decontX()` stops when `bgBatch` is given with `batch` but without
-`background`. It used to ignore `bgBatch` then (#76).
+`background`. It used to ignore `bgBatch` then, unless its values didn't
+match `batch` (#76).
 
 # decontX 1.11.14
 

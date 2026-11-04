@@ -176,15 +176,26 @@ Made while implementing, on 2026-11-04:
   log-likelihood step, with its log line, to `.emLogLik()`. The batch
   loop moved from `.decontX()` into `.runBatches()`, which gathers the
   per-cell results. This keeps every core function at 50 lines or fewer.
-- `.logMessages()` writes with `writeLines()` to a `file()` connection
-  instead of `write()`. `write()` always ends with one newline, so it
-  matches `cat()` only for single strings; joining the pieces as `cat()`
-  did keeps the text the same for any input.
+- `.logMessages()` builds the text exactly as `cat()` joined it (pieces
+  ending in `" \n"`, joined by a space), drops the last newline, and
+  hands it to `write()`, which adds it back. `paste(..., "", sep = sep)`
+  alone would match `cat()` only for single strings. `write()` treats
+  `logfile` as `cat()` does, so `logfile = ""` still logs to standard
+  output; a new test pins that.
 - The `.withSeed()` test can't pass on devel, where the helper doesn't
   exist; it was written with the helper.
 - The snapshot of the "'bgBatch' was given without 'batch'" error (from
   #74) now shows "Error in `.decontXBatches()`" instead of
   "Error in `.decontX()`": R names the function that calls `stop()`. The
-  message doesn't change.
+  message doesn't change. The other batch errors, now raised in
+  `.decontXBatches()`, show that name in their header too.
+- The new `bgBatch` error also comes before the two `bgBatch` value
+  errors ("values that aren't in 'batch'", "Every batch needs droplets")
+  when there is no background; NEWS says `bgBatch` used to be ignored
+  unless its values didn't match `batch`.
+- A third log snapshot, without `z`, pins the "estimating cell types"
+  line. It was recorded on the branch; that line's text is unchanged.
+- `.logBanner()` reads the total time after writing the first line of
+  dashes, microseconds later than before; only the logged time moves.
 - `@importFrom withr with_seed` is removed with its last unqualified use;
   `.withSeed()` calls `withr::with_seed()`.
