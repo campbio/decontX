@@ -391,12 +391,7 @@ setMethod(
 ## The container-agnostic core: counts, labels, background and the
 ## parameters from .decontXParams() in, a plain list of results out. Every
 ## method calls it, passing every argument
-.decontX <- function(counts,
-                     z,
-                     batch,
-                     background,
-                     bgBatch,
-                     params) {
+.decontX <- function(counts, z, batch, background, bgBatch, params) {
   .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
@@ -404,12 +399,8 @@ setMethod(
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
     # Also update bgBatch when background is updated and bgBatch is not null
-    temp <- .checkBackground(
-      x = counts,
-      background = background,
-      bgBatch = bgBatch,
-      logfile = params$logfile,
-      verbose = params$verbose
+    temp <- .checkBackground(counts, background, bgBatch,
+      logfile = params$logfile, verbose = params$verbose
     )
     background <- temp$background
     bgBatch <- temp$bgBatch
@@ -418,33 +409,24 @@ setMethod(
 
   startTime <- Sys.time()
   .logBanner("Starting DecontX", params = params)
-
   if (!is.null(background)) {
-    background <- .matchBackgroundRows(
-      counts = counts,
-      background = background,
-      logfile = params$logfile,
-      verbose = params$verbose
+    background <- .matchBackgroundRows(counts, background,
+      logfile = params$logfile, verbose = params$verbose
     )
   }
 
   batches <- .decontXBatches(batch, bgBatch, background, ncol(counts))
-  ## The parameters as given, after the batches used for the run
-  runParams <- c(
-    list(
-      z = z,
-      batch = batches$batch,
-      batchBackground = batches$bgBatch
-    ),
-    params
-  )
   # Checked for every batch before any of them runs
   .checkBatchSizes(batches$batch, batches$given, params$legacyInit)
   .checkBatchClusters(z, batches$batch, batches$given, background)
 
   res <- .runBatches(counts, z, background, batches, params)
   returnResult <- list(
-    "runParams" = runParams,
+    ## The batches used for the run, then the parameters as given
+    "runParams" = c(
+      list(z = z, batch = batches$batch, batchBackground = batches$bgBatch),
+      params
+    ),
     "estimates" = res$estimates,
     "decontXcounts" = .asInputClass(res$decontXcounts, counts, params),
     "contamination" = res$contamination,
@@ -821,10 +803,10 @@ setMethod(
   delta <- params$delta
   ll <- c()
   iter <- 1L
-  theta.previous <- theta
   converged <- FALSE
   counts.colsums <- Matrix::colSums(counts)
   while (iter <= params$maxIter && !isTRUE(converged)) {
+    theta.previous <- theta
     nextDecon <- decontXEM(
       counts = counts,
       counts_colsums = counts.colsums,
@@ -846,22 +828,11 @@ setMethod(
     if (max.divergence < params$convergence) {
       converged <- TRUE
     }
-    theta.previous <- theta
 
     ## Calculate likelihood and check for convergence
     if (iter %% params$iterLogLik == 0 || converged) {
-      ll <- c(ll, decontXLogLik(
-        counts = counts,
-        z = z,
-        phi = phi,
-        eta = eta,
-        theta = theta,
-        pseudocount = .decontXPseudocount
-      ))
-      .logDecontX(date(), "...... Completed iteration:", iter,
-        "| converge:", signif(max.divergence, 4),
-        params = params
-      )
+      ll <- c(ll, .emLogLik(counts, z, phi, eta, theta, iter, max.divergence,
+                            params))
     }
     iter <- iter + 1L
   }
@@ -869,14 +840,27 @@ setMethod(
   contamination <- nextDecon$contamination
   names(contamination) <- colnames(counts)
   list(
-    logLikelihood = ll,
-    contamination = contamination,
-    theta = theta,
-    delta = delta,
+    logLikelihood = ll, contamination = contamination, theta = theta,
+    delta = delta, phi = phi, eta = eta, iteration = iter - 1L
+  )
+}
+
+## The log-likelihood after an EM update, logged with the iteration and the
+## largest change in theta
+.emLogLik <- function(counts, z, phi, eta, theta, iter, divergence, params) {
+  ll <- decontXLogLik(
+    counts = counts,
+    z = z,
     phi = phi,
     eta = eta,
-    iteration = iter - 1L
+    theta = theta,
+    pseudocount = .decontXPseudocount
   )
+  .logDecontX(date(), "...... Completed iteration:", iter,
+    "| converge:", signif(divergence, 4),
+    params = params
+  )
+  ll
 }
 
 
