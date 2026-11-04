@@ -14,13 +14,22 @@ simulate_oracle <- function(seed = 12345,
   simulateContamination(C = C, G = G, K = K, delta = delta, seed = seed)
 }
 
-# The 10-cluster simulation shared by the older tests in test-decon.R
-simulateDeconSim <- function() {
-  simulateContamination(K = 10, delta = c(1, 5))
+# Runs a real decontPro Stan fit without printing rstan's progress. If the
+# fit fails, Stan's output is printed, since it holds the reason
+quietStan <- function(expr) {
+  output <- withr::local_tempfile()
+  withr::with_output_sink(output, {
+    res <- tryCatch(expr, error = function(e) e)
+  })
+  if (inherits(res, "error")) {
+    writeLines(readLines(output))
+    stop(res)
+  }
+  res
 }
 
-# Runs a real decontPro Stan fit without printing rstan's progress
-quietStan <- function(expr) {
-  utils::capture.output(res <- expr)
-  res
+# The gene profile decontX uses as eta when given background counts
+bgProfile <- function(background) {
+  profile <- Matrix::rowSums(background) + 1e-20
+  profile / sum(profile)
 }

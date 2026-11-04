@@ -1,3 +1,4 @@
+# Keep in sync with the generated files in codecov.yml's ignore list
 R/RcppExports.R
 R/stanmodels.R
 src/RcppExports.cpp

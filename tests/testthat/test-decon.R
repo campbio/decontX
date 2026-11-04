@@ -1,5 +1,5 @@
 test_that(desc = "decontX does not call deprecated normalization functions", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   # Regression guard for the Bioc 3.24 scuttle deprecations
   # (logNormCounts/normalizeCounts -> scrapper): decontX initialization
   # must not emit these deprecation warnings, which R CMD check flags
@@ -13,7 +13,7 @@ test_that(desc = "decontX does not call deprecated normalization functions", {
 })
 
 test_that(desc = "decontX initialization without z returns valid results", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   res <- decontX(deconSim$observedCounts, seed = 1, verbose = FALSE)
   expect_true(all(res$contamination >= 0 & res$contamination <= 1))
   expect_equal(length(res$z), ncol(deconSim$observedCounts))
@@ -45,7 +45,7 @@ test_that(desc = "decontX initialization handles very sparse data", {
 })
 
 test_that(desc = "decontX initialization handles duplicated gene names", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   # Regression test: real 10x data labeled with gene symbols often has
   # duplicated rownames, which scrapper::modelGeneVariances rejects.
   counts <- deconSim$observedCounts
@@ -58,7 +58,7 @@ test_that(desc = "decontX initialization handles duplicated gene names", {
 })
 
 test_that(desc = "decontX gives an informative error for empty cells", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   counts <- deconSim$observedCounts
   counts[, 1] <- 0
   expect_error(decontX(counts, seed = 1, maxIter = 2, verbose = FALSE),
@@ -79,15 +79,15 @@ test_that("legacyInit with z given changes only the UMAP", {
   )
   expect_identical(legacy$contamination, default$contamination)
   expect_identical(legacy$decontXcounts, default$decontXcounts)
-  expect_false(isTRUE(all.equal(
-    legacy$estimates$all_cells$UMAP,
-    default$estimates$all_cells$UMAP
-  )))
+  umap <- legacy$estimates$all_cells$UMAP
+  expect_identical(dim(umap), c(ncol(x), 2L))
+  expect_false(anyNA(umap))
+  expect_false(isTRUE(all.equal(umap, default$estimates$all_cells$UMAP)))
 })
 
 test_that("legacyInit without z estimates the clusters", {
   skip_if_not_installed("scater")
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   res <- suppressWarnings(
     decontX(deconSim$observedCounts,
       seed = 1, legacyInit = TRUE,
@@ -128,7 +128,7 @@ test_that("numeric batch labels are not used as positional indices", {
 })
 
 test_that(desc = "Testing simulateContamination", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   expect_equal(
     object = colSums(deconSim$observedCounts),
     expected = deconSim$NByC,
@@ -200,7 +200,7 @@ test_that("retrieveFeatureIndex needs 'by' to be a single string", {
 })
 
 test_that("runParams holds seed and iterLogLik", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   res <- decontX(deconSim$observedCounts,
     z = deconSim$z, maxIter = 2,
     iterLogLik = 5, seed = 3, verbose = FALSE
@@ -278,10 +278,10 @@ test_that("decontX on a matrix gives results the plots show", {
   resBg <- decontX(s$observedCounts, background = bg, verbose = FALSE)
   expect_equal(dim(resBg$decontXcounts), dim(s$observedCounts))
   expect_true(all(resBg$contamination >= 0 & resBg$contamination <= 1))
-  profile <- Matrix::rowSums(bg) + 1e-20
-  profile <- profile / sum(profile)
   eta <- resBg$estimates$all_cells$eta
-  expect_equal(eta, matrix(profile, nrow(eta), ncol(eta)), ignore_attr = TRUE)
+  expect_equal(eta, matrix(bgProfile(bg), nrow(eta), ncol(eta)),
+    ignore_attr = TRUE
+  )
 })
 
 test_that("marker plots build for matrix and SCE input without warnings", {
@@ -349,6 +349,7 @@ test_that("decontX on an SCE stores results the plots read", {
     )
     ggplot2::ggplot_build(p)$plot$data$percent
   }
+  # With K = 3, "X1".."X3" sort like 1..3, so the rows line up
   sce$newz2 <- paste0("X", s$z)
   expect_identical(percent("newz2"), percent(s$z))
 
@@ -369,8 +370,7 @@ test_that("decontX on an SCE stores results the plots read", {
   colnames(bg) <- paste(colnames(bg), "_", sep = "")
   sce <- decontX(sce, background = bg, verbose = FALSE)
   expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
-  profile <- Matrix::rowSums(SummarizedExperiment::assay(bg, "counts"))
-  profile <- (profile + 1e-20) / sum(profile + 1e-20)
+  profile <- bgProfile(SummarizedExperiment::assay(bg, "counts"))
   eta <- S4Vectors::metadata(sce)$decontX$estimates$all_cells$eta
   expect_equal(eta, matrix(profile, nrow(eta), ncol(eta)), ignore_attr = TRUE)
 })
@@ -378,7 +378,7 @@ test_that("decontX on an SCE stores results the plots read", {
 
 ## .decontXoneBatch
 test_that(desc = "Testing .decontXoneBatch", {
-  deconSim <- simulateDeconSim()
+  deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   expect_error(
     decontX(
       x = deconSim$observedCounts,
@@ -1412,7 +1412,7 @@ test_that("legacyInit asks for scater when it isn't installed", {
   )
 })
 
-test_that("seed = NULL uses the session's random numbers", {
+test_that("seed = NULL takes the EM's random start from the session", {
   d <- refData()
   x <- d$sim$observedCounts
   seeded <- decontX(x, z = d$sim$z, seed = 7, verbose = FALSE)
@@ -1480,13 +1480,11 @@ test_that("decontX says when an SCE has no named assays", {
 
 test_that("varGenes = NULL uses 5000 genes", {
   d <- refData()
-  x <- d$sim$observedCounts
-  umap <- function(varGenes) {
-    res <- decontX(x, z = d$sim$z, varGenes = varGenes, verbose = FALSE)
-    res$estimates$all_cells$UMAP
-  }
-  expect_identical(umap(NULL), umap(5000))
-  # The fixture has fewer than 2000 genes, so check the number itself
+  expect_no_error(decontX(d$sim$observedCounts,
+    z = d$sim$z, varGenes = NULL, maxIter = 2,
+    verbose = FALSE
+  ))
+  # The fixture has fewer genes than that, so check the number itself
   expect_identical(.processvarGenes(NULL), 5000)
 })
 
@@ -1683,6 +1681,8 @@ test_that("the C++ EM functions check the shapes of their arguments", {
   )
   for (fun in names(checks)) {
     f <- get(fun)
+    # A renamed argument would otherwise be passed as NULL
+    expect_true(all(names(formals(f)) %in% names(valid)), info = fun)
     for (check in checks[[fun]]) {
       change <- changes[[check]]
       args <- utils::modifyList(valid, change[names(change) != "regexp"])
