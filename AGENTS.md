@@ -76,9 +76,14 @@ upstream functions exist, so never describe it as transitional.
   (testthat edition 3).
 - Several decontPro tests run a real Stan variational fit. They use a
   10 x 8 fixture to stay under a second each; keep decontPro fixtures
-  that small.
-- Optional-package skips: the Seurat method test needs SeuratObject, and
-  the `legacyInit` test needs scater.
+  that small, and wrap real fits in `quietStan()` so rstan's progress
+  doesn't print.
+- The suite runs with no warnings and no console output: pass
+  `verbose = FALSE` to `decontX()` unless the log is under test.
+- Optional-package skips: the `legacyInit` tests need scater.
+  SeuratObject is in Imports, so the Seurat tests don't skip.
+- `make test-one FILTER=decon` runs both `test-decon.R` and
+  `test-decontPro.R` (FILTER can't anchor the pattern).
 
 ## Extra make targets
 

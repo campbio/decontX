@@ -19,6 +19,7 @@ coverage:
         threshold: 5%
         if_ci_failed: error
 
+# The generated files here are also listed in .covrignore, for make coverage
 ignore:
   - "R/RcppExports.R"
   - "R/stanmodels.R"

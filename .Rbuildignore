@@ -16,3 +16,4 @@
 ^codecov\.yml$
 ^\.worktrees$
 ^\.worktreeinclude$
+^\.covrignore$

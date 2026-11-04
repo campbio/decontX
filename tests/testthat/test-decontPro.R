@@ -1,53 +1,79 @@
-library(decontX)
-
-test_that(desc = "Testing decontPro on count matrix", {
-  # Real Stan VB end-to-end run. Kept intentionally small (10 features x
-  # 8 droplets) so the MCMC path stays fast; the decomposition-sums-to-input
-  # invariant it checks is algebraic and holds regardless of convergence.
-  set.seed(42)
-  counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8)
-
-  k <- c(1, 1, 2, 2, 3, 3, 4, 4)
-
-  out <- decontPro(counts, k, 1e-2, 1e-2)
-
-  # Sum decomposed matrices
-  matsum <- out$decontaminated_counts +
-    out$ambient_counts +
-    out$background_counts
-
-  expect_equal(matsum, counts)
-})
-
-test_that("decontPro does not keep posterior draws that scale with data", {
-  # Issue #46: rstan's vb defaults to 1000 draws of every parameter, and
-  # delta/background have one value per ADT x droplet, so 215 x 52222 data
-  # produced a ~215 GB temp CSV. decontPro only uses the approximation mean.
-  set.seed(42)
-  counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8)
-  k <- c(1, 1, 2, 2, 3, 3, 4, 4)
-
+test_that("decontPro splits the counts from one compact Stan fit", {
+  # One real Stan VB run on the 10 x 8 fixture (about a second)
+  p <- refProData()
   fit <- NULL
   process <- .process_stan_vb_out
   local_mocked_bindings(.process_stan_vb_out = function(stan_vb_output, dat) {
     fit <<- stan_vb_output
     process(stan_vb_output, dat)
   })
-  decontPro(counts, k, 1e-2, 1e-2)
+  # rstan's draw-based Pareto k warning isn't surfaced
+  expect_no_warning(
+    out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2)),
+    message = "Pareto k"
+  )
 
-  # Fewer retained values than there are ADT x droplet entries (80)
-  expect_lt(length(unlist(fit@sim$samples)), nrow(counts) * ncol(counts))
+  # The three parts add up to the counts
+  matsum <- out$decontaminated_counts +
+    out$ambient_counts +
+    out$background_counts
+  expect_equal(matsum, p$counts)
+
+  # Issue #46: rstan's vb defaults to 1000 draws of every parameter, and
+  # delta/background have one value per ADT x droplet, so 215 x 52222 data
+  # produced a ~215 GB temp CSV. decontPro only uses the approximation
+  # mean, so fewer values are kept than there are ADT x droplet entries
+  expect_lt(length(unlist(fit@sim$samples)), length(p$counts))
   # The mean estimate for every parameter is still available
   expect_equal(dim(fit@sim$est$delta), c(8, 10))
   expect_equal(dim(fit@sim$est$background), c(10, 8))
 })
 
-test_that("decontPro results match a Stan fit with default output draws", {
-  set.seed(42)
-  counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8)
-  k <- c(1, 1, 2, 2, 3, 3, 4, 4)
+test_that("decontPro splits each count by the estimated rates", {
+  # A hand-built fit for 2 ADTs x 3 droplets, without Stan. Droplet 1 has
+  # no ambient (delta 0), droplet 2 is all ambient (delta 1) and droplet 3
+  # is half and half; ADT 2 in droplet 1 has a background of 0.5
+  counts <- matrix(c(6, 12, 8, 4, 12, 16), nrow = 2)
+  dat <- list(
+    N = 2, M = 3, counts = counts, OC = c(18, 12, 28),
+    p = c(0.25, 0.75), cell_type = c(1, 2, 2),
+    cell_type_labels = c("B", "T"), delta_sd = 0.1, background_sd = 0.2
+  )
+  est <- list(
+    r = rbind(c(0.5, 0.5), c(0.75, 0.25)),
+    # Stan gives delta as droplets x ADTs
+    delta = rbind(c(0, 0), c(1, 1), c(0.5, 0.5)),
+    delta_mean = 0.3,
+    background = matrix(c(0, 0.5, 0, 0, 0, 0), nrow = 2),
+    background_mean = 0.1
+  )
+  fit <- methods::new("stanfit", sim = list(est = est))
+  out <- .process_stan_vb_out(fit, dat)
 
-  out <- decontPro(counts, k, 1e-2, 1e-2)
+  # Droplet 1: ADT 1 all native; ADT 2 native 0.25 vs background 0.5.
+  # Droplet 3: ambient p vs native r for cell type 2
+  expect_equal(out$decontaminated_counts, matrix(c(6, 4, 0, 0, 9, 4), 2))
+  expect_equal(out$ambient_counts, matrix(c(0, 0, 8, 4, 3, 12), 2))
+  expect_equal(out$background_counts, matrix(c(0, 8, 0, 0, 0, 0), 2))
+
+  params <- out$parameters
+  expect_named(params, c(
+    "delta_sd", "background_sd", "r_est", "p_est", "delta_est",
+    "delta_mean_est", "background_est", "background_mean_est"
+  ))
+  expect_identical(rownames(params$r_est), c("B", "T"))
+  expect_identical(params$delta_est, t(est$delta))
+  expect_identical(params$p_est, dat$p)
+  expect_identical(params$delta_sd, 0.1)
+  expect_identical(params$background_sd, 0.2)
+  expect_identical(params$background_est, est$background)
+  expect_identical(params$delta_mean_est, 0.3)
+  expect_identical(params$background_mean_est, 0.1)
+})
+
+test_that("decontPro results match a Stan fit with default output draws", {
+  p <- refProData()
+  out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
   # Reference: rstan's default 1000 draws. Keep seed/iter in sync with
   # .call_stan_vb() so only the draw settings differ.
   local_mocked_bindings(.call_stan_vb = function(data, initial_condition) {
@@ -56,17 +82,11 @@ test_that("decontPro results match a Stan fit with default output draws", {
       seed = 12345, iter = 50000
     )
   })
-  reference <- suppressWarnings(decontPro(counts, k, 1e-2, 1e-2))
+  reference <- suppressWarnings(
+    quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
+  )
 
   expect_identical(out, reference)
-})
-
-test_that("decontPro does not surface rstan's draw-based Pareto k warning", {
-  set.seed(42)
-  counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8)
-  k <- c(1, 1, 2, 2, 3, 3, 4, 4)
-
-  expect_no_warning(decontPro(counts, k, 1e-2, 1e-2), message = "Pareto k")
 })
 
 test_that("decontPro errors when ambient_counts feature count differs", {
@@ -108,14 +128,14 @@ test_that("decontPro SingleCellExperiment method extracts the counts assay", {
 })
 
 test_that("decontPro Seurat method uses LayerData not GetAssayData", {
-  skip_if_not_installed("SeuratObject")
-
-  set.seed(42)
+  withr::local_seed(42)
   mat <- matrix(sample(1:10, 1000, replace = TRUE), ncol = 10,
                 dimnames = list(paste0("g", seq_len(100)),
                                 paste0("c", seq_len(10))))
   k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
-  obj <- SeuratObject::CreateSeuratObject(counts = mat)
+  obj <- SeuratObject::CreateSeuratObject(
+    counts = as(mat, "CsparseMatrix")
+  )
 
   received <- NULL
   local_mocked_bindings(
@@ -131,7 +151,7 @@ test_that("decontPro Seurat method uses LayerData not GetAssayData", {
     }
   )
 
-  res <- decontPro(obj, k, 1e-2, 1e-2)
+  decontPro(obj, k, 1e-2, 1e-2)
   expect_equal(dim(received), dim(mat))
   expect_equal(as.matrix(received), mat)
 })
@@ -213,7 +233,6 @@ test_that("decontPro names ambient_counts when it isn't a matrix", {
 })
 
 test_that("decontPro joins split Seurat layers in Cells() order", {
-  skip_if_not_installed("SeuratObject")
   p <- refProData()
   sample <- rep(c("a", "b"), 4)
   obj <- SeuratObject::CreateSeuratObject(
@@ -245,7 +264,6 @@ test_that("decontPro joins split Seurat layers in Cells() order", {
 })
 
 test_that("decontPro reads a Seurat v3 assay", {
-  skip_if_not_installed("SeuratObject")
   withr::local_options(Seurat.object.assay.version = "v3")
   p <- refProData()
   obj <- SeuratObject::CreateSeuratObject(
@@ -310,8 +328,8 @@ test_that("decontPro recodes cell_type labels to 1..K for Stan", {
 test_that("decontPro names the r_est rows by cell_type label", {
   # One real Stan fit per labelling (10 x 8, about a second each)
   p <- refProData()
-  out <- decontPro(p$counts, p$k, 1e-2, 1e-2)
-  gapped <- decontPro(p$counts, p$k * 2 + 1, 1e-2, 1e-2)
+  out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
+  gapped <- quietStan(decontPro(p$counts, p$k * 2 + 1, 1e-2, 1e-2))
 
   expect_identical(rownames(out$parameters$r_est), c("1", "2", "3", "4"))
   expect_identical(rownames(gapped$parameters$r_est), c("3", "5", "7", "9"))
@@ -392,7 +410,6 @@ test_that("decontPro rejects unknown arguments", {
     regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
   )
 
-  skip_if_not_installed("SeuratObject")
   obj <- SeuratObject::CreateSeuratObject(
     counts = as(p$counts, "CsparseMatrix")
   )
@@ -496,4 +513,25 @@ test_that("plotDensity and plotBoxByCluster save to the file given", {
     expect_identical(res$value, paste0(path, ".pdf"))
     expect_true(file.exists(paste0(path, ".pdf")))
   }
+})
+
+test_that("plotBoxByCluster returns a box plot per feature", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  decontaminated <- counts - 1
+  p <- plotBoxByCluster(counts, decontaminated, c(1, 2, 1), c("CD4", "CD3"))
+  expect_s3_class(p, "patchwork")
+  expect_length(p, 2)
+  cd3 <- p[[2]]
+  expect_identical(cd3$labels$title, "CD3 counts by cell clusters")
+  expect_equal(
+    cd3$data$value,
+    unname(c(counts["CD3", ], decontaminated["CD3", ]))
+  )
+  expect_identical(
+    as.character(cd3$data$variable),
+    rep(c("con", "decon"), each = 3)
+  )
+  expect_identical(cd3$data$cell_type, factor(c(1, 2, 1, 1, 2, 1)))
 })
