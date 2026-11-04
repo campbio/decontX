@@ -165,7 +165,6 @@ today) and guards against future drift.
 - ADR-0004: the decisions of 2026-11-03 (below), status Accepted on the
   maintainer's approval.
 - `dev/ROADMAP.md`: the five-PR order under I-d.
-- `dev/agent-log.md`: an entry for this PR.
 
 ## Decisions of 2026-11-03
 
@@ -197,3 +196,7 @@ today) and guards against future drift.
   .decontXoneBatch" passes `background = NULL` and
   `params = defaultParams()`, a new helper in `helper-decontx.R` that
   builds `.decontXParams()` from the `ANY` method's defaults.
+- 2026-11-04: no `dev/agent-log.md` entry. That log records maintenance
+  and audit passes, and no fix PR has added one. A characterization test
+  pins the padded SCE UMAPs of a batched run, which no existing test
+  covered.
