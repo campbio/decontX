@@ -1,3 +1,8 @@
+# decontX 1.11.13
+
+* The marker plots' error for duplicated `groupClusters` values has its
+missing space back ("assigned to a single group") (#75).
+
 # decontX 1.11.12
 
 * `simulateContamination()` gives every cell `NRange[1]` counts when both

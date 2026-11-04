@@ -1588,7 +1588,7 @@ test_that("the marker plots check markers, groupClusters and z", {
   )
   expect_error(
     plotDecontXMarkerPercentage(x, markers, list(A = 1:2, B = 2), z = z),
-    regexp = "duplicate values for the following clusters: 2\\."
+    regexp = "clusters: 2\\. Clusters need be assigned to a single group\\."
   )
   expect_error(plotDecontXMarkerPercentage(x, markers, z = z[-1]),
     regexp = "the length of 'z' needs to\\s+be the same as the number"

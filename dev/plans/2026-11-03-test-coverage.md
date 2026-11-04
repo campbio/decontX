@@ -100,6 +100,10 @@ reason.
 - The sparse and DelayedArray equivalence tests keep `maxIter = 2`, as
   their comment explains: the EM is deterministic, so two iterations
   are enough to compare input types.
+- At hand-off the maintainer asked to fix a missing space in the
+  duplicated-`groupClusters` error ("assigned to asingle group"), found
+  while writing its test. That makes 1.11.13 user-facing, so it gets a
+  NEWS section after all.
 - The C++ guards were checked by coverage (each guard line runs only when
   its condition holds, and each test asserts its message), not by
   removing them, since a missing guard can segfault.

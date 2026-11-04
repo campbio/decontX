@@ -539,7 +539,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
       stop(
         "'groupClusters' had duplicate values for the following clusters: ",
         paste(dup, collapse = ","), ". Clusters need be assigned to a",
-        "single group."
+        " single group."
       )
     }
 
