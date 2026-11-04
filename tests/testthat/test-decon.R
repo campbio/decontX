@@ -564,6 +564,57 @@ test_that("decontX stops when batch and bgBatch don't go together", {
   )
 })
 
+test_that("decontX stops when bgBatch is given without background", {
+  d <- refData()
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, batch = d$batch,
+      bgBatch = d$bgBatch, verbose = FALSE
+    ),
+    regexp = "'bgBatch' was given without 'background'; give both or neither"
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  expect_error(
+    decontX(sce,
+      z = d$sim$z, batch = d$batch,
+      bgBatch = d$bgBatch, verbose = FALSE
+    ),
+    regexp = "'bgBatch' was given without 'background'; give both or neither"
+  )
+})
+
+test_that("decontX writes the same log text", {
+  # Pins every line the core logs, trailing spaces included, so the log
+  # stays the same when the logging code changes
+  d <- refData()
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, maxIter = 3, iterLogLik = 1, logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
+
+  # A batched DelayedMatrix run, with a background barcode that is also in
+  # the counts and a background gene that isn't
+  bg <- rbind(d$bg, extra = 1)
+  colnames(bg)[1] <- colnames(d$sim$observedCounts)[1]
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(DelayedArray::DelayedArray(d$sim$observedCounts),
+    z = d$sim$z, batch = d$batch, background = bg, bgBatch = d$bgBatch,
+    maxIter = 3, iterLogLik = 1, logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
+})
+
+test_that("decontX writes the same messages to the console", {
+  d <- refData()
+  messages <- testthat::capture_messages(
+    decontX(d$sim$observedCounts, z = d$sim$z, maxIter = 3, iterLogLik = 1)
+  )
+  expect_snapshot(writeLines(maskLog(sub("\n$", "", messages))))
+})
+
 test_that("decontX checks varGenes and dbscanEps even when z is given", {
   d <- refData()
   expect_error(
