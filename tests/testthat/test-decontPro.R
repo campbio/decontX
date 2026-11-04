@@ -57,6 +57,10 @@ test_that("decontPro splits each count by the estimated rates", {
   expect_equal(out$background_counts, matrix(c(0, 8, 0, 0, 0, 0), 2))
 
   params <- out$parameters
+  expect_named(params, c(
+    "delta_sd", "background_sd", "r_est", "p_est", "delta_est",
+    "delta_mean_est", "background_est", "background_mean_est"
+  ))
   expect_identical(rownames(params$r_est), c("B", "T"))
   expect_identical(params$delta_est, t(est$delta))
   expect_identical(params$p_est, dat$p)
@@ -124,7 +128,6 @@ test_that("decontPro SingleCellExperiment method extracts the counts assay", {
 })
 
 test_that("decontPro Seurat method uses LayerData not GetAssayData", {
-
   withr::local_seed(42)
   mat <- matrix(sample(1:10, 1000, replace = TRUE), ncol = 10,
                 dimnames = list(paste0("g", seq_len(100)),

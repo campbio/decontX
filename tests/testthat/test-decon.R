@@ -31,7 +31,7 @@ test_that(desc = "decontX initialization handles very sparse data", {
   # Regression test: scrapper::modelGeneVariances' default abundance
   # filter can drop every gene in low-count data (e.g. shallow
   # sequencing); initialization must rank all genes instead of erroring.
-  set.seed(7)
+  withr::local_seed(7)
   lowCounts <- matrix(stats::rbinom(400 * 100, size = 1, prob = 0.05),
     nrow = 400, ncol = 100,
     dimnames = list(
@@ -267,6 +267,10 @@ test_that("decontX on a matrix gives results the plots show", {
     plotDecontXMarkerExpression(s$observedCounts, s$markers[[1]], z = s$z)
   )
   expect_setequal(as.character(b$plot$data$Marker), s$markers[[1]])
+  expect_equal(
+    sort(b$plot$data$Expression),
+    sort(as.vector(s$observedCounts[s$markers[[1]], ]))
+  )
 
   # With background, eta is the background's gene profile
   bg <- s$observedCounts[, 1:5]
@@ -364,6 +368,7 @@ test_that("decontX on an SCE stores results the plots read", {
   bg <- sce[, 1:5]
   colnames(bg) <- paste(colnames(bg), "_", sep = "")
   sce <- decontX(sce, background = bg, verbose = FALSE)
+  expect_true("decontXcounts" %in% SummarizedExperiment::assayNames(sce))
   profile <- Matrix::rowSums(SummarizedExperiment::assay(bg, "counts"))
   profile <- (profile + 1e-20) / sum(profile + 1e-20)
   eta <- S4Vectors::metadata(sce)$decontX$estimates$all_cells$eta
@@ -1510,6 +1515,12 @@ test_that("retrieveFeatureIndex searches rowData and data.frame columns", {
   )
   expect_error(retrieveFeatureIndex("A", df, by = "id"),
     regexp = "'by' is not a column in 'x'\\."
+  )
+
+  # A vector is searched itself
+  expect_identical(
+    retrieveFeatureIndex(c("D", "B"), c("A", "B", "C", "D"), by = "symbol"),
+    c(4L, 2L)
   )
 })
 
