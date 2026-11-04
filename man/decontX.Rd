@@ -202,7 +202,12 @@ is supplied, the labels are prefixed with the batch
 may then name different clusters. Prefixed labels are ordered by the
 batch's first cell, then by label. The \code{z} in each batch's
 \code{estimates} has no prefix.}
-\item{\code{runParams}:}{List of arguments used in the function call.}
+\item{\code{runParams}:}{List of arguments used in the function call.
+Its \code{batch} and \code{batchBackground} are the batch of each cell
+and of each background droplet used for the run; \code{batchBackground}
+is \code{NULL} without \code{background}.}
+\item{\code{batch}:}{Character vector of the batch of each cell used for
+the run, \code{"all_cells"} for every cell when \code{batch} is NULL.}
 }
 
 If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment},
