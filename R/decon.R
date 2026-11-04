@@ -698,6 +698,8 @@ setMethod(
 
 # This function updates decontamination for one batch
 # params$seed is passed on to .decontxInitializeZ()
+# .decontX() checks the counts, delta and the clusters of each batch
+# before calling it
 #
 # Do not remove the @importFrom below: fit_dirichlet is fetched from the
 # MCMCprecision namespace by the C++ EM step (src/DecontX.cpp, via

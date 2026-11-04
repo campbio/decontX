@@ -497,8 +497,7 @@ test_that("decontX on an SCE stores results the plots read", {
 })
 
 
-## .decontXoneBatch
-test_that(desc = "Testing .decontXoneBatch", {
+test_that(desc = "decontX checks delta, z and counts", {
   deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   expect_error(
     decontX(
@@ -583,11 +582,13 @@ test_that("decontX stops when bgBatch is given without background", {
 
 test_that("decontX writes the same log text", {
   # Pins every line the core logs, trailing spaces included, so the log
-  # stays the same when the logging code changes
+  # stays the same when the logging code changes. convergence = 0 runs
+  # every iteration, so the number of lines is fixed
   d <- refData()
   logfile <- withr::local_tempfile(fileext = ".log")
   res <- decontX(d$sim$observedCounts,
-    z = d$sim$z, maxIter = 3, iterLogLik = 1, logfile = logfile
+    z = d$sim$z, maxIter = 3, iterLogLik = 1, convergence = 0,
+    logfile = logfile
   )
   expect_snapshot(writeLines(maskLog(readLines(logfile))))
 
@@ -598,14 +599,14 @@ test_that("decontX writes the same log text", {
   logfile <- withr::local_tempfile(fileext = ".log")
   res <- decontX(DelayedArray::DelayedArray(d$sim$observedCounts),
     z = d$sim$z, batch = d$batch, background = bg, bgBatch = d$bgBatch,
-    maxIter = 3, iterLogLik = 1, logfile = logfile
+    maxIter = 3, iterLogLik = 1, convergence = 0, logfile = logfile
   )
   expect_snapshot(writeLines(maskLog(readLines(logfile))))
 
   # Without z, decontX also estimates the cell types
   logfile <- withr::local_tempfile(fileext = ".log")
   res <- decontX(d$sim$observedCounts,
-    maxIter = 3, iterLogLik = 1, logfile = logfile
+    maxIter = 3, iterLogLik = 1, convergence = 0, logfile = logfile
   )
   expect_snapshot(writeLines(maskLog(readLines(logfile))))
 })
@@ -613,7 +614,9 @@ test_that("decontX writes the same log text", {
 test_that("decontX writes the same messages to the console", {
   d <- refData()
   messages <- testthat::capture_messages(
-    decontX(d$sim$observedCounts, z = d$sim$z, maxIter = 3, iterLogLik = 1)
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, maxIter = 3, iterLogLik = 1, convergence = 0
+    )
   )
   expect_snapshot(writeLines(maskLog(sub("\n$", "", messages))))
 })
