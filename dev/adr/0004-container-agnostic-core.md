@@ -2,9 +2,10 @@
 
 ## Status
 
-Proposed (2026-10-27). A stub for maintainer review: the decisions below
-were made during the Phase 0 review (2026-10-18 to 2026-10-27); the open
-points at the end are not yet decided.
+Accepted (2026-11-04). Proposed as a stub on 2026-10-27. The decisions
+below were made during the Phase 0 review (2026-10-18 to 2026-10-27);
+the points that stub left open were decided on 2026-11-03 (see "Decided
+2026-11-03").
 
 ## Context
 
@@ -39,24 +40,51 @@ method stay a thin read-call-write wrapper.
 We will split decontX and decontPro into a container-agnostic core and
 thin per-class methods, keeping results bit-identical.
 
-**Core contract.** `.decontX()` takes counts (genes x cells, dense or
-sparse), `z`, `batch`, background counts, background batch, and a params
-object. It returns a plain list: decontaminated counts, contamination,
-cluster labels, batch, estimates, the UMAP, and `runParams`. `runParams`
-holds the validated parameters plus `seed` and `iterLogLik`. The raw `z`
-is kept. `.decontPro()` follows the same pattern. The core never reads
-or writes a container. Decided 2026-10-18 (area 4, decision 4): the
-`ANY` method returns the extra fields, with a NEWS entry.
+**Core contract.** `.decontX(counts, z, batch, background, bgBatch,
+params)` takes counts (genes x cells, dense or sparse), `z`, `batch`,
+background counts, background batch, and the params list, with no
+defaults. It checks the data and handles the background (shape checks,
+removing barcodes that are also in the counts, matching rows to genes).
+It returns a plain list: `runParams`, `estimates`, `decontXcounts`,
+`contamination` and `z`, as today, then `batch`, the per-cell batch
+labels used for the run. The core never reads or writes a container.
+Decided 2026-10-18 (area 4, decision 4): the `ANY` method returns the
+extra fields, with a NEWS entry.
+
+**`runParams` is a record, not data.** It keeps today's elements and
+values: the raw `z`, the processed per-cell `batch` and
+`batchBackground`, and the parameters as given, including `seed` and
+`iterLogLik`. `batchBackground` is always present, `NULL` without a
+background (#96). Methods read `result$batch`, never `runParams`.
+
+**UMAPs.** Each batch's UMAP stays in `estimates[[b]]$UMAP`, with that
+batch's cells only; the core returns no separate UMAP element. A shared
+helper, `.decontXUMAPs()`, returns the matrices for containers that need
+one row per cell (SCE `reducedDims`, AnnData `obsm`): the single batch's
+UMAP as it is, or each batch's padded with `NA` for the other batches'
+cells. Seurat's per-batch reductions take `estimates[[b]]$UMAP`
+directly.
+
+**decontPro.** `.decontPro()` is already decontPro's core (matrices in,
+a list out) and keeps returning today's list (`decontaminated_counts`,
+`background_counts`, `ambient_counts`, `parameters`). ADR-0005 decides
+what the container methods write and return, and ADR-0006 the argument
+names. A decontPro params constructor waits for ADR-0006.
 
 **One params constructor.** `.decontXParams()` validates and builds the
-parameters, with no defaults of its own. The user-facing methods keep
-full signatures with their defaults, and a test checks that the
-methods' formals agree (pattern A, decided 2026-10-18, A4-01).
+parameters, with no defaults of its own, and returns them as a plain
+list. The user-facing methods keep full signatures with their defaults,
+and a test checks that the methods' formals agree with each other and
+with `.decontXParams()` (pattern A, decided 2026-10-18, A4-01). New
+decontX arguments are added to `.decontXParams()` and to every method
+signature, and the formals test covers them; they don't need an ADR of
+their own.
 
 **Decomposition.** `.decontX()` and `.decontXoneBatch()` are split into
-named helpers in the same file (A4-03). The core does the UMAP assembly,
-background deduplication and seeding once (A4-05, A4-06). `z` is no
-longer duplicated inside `estimates` (A7-22).
+named helpers in the same file (A4-03). The core does the background
+deduplication and the seeding once, and the UMAP padding leaves the SCE
+method for `.decontXUMAPs()` (A4-05, A4-06). `z` is no longer duplicated
+inside `estimates` (A7-22).
 
 **Batched assembly.** One `cbind` and one reorder replace the
 per-batch copies, which cuts peak copies from about 7.5 to about 2 with
@@ -89,25 +117,37 @@ surface and keeps the default drift possible.
   core.
 - One place validates parameters, which closes the class of bugs behind
   A1-01 and A1-10.
-- The `ANY` method's returned list gains fields (batch, UMAP, a fuller
-  `runParams`). Code that checks the list's length or names may notice.
-  celda forwards to `decontX::decontX()` on SCE and is unaffected by the
-  SCE path, which stays bit-identical.
+- The `ANY` method's returned list gains `batch`, and `runParams`
+  always has `batchBackground`. Code that checks the list's length or
+  names may notice. celda forwards to `decontX::decontX()` and reads
+  nothing back; singleCellTK reads `runParams$batch` and
+  `$batchBackground`, which don't change. The SCE results are identical
+  apart from `runParams$batchBackground`.
 - HDF5 users get an in-memory result, so a very large HDF5 input now
   needs memory for the sparse result. NEWS says so.
 - Batched runs use less memory.
 - The refactor lands as several PRs (core and params, decomposition,
   batched assembly, HDF5, file move), each held to the reference tests.
 
-## Open points
+## Decided 2026-11-03
 
-- Whether the two new arguments from Phase I-e, the opt-out of
-  initialization when `z` is given (A5-01) and the opt-in `numThreads`
-  (A5-02, default 1), are recorded here or in a short ADR of their own.
-  Their behaviour is decided (2026-10-19): initialization still runs by
-  default, and `numThreads > 1` changes PCA by about 1e-11. Their names
-  are not.
-- The exact names of the list elements returned by `.decontX()` and
-  `.decontPro()`.
-- How `.decontPro()`'s list relates to the current `decontPro()` matrix
-  return, which ADR-0006 also changes.
+The stub's open points, and the order of the PRs:
+
+- **New arguments from Phase I-e** (the initialization opt-out when `z`
+  is given, A5-01, and `numThreads`, A5-02): recorded in #79's spec, not
+  in this ADR or one of their own. This ADR only states the rule for new
+  arguments (see "One params constructor").
+- **List element names:** as in "Core contract". The UMAPs stay in
+  `estimates` (see "UMAPs"). A padded `UMAP` element in the result was
+  rejected because it duplicates every UMAP in the matrix result.
+- **decontPro:** no change in #76 (see "decontPro").
+- **`runParams`:** keeps its contents (see "`runParams` is a record").
+  Storing the raw `batch` was rejected: it changes saved metadata and
+  the per-cell vectors singleCellTK splits by sample
+  (`R/celda_decontX.R` there).
+- **PRs, each from and into devel, "Part of #76":** (1) the core
+  contract, `.decontXParams()`, the formals test, the logic moved out of
+  the SCE method, and #96; (2) decomposition, one seed block, dead code,
+  `.logMessages`, `z` out of `estimates`; (3) batched assembly; (4) HDF5;
+  (5) the file move, which closes #76. No `refactor/` base branch: each
+  piece gives the same results and leaves devel releasable.

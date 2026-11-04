@@ -209,6 +209,127 @@ test_that("runParams holds seed and iterLogLik", {
   expect_equal(res$runParams$iterLogLik, 5)
 })
 
+test_that("runParams always has batchBackground", {
+  d <- refData()
+  res <- decontX(d$sim$observedCounts, z = d$sim$z, verbose = FALSE)
+  expect_true("batchBackground" %in% names(res$runParams))
+  expect_null(res$runParams$batchBackground)
+
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, background = d$bg,
+    verbose = FALSE
+  )
+  expect_identical(res$runParams$batchBackground, rep("all_cells", 40))
+})
+
+test_that("the matrix result has the batch of each cell", {
+  d <- refData()
+  res <- decontX(d$sim$observedCounts, z = d$sim$z, verbose = FALSE)
+  expect_identical(res$batch, rep("all_cells", 100))
+
+  batch <- factor(d$batch)
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, batch = batch,
+    verbose = FALSE
+  )
+  expect_identical(res$batch, as.character(batch))
+  expect_identical(
+    names(res),
+    c("runParams", "estimates", "decontXcounts", "contamination", "z", "batch")
+  )
+})
+
+test_that("decontX keeps the SCE results out of the metadata", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  sce <- decontX(sce, z = d$sim$z, batch = d$batch, verbose = FALSE)
+  expect_identical(
+    names(S4Vectors::metadata(sce)$decontX),
+    c("runParams", "estimates", "contamination", "z")
+  )
+})
+
+test_that("batched SCE runs store one padded UMAP per batch", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  sce <- decontX(sce, z = d$sim$z, batch = d$batch, verbose = FALSE)
+  expect_identical(
+    SingleCellExperiment::reducedDimNames(sce),
+    c("decontX_A_UMAP", "decontX_B_UMAP")
+  )
+  estimates <- S4Vectors::metadata(sce)$decontX$estimates
+  for (b in c("A", "B")) {
+    name <- paste0("decontX_", b, "_UMAP")
+    umap <- SingleCellExperiment::reducedDim(sce, name)
+    inBatch <- d$batch == b
+    expect_identical(dimnames(umap), list(colnames(sce), c("UMAP_1", "UMAP_2")))
+    expect_true(all(is.na(umap[!inBatch, ])))
+    expect_identical(unname(umap[inBatch, ]), unname(estimates[[b]]$UMAP))
+  }
+})
+
+test_that("the decontX core and its params constructor have no defaults", {
+  noDefault <- function(fn) {
+    fmls <- formals(fn)
+    vapply(names(fmls), function(n) identical(fmls[[n]], quote(expr = )),
+      logical(1)
+    )
+  }
+  expect_true(all(noDefault(.decontX)))
+  expect_true(all(noDefault(.decontXParams)))
+})
+
+test_that("the decontX methods have the same arguments and defaults", {
+  sceArgs <- decontXMethodFormals("SingleCellExperiment")
+  anyArgs <- decontXMethodFormals("ANY")
+  containerArgs <- c("x", "assayName", "bgAssayName")
+  expect_identical(
+    sceArgs[setdiff(names(sceArgs), containerArgs)],
+    anyArgs[setdiff(names(anyArgs), containerArgs)]
+  )
+  dataArgs <- c("z", "batch", "background", "bgBatch")
+  expect_identical(
+    setdiff(names(anyArgs), c(containerArgs, dataArgs)),
+    names(formals(.decontXParams))
+  )
+  # Every parameter reaches the list that runParams records
+  expect_identical(names(defaultParams()), names(formals(.decontXParams)))
+})
+
+test_that(".decontXUMAPs pads each batch's UMAP to every cell", {
+  umapA <- matrix(1:4, 2, dimnames = list(c("c1", "c3"), c("u1", "u2")))
+  umapB <- matrix(5:6, 1, dimnames = list("c2", c("u1", "u2")))
+  single <- list(estimates = list(all_cells = list(UMAP = umapA)))
+  expect_identical(
+    .decontXUMAPs(single, c("c1", "c3")),
+    list(decontX_UMAP = umapA)
+  )
+
+  batched <- list(
+    estimates = list(A = list(UMAP = umapA), B = list(UMAP = umapB)),
+    batch = c("A", "B", "A")
+  )
+  cells <- c("c1", "c2", "c3")
+  padded <- function(rows, values) {
+    m <- matrix(NA_integer_, 3, 2,
+      dimnames = list(cells, c("UMAP_1", "UMAP_2"))
+    )
+    m[rows, ] <- values
+    m
+  }
+  expect_identical(
+    .decontXUMAPs(batched, cells),
+    list(
+      decontX_A_UMAP = padded(c(1, 3), 1:4),
+      decontX_B_UMAP = padded(2, 5:6)
+    )
+  )
+})
+
 test_that(desc = "decontX recovers simulated contamination (oracle)", {
   # Behavioral oracle: without this, a no-op decontX (returning its input
   # unchanged) would pass the suite. Uses the simulator's ground truth to
@@ -408,14 +529,19 @@ test_that(desc = "Testing .decontXoneBatch", {
       counts = deconSim$observedCounts,
       z = rep(1, ncol(
         deconSim$observedCounts
-      ))
+      )),
+      background = NULL,
+      params = defaultParams()
     ),
     "'z' has only one cluster. decontX needs at least two clusters"
   )
   countsNA <- deconSim$observedCounts
   countsNA[1, 1] <- NA
   expect_error(
-    .decontXoneBatch(counts = countsNA, z = deconSim$z),
+    .decontXoneBatch(
+      counts = countsNA, z = deconSim$z,
+      background = NULL, params = defaultParams()
+    ),
     "Missing value in 'counts' matrix."
   )
 })
@@ -814,15 +940,14 @@ test_that("the zero-count error doesn't suggest supplying z", {
 test_that("decontX still accepts integer, factor and Inf arguments", {
   d <- refData()
   counts <- d$sim$observedCounts
-  expect_no_error(.checkDecontXArgs(
-    counts = counts,
-    z = factor(d$sim$z),
-    batch = factor(d$batch),
+  expect_no_error(.checkCellValues(factor(d$sim$z), "z", ncol(counts)))
+  expect_no_error(.checkCellValues(factor(d$batch), "batch", ncol(counts)))
+  expect_no_error(.decontXParams(
     maxIter = 500L,
-    convergence = 0L,
-    iterLogLik = 10L,
     delta = c(10L, 10L),
     estimateDelta = TRUE,
+    convergence = 0L,
+    iterLogLik = 10L,
     varGenes = 5000L,
     dbscanEps = 0,
     seed = 1L,
@@ -830,15 +955,13 @@ test_that("decontX still accepts integer, factor and Inf arguments", {
     logfile = NULL,
     verbose = FALSE
   ))
-  expect_no_error(.checkDecontXArgs(
-    counts = counts,
-    z = as.character(d$sim$z),
-    batch = NULL,
+  expect_no_error(.checkCellValues(as.character(d$sim$z), "z", ncol(counts)))
+  expect_no_error(.decontXParams(
     maxIter = Inf,
-    convergence = 0.001,
-    iterLogLik = Inf,
     delta = c(10, 10),
     estimateDelta = FALSE,
+    convergence = 0.001,
+    iterLogLik = Inf,
     varGenes = Inf,
     dbscanEps = NULL,
     seed = NULL,

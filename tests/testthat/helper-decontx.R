@@ -28,6 +28,20 @@ quietStan <- function(expr) {
   res
 }
 
+# The arguments of a decontX() method, with their defaults, including those
+# the methods package moves into an inner .local function
+decontXMethodFormals <- function(signature) {
+  method <- methods::getMethod("decontX", signature)
+  formals(methods::unRematchDefinition(method))
+}
+
+# The decontX parameters with the ANY method's defaults, for tests that
+# call the internal functions directly
+defaultParams <- function() {
+  defaults <- decontXMethodFormals("ANY")[names(formals(.decontXParams))]
+  do.call(.decontXParams, lapply(defaults, eval))
+}
+
 # The gene profile decontX uses as eta when given background counts
 bgProfile <- function(background) {
   profile <- Matrix::rowSums(background) + 1e-20

@@ -139,7 +139,13 @@
 #' may then name different clusters. Prefixed labels are ordered by the
 #' batch's first cell, then by label. The \code{z} in each batch's
 #' \code{estimates} has no prefix.}
-#' \item{\code{runParams}:}{List of arguments used in the function call.}
+#' \item{\code{runParams}:}{List of arguments used in the function call.
+#' Its \code{batch} and \code{batchBackground} are the batch of each cell
+#' and of each background droplet used for the run. It always has
+#' \code{batchBackground}, which is \code{NULL} when \code{background} and
+#' \code{bgBatch} are both NULL.}
+#' \item{\code{batch}:}{Character vector of the batch of each cell used for
+#' the run, \code{"all_cells"} for every cell when \code{batch} is NULL.}
 #' }
 #'
 #' If \code{x} is a \linkS4class[SingleCellExperiment]{SingleCellExperiment},
@@ -196,15 +202,12 @@ setMethod("decontX", "SingleCellExperiment", function(x,
   .checkAssayName(x, assayName, "assayName", "x")
   mat <- SummarizedExperiment::assay(x, i = assayName)
   .checkCountsMatrix(mat, "The 'x' assay")
-  .checkDecontXArgs(
-    counts = mat,
-    z = z,
-    batch = batch,
+  params <- .decontXParams(
     maxIter = maxIter,
-    convergence = convergence,
-    iterLogLik = iterLogLik,
     delta = delta,
     estimateDelta = estimateDelta,
+    convergence = convergence,
+    iterLogLik = iterLogLik,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
     seed = seed,
@@ -213,7 +216,7 @@ setMethod("decontX", "SingleCellExperiment", function(x,
     verbose = verbose
   )
 
-  countsBackground <- NULL
+  bgCounts <- NULL
   if (!is.null(background)) {
     if (!inherits(background, "SummarizedExperiment")) {
       stop(
@@ -221,47 +224,23 @@ setMethod("decontX", "SingleCellExperiment", function(x,
         "it is a ", class(background)[1], "."
       )
     }
-    # Remove cells with the same ID between x and the background matrix
-    # Also update bgBatch when background is updated and bgBatch is not null
-    temp <- .checkBackground(
-      x = x,
-      background = background,
-      bgBatch = bgBatch,
-      logfile = logfile,
-      verbose = verbose
-    )
-
-    background <- temp$background
-    bgBatch <- temp$bgBatch
-
     bgArg <- "bgAssayName"
     if (is.null(bgAssayName)) {
       bgAssayName <- assayName
       bgArg <- "assayName"
     }
     .checkAssayName(background, bgAssayName, bgArg, "background")
-    countsBackground <- SummarizedExperiment::assay(background, i = bgAssayName)
-    .checkCountsMatrix(countsBackground, "The 'background' assay")
-    .checkCountsDecon(countsBackground, "background")
+    bgCounts <- SummarizedExperiment::assay(background, i = bgAssayName)
+    .checkCountsMatrix(bgCounts, "The 'background' assay")
   }
 
   result <- .decontX(
     counts = mat,
     z = z,
     batch = batch,
-    countsBackground = countsBackground,
-    batchBackground = bgBatch,
-    maxIter = maxIter,
-    convergence = convergence,
-    iterLogLik = iterLogLik,
-    delta = delta,
-    estimateDelta = estimateDelta,
-    varGenes = varGenes,
-    dbscanEps = dbscanEps,
-    seed = seed,
-    legacyInit = legacyInit,
-    logfile = logfile,
-    verbose = verbose
+    background = bgCounts,
+    bgBatch = bgBatch,
+    params = params
   )
 
   ## Add results into column annotation
@@ -269,29 +248,15 @@ setMethod("decontX", "SingleCellExperiment", function(x,
   SummarizedExperiment::colData(x)$decontX_clusters <- result$z
 
   ## Put estimated UMAPs into SCE
-  batchIndex <- unique(result$runParams$batch)
-  if (length(batchIndex) > 1) {
-    for (i in batchIndex) {
-      ## Each individual UMAP will only be for one batch so need
-      ## to put NAs in for cells in other batches
-      tempUMAP <- matrix(NA, ncol = 2, nrow = ncol(mat))
-      tempUMAP[result$runParams$batch == i, ] <- result$estimates[[i]]$UMAP
-      colnames(tempUMAP) <- c("UMAP_1", "UMAP_2")
-      rownames(tempUMAP) <- colnames(mat)
-
-      SingleCellExperiment::reducedDim(
-        x,
-        paste("decontX", i, "UMAP", sep = "_")
-      ) <- tempUMAP
-    }
-  } else {
-    SingleCellExperiment::reducedDim(x, "decontX_UMAP") <-
-      result$estimates[[batchIndex]]$UMAP
+  umaps <- .decontXUMAPs(result, colnames(mat))
+  for (name in names(umaps)) {
+    SingleCellExperiment::reducedDim(x, name) <- umaps[[name]]
   }
 
   ## Save the rest of the result object into metadata
   decontXcounts(x) <- result$decontXcounts
   result$decontXcounts <- NULL
+  result$batch <- NULL
   S4Vectors::metadata(x)$decontX <- result
 
   x
@@ -323,15 +288,12 @@ setMethod("decontX", "ANY", function(x,
     choices = "a SingleCellExperiment, ",
     hint = hint
   )
-  .checkDecontXArgs(
-    counts = x,
-    z = z,
-    batch = batch,
+  params <- .decontXParams(
     maxIter = maxIter,
-    convergence = convergence,
-    iterLogLik = iterLogLik,
     delta = delta,
     estimateDelta = estimateDelta,
+    convergence = convergence,
+    iterLogLik = iterLogLik,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
     seed = seed,
@@ -340,48 +302,20 @@ setMethod("decontX", "ANY", function(x,
     verbose = verbose
   )
 
-  countsBackground <- NULL
-  if (!is.null(background)) {
-    # Objects without dimensions get .checkBackground()'s message
-    if (!is.null(dim(background))) {
-      .checkCountsMatrix(background, "'background'",
-        when = " when 'x' is a matrix"
-      )
-    }
-    # Remove cells with the same ID between x and the background matrix
-    # Also update bgBatch when background is updated and bgBatch is not null
-    temp <- .checkBackground(
-      x = x,
-      background = background,
-      bgBatch = bgBatch,
-      logfile = logfile,
-      verbose = verbose
+  # Objects without dimensions get .checkBackground()'s message
+  if (!is.null(dim(background))) {
+    .checkCountsMatrix(background, "'background'",
+      when = " when 'x' is a matrix"
     )
-
-    background <- temp$background
-    countsBackground <- background
-    .checkCountsDecon(countsBackground, "background")
-
-    bgBatch <- temp$bgBatch
   }
 
   .decontX(
     counts = x,
     z = z,
     batch = batch,
-    countsBackground = countsBackground,
-    batchBackground = bgBatch,
-    maxIter = maxIter,
-    convergence = convergence,
-    iterLogLik = iterLogLik,
-    delta = delta,
-    estimateDelta = estimateDelta,
-    varGenes = varGenes,
-    dbscanEps = dbscanEps,
-    seed = seed,
-    legacyInit = legacyInit,
-    logfile = logfile,
-    verbose = verbose
+    background = background,
+    bgBatch = bgBatch,
+    params = params
   )
 })
 
@@ -450,22 +384,37 @@ setMethod(
 # Core Decontx Functions #
 ##########################
 
+## The container-agnostic core: counts, labels, background and the
+## parameters from .decontXParams() in, a plain list of results out. Every
+## method calls it, passing every argument
 .decontX <- function(counts,
-                     z = NULL,
-                     batch = NULL,
-                     countsBackground = NULL,
-                     batchBackground = NULL,
-                     maxIter = 200,
-                     convergence = 0.001,
-                     iterLogLik = 10,
-                     delta = c(10, 10),
-                     estimateDelta = TRUE,
-                     varGenes = NULL,
-                     dbscanEps = NULL,
-                     seed = 12345,
-                     legacyInit = FALSE,
-                     logfile = NULL,
-                     verbose = TRUE) {
+                     z,
+                     batch,
+                     background,
+                     bgBatch,
+                     params) {
+  logfile <- params$logfile
+  verbose <- params$verbose
+
+  .checkCountsDecon(counts)
+  .checkCellValues(z, "z", ncol(counts))
+  .checkCellValues(batch, "batch", ncol(counts))
+
+  if (!is.null(background)) {
+    # Remove cells with the same ID between x and the background matrix
+    # Also update bgBatch when background is updated and bgBatch is not null
+    temp <- .checkBackground(
+      x = counts,
+      background = background,
+      bgBatch = bgBatch,
+      logfile = logfile,
+      verbose = verbose
+    )
+    background <- temp$background
+    bgBatch <- temp$bgBatch
+    .checkCountsDecon(background, "background")
+  }
+
   startTime <- Sys.time()
   .logMessages(paste(rep("-", 50), collapse = ""),
     logfile = logfile,
@@ -483,32 +432,14 @@ setMethod(
     verbose = verbose
   )
 
-  if (!is.null(countsBackground)) {
-    countsBackground <- .matchBackgroundRows(
+  if (!is.null(background)) {
+    background <- .matchBackgroundRows(
       counts = counts,
-      background = countsBackground,
+      background = background,
       logfile = logfile,
       verbose = verbose
     )
   }
-
-  runParams <- list(
-    z = z,
-    batch = batch,
-    batchBackground = batchBackground,
-    maxIter = maxIter,
-    delta = delta,
-    estimateDelta = estimateDelta,
-    convergence = convergence,
-    iterLogLik = iterLogLik,
-    varGenes = varGenes,
-    dbscanEps = dbscanEps,
-    seed = seed,
-    legacyInit = legacyInit,
-    logfile = logfile,
-    verbose = verbose
-  )
-
 
   totalGenes <- nrow(counts)
   totalCells <- ncol(counts)
@@ -531,17 +462,17 @@ setMethod(
     batch <- rep("all_cells", nC)
 
     # If batch null, bgBatch has to be null
-    if (!is.null(batchBackground)) {
+    if (!is.null(bgBatch)) {
       stop("'bgBatch' was given without 'batch'; give both or neither.")
     }
 
-    if (!is.null(countsBackground)) {
-      batchBackground <- rep("all_cells", ncol(countsBackground))
+    if (!is.null(background)) {
+      bgBatch <- rep("all_cells", ncol(background))
     }
   } else {
-    # If batch not null and countsBackground supplied,
-    # user has to supply batchBackground as well
-    if (!is.null(countsBackground) && is.null(batchBackground)) {
+    # If batch not null and background supplied,
+    # user has to supply bgBatch as well
+    if (!is.null(background) && is.null(bgBatch)) {
       stop(
         "Cell batch, and background are supplied. Please also ",
         "supply background batch."
@@ -549,9 +480,9 @@ setMethod(
     }
   }
   batch <- as.character(batch)
-  if (!is.null(batchBackground)) {
-    batchBackground <- as.character(batchBackground)
-    notInBatch <- setdiff(batchBackground, batch)
+  if (!is.null(bgBatch)) {
+    bgBatch <- as.character(bgBatch)
+    notInBatch <- setdiff(bgBatch, batch)
     if (length(notInBatch) > 0) {
       stop(
         "'bgBatch' has values that aren't in 'batch': ",
@@ -559,7 +490,7 @@ setMethod(
       )
     }
     # Barcodes that are also in x were already removed from the background
-    noBackground <- setdiff(batch, batchBackground)
+    noBackground <- setdiff(batch, bgBatch)
     if (length(noBackground) > 0) {
       stop(
         "Every batch needs droplets in 'background'; none for: ",
@@ -567,12 +498,15 @@ setMethod(
       )
     }
   }
-  runParams$batch <- batch
-  runParams$batchBackground <- batchBackground
+  ## The parameters as given, after the batches used for the run
+  runParams <- c(
+    list(z = z, batch = batch, batchBackground = bgBatch),
+    params
+  )
   batchIndex <- unique(batch)
   # Checked for every batch before any of them runs
-  .checkBatchSizes(batch, batchGiven, legacyInit)
-  if (!is.null(z) && is.null(countsBackground)) {
+  .checkBatchSizes(batch, batchGiven, params$legacyInit)
+  if (!is.null(z) && is.null(background)) {
     for (bat in batchIndex) {
       .checkOneCluster(z[batch == bat], if (batchGiven) bat)
     }
@@ -621,7 +555,7 @@ setMethod(
 
     zBat <- NULL
     countsBat <- counts[, batch == bat, drop = FALSE]
-    bgBat <- countsBackground[, batchBackground == bat, drop = FALSE]
+    bgBat <- background[, bgBatch == bat, drop = FALSE]
 
     ## Convert to sparse matrix
     if (!inherits(countsBat, "dgCMatrix")) {
@@ -641,43 +575,21 @@ setMethod(
     if (!is.null(z)) {
       zBat <- z[batch == bat]
     }
-    if (is.null(seed)) {
+    if (is.null(params$seed)) {
       res <- .decontXoneBatch(
         counts = countsBat,
         z = zBat,
-        batch = bat,
-        countsBackground = bgBat,
-        maxIter = maxIter,
-        delta = delta,
-        estimateDelta = estimateDelta,
-        convergence = convergence,
-        iterLogLik = iterLogLik,
-        logfile = logfile,
-        verbose = verbose,
-        varGenes = varGenes,
-        dbscanEps = dbscanEps,
-        seed = seed,
-        legacyInit = legacyInit
+        background = bgBat,
+        params = params
       )
     } else {
       withr::with_seed(
-        seed,
+        params$seed,
         res <- .decontXoneBatch(
           counts = countsBat,
           z = zBat,
-          batch = bat,
-          countsBackground = bgBat,
-          maxIter = maxIter,
-          delta = delta,
-          estimateDelta = estimateDelta,
-          convergence = convergence,
-          iterLogLik = iterLogLik,
-          logfile = logfile,
-          verbose = verbose,
-          varGenes = varGenes,
-          dbscanEps = dbscanEps,
-          seed = seed,
-          legacyInit = legacyInit
+          background = bgBat,
+          params = params
         )
       )
     }
@@ -746,7 +658,8 @@ setMethod(
     "estimates" = resBatch,
     "decontXcounts" = estRmat,
     "contamination" = estConp,
-    "z" = returnZ
+    "z" = returnZ,
+    "batch" = batch
   )
 
 
@@ -792,8 +705,7 @@ setMethod(
 
 
 # This function updates decontamination for one batch
-# seed passed to this function is to be furhter passed to
-# function .decontxInitializeZ()
+# params$seed is passed on to .decontxInitializeZ()
 #
 # Do not remove the @importFrom below: fit_dirichlet is fetched from the
 # MCMCprecision namespace by the C++ EM step (src/DecontX.cpp, via
@@ -803,23 +715,15 @@ setMethod(
 #' @importFrom MCMCprecision fit_dirichlet
 #' @noRd
 .decontXoneBatch <- function(counts,
-                             z = NULL,
-                             batch = NULL,
-                             countsBackground = NULL,
-                             maxIter = 200,
-                             delta = c(10, 10),
-                             estimateDelta = TRUE,
-                             convergence = 0.01,
-                             iterLogLik = 10,
-                             logfile = NULL,
-                             verbose = TRUE,
-                             varGenes = NULL,
-                             dbscanEps = NULL,
-                             seed = 12345,
-                             legacyInit = FALSE) {
+                             z,
+                             background,
+                             params) {
+  logfile <- params$logfile
+  verbose <- params$verbose
+  delta <- params$delta
   .checkCountsDecon(counts)
   .checkDelta(delta)
-  if (!is.null(z) && is.null(countsBackground)) {
+  if (!is.null(z) && is.null(background)) {
     .checkOneCluster(z)
   }
 
@@ -843,16 +747,16 @@ setMethod(
     verbose = verbose
   )
 
-  varGenes <- .processvarGenes(varGenes)
-  dbscanEps <- .processdbscanEps(dbscanEps)
+  varGenes <- .processvarGenes(params$varGenes)
+  dbscanEps <- .processdbscanEps(params$dbscanEps)
 
   celda.init <- .decontxInitializeZ(
     counts = counts,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
     estimateCellTypes = estimateCellTypes,
-    seed = seed,
-    legacyInit = legacyInit
+    seed = params$seed,
+    legacyInit = params$legacyInit
   )
   if (is.null(z)) {
     z <- celda.init$z
@@ -895,10 +799,10 @@ setMethod(
     phi <- nextDecon$phi
     eta <- nextDecon$eta
 
-    # if countsBackground is not null, use empirical dist. to replace eta
-    if (!is.null(countsBackground)) {
+    # if background is not null, use empirical dist. to replace eta
+    if (!is.null(background)) {
       # Add pseudocount to each gene in eta
-      eta_tilda <- Matrix::rowSums(countsBackground) + 1e-20
+      eta_tilda <- Matrix::rowSums(background) + 1e-20
       eta <- eta_tilda / sum(eta_tilda)
       # Make eta a matrix same dimension as phi
       eta <- matrix(eta, length(eta), dim(phi)[2])
@@ -910,9 +814,9 @@ setMethod(
     theta.previous <- theta
     converged <- FALSE
     counts.colsums <- Matrix::colSums(counts)
-    while (iter <= maxIter && !isTRUE(converged) &&
+    while (iter <= params$maxIter && !isTRUE(converged) &&
              numIterWithoutImprovement <= stopIter) {
-      if (is.null(countsBackground)) {
+      if (is.null(background)) {
         nextDecon <- decontXEM(
           counts = counts,
           counts_colsums = counts.colsums,
@@ -921,7 +825,7 @@ setMethod(
           eta = eta,
           theta = theta,
           z = z,
-          estimate_delta = isTRUE(estimateDelta),
+          estimate_delta = isTRUE(params$estimateDelta),
           delta = delta,
           pseudocount = 1e-20
         )
@@ -934,7 +838,7 @@ setMethod(
           eta = eta,
           theta = theta,
           z = z,
-          estimate_delta = isTRUE(estimateDelta),
+          estimate_delta = isTRUE(params$estimateDelta),
           delta = delta,
           pseudocount = 1e-20
         )
@@ -947,13 +851,13 @@ setMethod(
       delta <- nextDecon$delta
 
       max.divergence <- max(abs(theta.previous - theta))
-      if (max.divergence < convergence) {
+      if (max.divergence < params$convergence) {
         converged <- TRUE
       }
       theta.previous <- theta
 
       ## Calculate likelihood and check for convergence
-      if (iter %% iterLogLik == 0 || converged) {
+      if (iter %% params$iterLogLik == 0 || converged) {
         llTemp <- decontXLogLik(
           counts = counts,
           z = z,
@@ -997,24 +901,20 @@ setMethod(
 }
 
 
-## Check the arguments of .decontX() before any work is done
-.checkDecontXArgs <- function(counts,
-                              z,
-                              batch,
-                              maxIter,
-                              convergence,
-                              iterLogLik,
-                              delta,
-                              estimateDelta,
-                              varGenes,
-                              dbscanEps,
-                              seed,
-                              legacyInit,
-                              logfile,
-                              verbose) {
-  .checkCountsDecon(counts)
-  .checkCellValues(z, "z", ncol(counts))
-  .checkCellValues(batch, "batch", ncol(counts))
+## Check the decontX parameters and gather them in one list, in the order
+## runParams records them. No defaults: the methods' signatures hold them,
+## and a test checks that they agree
+.decontXParams <- function(maxIter,
+                           delta,
+                           estimateDelta,
+                           convergence,
+                           iterLogLik,
+                           varGenes,
+                           dbscanEps,
+                           seed,
+                           legacyInit,
+                           logfile,
+                           verbose) {
   .checkEMArgs(maxIter, convergence, iterLogLik)
   .checkDelta(delta)
   .processvarGenes(varGenes)
@@ -1037,7 +937,39 @@ setMethod(
         !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
     stop("'logfile' must be NULL or a single character string.")
   }
-  invisible(NULL)
+  list(
+    maxIter = maxIter,
+    delta = delta,
+    estimateDelta = estimateDelta,
+    convergence = convergence,
+    iterLogLik = iterLogLik,
+    varGenes = varGenes,
+    dbscanEps = dbscanEps,
+    seed = seed,
+    legacyInit = legacyInit,
+    logfile = logfile,
+    verbose = verbose
+  )
+}
+
+## The UMAPs to store with one row per cell, named as the SCE reducedDims:
+## a single batch's UMAP as it is, or each batch's padded with NA for the
+## cells of the other batches. The single UMAP keeps its DecontX_UMAP_1/2
+## columns and the padded ones get UMAP_1/2, as decontX always stored them
+.decontXUMAPs <- function(result, cellNames) {
+  batches <- names(result$estimates)
+  if (length(batches) == 1) {
+    return(list(decontX_UMAP = result$estimates[[1]]$UMAP))
+  }
+  umaps <- lapply(batches, function(b) {
+    umap <- matrix(NA, ncol = 2, nrow = length(cellNames))
+    umap[result$batch == b, ] <- result$estimates[[b]]$UMAP
+    colnames(umap) <- c("UMAP_1", "UMAP_2")
+    rownames(umap) <- cellNames
+    umap
+  })
+  names(umaps) <- paste("decontX", batches, "UMAP", sep = "_")
+  umaps
 }
 
 ## The EM loop arguments
@@ -1248,11 +1180,11 @@ setMethod(
 
 
 .decontxInitializeZ <- function(counts,
-                                varGenes = 2000,
-                                dbscanEps = 1,
-                                estimateCellTypes = TRUE,
-                                seed = 12345,
-                                legacyInit = FALSE) {
+                                varGenes,
+                                dbscanEps,
+                                estimateCellTypes,
+                                seed,
+                                legacyInit) {
   if (isTRUE(legacyInit)) {
     init <- .decontxInitializeZLegacy(counts,
       varGenes = varGenes,

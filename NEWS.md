@@ -1,3 +1,13 @@
+# decontX 1.11.14
+
+* `decontX()` on a matrix also returns `batch`, the batch of each cell
+used for the run (`"all_cells"` when `batch` isn't given). The
+SingleCellExperiment results don't change, apart from `runParams` below
+(#76).
+* `runParams` in the `decontX()` results always has `batchBackground`,
+which is `NULL` when `background` and `bgBatch` are both `NULL`. It used to
+be missing then (#96).
+
 # decontX 1.11.13
 
 * The marker plots' error for duplicated `groupClusters` values has its

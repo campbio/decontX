@@ -54,6 +54,10 @@ pushed, one at a time.
   Bit-identical on the reference paths (A4-01 to A4-08, A7-22).
 - Batched assembly with one `cbind` and one reorder (A5-05); HDF5 input
   returns an in-memory DelayedMatrix (A5-06, NEWS).
+- #76 lands as five PRs from and into devel (decided 2026-11-03; ADR-0004
+  "Decided 2026-11-03"): (1) the core contract, `.decontXParams()`, the
+  formals test, and #96; (2) decomposition; (3) batched assembly;
+  (4) HDF5; (5) the file move.
 - Separate PRs:
   - plyr replaced exactly, reshape2 by a faithful helper (#77; A4-09,
     A4-10);
