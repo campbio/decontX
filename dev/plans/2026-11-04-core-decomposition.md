@@ -165,3 +165,26 @@ celda forwards to `decontX::decontX()` and reads nothing back.
 singleCellTK's `runParams` and results don't change. Code that passes
 `bgBatch` with `batch` but without `background` now gets an error
 instead of having `bgBatch` ignored.
+
+## Amendments
+
+Made while implementing, on 2026-11-04:
+
+- `.decontXoneBatch()` calls three helpers, not two: `.initializeBatch()`,
+  `.initializeEM()` (the `theta` draw, `decontXInitialize()` and the
+  background `eta`) and `.runEM()` (the loop). `.runEM()` hands each
+  log-likelihood step, with its log line, to `.emLogLik()`. The batch
+  loop moved from `.decontX()` into `.runBatches()`, which gathers the
+  per-cell results. This keeps every core function at 50 lines or fewer.
+- `.logMessages()` writes with `writeLines()` to a `file()` connection
+  instead of `write()`. `write()` always ends with one newline, so it
+  matches `cat()` only for single strings; joining the pieces as `cat()`
+  did keeps the text the same for any input.
+- The `.withSeed()` test can't pass on devel, where the helper doesn't
+  exist; it was written with the helper.
+- The snapshot of the "'bgBatch' was given without 'batch'" error (from
+  #74) now shows "Error in `.decontXBatches()`" instead of
+  "Error in `.decontX()`": R names the function that calls `stop()`. The
+  message doesn't change.
+- `@importFrom withr with_seed` is removed with its last unqualified use;
+  `.withSeed()` calls `withr::with_seed()`.
