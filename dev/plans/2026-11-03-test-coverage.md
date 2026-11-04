@@ -90,6 +90,20 @@ HDF5 branch (A5-06; HDF5Array isn't in Suggests), the old scrapper
 `R/matrixSums.R`). `test-matrixSums.R` is left as it is for the same
 reason.
 
+## Amendments during implementation
+
+- The no-groups branch of `plotDecontXMarkerExpression()`
+  (`plot_decontx.R:449-457`) can't be reached: the input processing
+  always fills in `groupClusters`, one group per cluster. That is A3-12,
+  removed in I-d. The new test checks the plot without groups (one group
+  per cluster) and the branch stays uncovered.
+- The sparse and DelayedArray equivalence tests keep `maxIter = 2`, as
+  their comment explains: the EM is deterministic, so two iterations
+  are enough to compare input types.
+- The C++ guards were checked by coverage (each guard line runs only when
+  its condition holds, and each test asserts its message), not by
+  removing them, since a missing guard can segfault.
+
 ## Checks
 
 Each new test of an untested path must fail on its assertion when the
