@@ -64,3 +64,34 @@ batches 0.132 s and 268 MB before, 0.024 s and 239 MB after. The audit's
 ## Related packages
 
 celda and singleCellTK get identical results.
+
+## Amendments
+
+Made while implementing and reviewing, on 2026-11-05:
+
+- The spec review found that `dimnames(counts)` keeps the names of the
+  dimnames list (for example from `table()`), which the old zero matrix
+  dropped. `.runBatches()` passes `list(rownames(counts),
+  colnames(counts))`, and a test pins the unnamed dimnames, with and
+  without batches.
+- `/code-review` found that looking batches up by name loses a batch
+  labelled `""`: batched runs with that label stopped with "subscript
+  out of bounds", where devel assembled the counts correctly. The
+  per-batch counts are a positional list in `unique(batch)` order, and
+  a test checks that batch's counts and contamination against a run on
+  it alone. On devel, the cells of a `""` batch already get the cluster
+  label `"-"` and its estimates can't be read by name; that older bug is
+  unchanged here and needs an issue of its own.
+- The helper is split in two, so `.runBatches()` can drop the per-batch
+  list before the reorder: `.bindBatches(batchCounts)` binds (one batch
+  as it is), and `.inCellOrder(bound, batch, dimNames)` reorders, only
+  when batches interleave, and sets the dimnames. The cell order comes
+  from one `order(match(batch, unique(batch)))`.
+- Measured at 2,000 genes x 40,000 cells (about 94 MB per copy), each
+  batch's result freshly allocated as `calculateNativeMatrix()` does:
+  one batch 0.10 s and 289 MB extra peak before, 0.02 s and 94 MB (the
+  result itself) after; four interleaved batches 0.14 s and 448 MB
+  before, 0.05 s and 394 MB after. Matrix's `cbind` alone peaks at about
+  1.75 copies, so the batched peak stays near 2.75 copies, not the
+  ADR's "about 2". Going lower would mean building the sparse slots by
+  hand, which this PR doesn't do.
