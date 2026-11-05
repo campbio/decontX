@@ -259,6 +259,16 @@ test_that("interleaved batches give each batch's own results", {
   }
 })
 
+test_that("decontXcounts drops the names of the counts' dimnames list", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  names(dimnames(counts)) <- c("genes", "cells")
+  for (batch in list(NULL, d$batch)) {
+    res <- decontX(counts, z = d$sim$z, batch = batch, verbose = FALSE)
+    expect_identical(dimnames(res$decontXcounts), unname(dimnames(counts)))
+  }
+})
+
 test_that(".bindBatches puts each batch's columns back in cell order", {
   counts <- Matrix::sparseMatrix(
     i = c(1, 2, 1, 2, 1), j = c(1, 2, 3, 4, 5), x = c(1, 2, 3, 0, 5),

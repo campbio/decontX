@@ -551,9 +551,11 @@ setMethod(
   } else {
     returnZ <- labels$labels
   }
+  # The dimnames without the names of the list, as decontX always gave them
+  dimNames <- list(rownames(counts), colnames(counts))
   list(
     estimates = resBatch,
-    decontXcounts = .bindBatches(batchCounts, batch, dimnames(counts)),
+    decontXcounts = .bindBatches(batchCounts, batch, dimNames),
     contamination = estConp,
     z = returnZ
   )
