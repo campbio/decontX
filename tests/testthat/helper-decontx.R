@@ -42,6 +42,22 @@ defaultParams <- function() {
   do.call(.decontXParams, lapply(defaults, eval))
 }
 
+# decontX log lines with the parts that change between runs masked: the
+# date, the total time and the per-iteration numbers. A "|" marks the end
+# of each line, so the snapshots show trailing spaces
+maskLog <- function(lines) {
+  lines <- sub(
+    "^[A-Z][a-z]{2} [A-Z][a-z]{2} [ 0-9][0-9] [0-9:]{8} [0-9]{4}",
+    "<date>", lines
+  )
+  lines <- sub("Total time: [0-9.]+ [a-z]+", "Total time: <time>", lines)
+  lines <- sub(
+    "iteration: [0-9]+ \\| converge: [0-9.e-]+",
+    "iteration: <n> | converge: <x>", lines
+  )
+  paste0(lines, "|")
+}
+
 # The gene profile decontX uses as eta when given background counts
 bgProfile <- function(background) {
   profile <- Matrix::rowSums(background) + 1e-20

@@ -497,8 +497,7 @@ test_that("decontX on an SCE stores results the plots read", {
 })
 
 
-## .decontXoneBatch
-test_that(desc = "Testing .decontXoneBatch", {
+test_that(desc = "decontX checks delta, z and counts", {
   deconSim <- simulateContamination(K = 10, delta = c(1, 5))
   expect_error(
     decontX(
@@ -525,23 +524,19 @@ test_that(desc = "Testing .decontXoneBatch", {
     )
   )
   expect_error(
-    .decontXoneBatch(
-      counts = deconSim$observedCounts,
+    decontX(
+      x = deconSim$observedCounts,
       z = rep(1, ncol(
         deconSim$observedCounts
       )),
-      background = NULL,
-      params = defaultParams()
+      verbose = FALSE
     ),
     "'z' has only one cluster. decontX needs at least two clusters"
   )
   countsNA <- deconSim$observedCounts
   countsNA[1, 1] <- NA
   expect_error(
-    .decontXoneBatch(
-      counts = countsNA, z = deconSim$z,
-      background = NULL, params = defaultParams()
-    ),
+    decontX(x = countsNA, z = deconSim$z, verbose = FALSE),
     "Missing value in 'counts' matrix."
   )
 })
@@ -562,6 +557,68 @@ test_that("decontX stops when batch and bgBatch don't go together", {
     ),
     regexp = "Please also supply background batch"
   )
+})
+
+test_that("decontX stops when bgBatch is given without background", {
+  d <- refData()
+  expect_error(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, batch = d$batch,
+      bgBatch = d$bgBatch, verbose = FALSE
+    ),
+    regexp = "'bgBatch' was given without 'background'; give both or neither"
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  expect_error(
+    decontX(sce,
+      z = d$sim$z, batch = d$batch,
+      bgBatch = d$bgBatch, verbose = FALSE
+    ),
+    regexp = "'bgBatch' was given without 'background'; give both or neither"
+  )
+})
+
+test_that("decontX writes the same log text", {
+  # Pins every line the core logs, trailing spaces included, so the log
+  # stays the same when the logging code changes. convergence = 0 runs
+  # every iteration, so the number of lines is fixed
+  d <- refData()
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, maxIter = 3, iterLogLik = 1, convergence = 0,
+    logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
+
+  # A batched DelayedMatrix run, with a background barcode that is also in
+  # the counts and a background gene that isn't
+  bg <- rbind(d$bg, extra = 1)
+  colnames(bg)[1] <- colnames(d$sim$observedCounts)[1]
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(DelayedArray::DelayedArray(d$sim$observedCounts),
+    z = d$sim$z, batch = d$batch, background = bg, bgBatch = d$bgBatch,
+    maxIter = 3, iterLogLik = 1, convergence = 0, logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
+
+  # Without z, decontX also estimates the cell types
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(d$sim$observedCounts,
+    maxIter = 3, iterLogLik = 1, convergence = 0, logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
+})
+
+test_that("decontX writes the same messages to the console", {
+  d <- refData()
+  messages <- testthat::capture_messages(
+    decontX(d$sim$observedCounts,
+      z = d$sim$z, maxIter = 3, iterLogLik = 1, convergence = 0
+    )
+  )
+  expect_snapshot(writeLines(maskLog(sub("\n$", "", messages))))
 })
 
 test_that("decontX checks varGenes and dbscanEps even when z is given", {
@@ -1565,6 +1622,32 @@ test_that("seed = NULL with legacyInit uses the session's random numbers", {
   expect_equal(
     unseeded$estimates$all_cells$UMAP,
     seeded$estimates$all_cells$UMAP
+  )
+})
+
+test_that(".withSeed seeds the code only when given a seed", {
+  withr::local_seed(1)
+  expect_identical(
+    .withSeed(10, stats::runif(2)),
+    withr::with_seed(10, stats::runif(2))
+  )
+  # A seeded run leaves the caller's stream where it was
+  withr::with_seed(5, {
+    .withSeed(10, stats::runif(3))
+    afterSeeded <- stats::runif(1)
+  })
+  expect_identical(afterSeeded, withr::with_seed(5, stats::runif(1)))
+  # NULL draws from the caller's stream
+  withr::with_seed(5, unseeded <- .withSeed(NULL, stats::runif(2)))
+  expect_identical(unseeded, withr::with_seed(5, stats::runif(2)))
+})
+
+test_that("decontX logs to standard output when logfile is empty", {
+  # As cat(file = "") did
+  d <- refData()
+  expect_output(
+    decontX(d$sim$observedCounts, z = d$sim$z, maxIter = 1, logfile = ""),
+    "Starting DecontX"
   )
 })
 

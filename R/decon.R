@@ -59,7 +59,8 @@
 #' those in \code{batch}, such that each batch of cells have their
 #' corresponding batch of empty droplets as background, pointed by this
 #' parameter: every batch needs at least one droplet, after barcodes that are
-#' also in \code{x} are removed. Default to NULL.
+#' also in \code{x} are removed. It needs \code{batch} and \code{background}.
+#' Default to NULL.
 #' @param maxIter Integer. Maximum iterations of the EM algorithm. Default 500.
 #' @param convergence Numeric. The EM algorithm will be stopped if the maximum
 #' difference in the contamination estimates between the previous and
@@ -384,18 +385,13 @@ setMethod(
 # Core Decontx Functions #
 ##########################
 
+## The pseudocount the EM and the background profile add to avoid zeros
+.decontXPseudocount <- 1e-20
+
 ## The container-agnostic core: counts, labels, background and the
 ## parameters from .decontXParams() in, a plain list of results out. Every
 ## method calls it, passing every argument
-.decontX <- function(counts,
-                     z,
-                     batch,
-                     background,
-                     bgBatch,
-                     params) {
-  logfile <- params$logfile
-  verbose <- params$verbose
-
+.decontX <- function(counts, z, batch, background, bgBatch, params) {
   .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
@@ -403,12 +399,8 @@ setMethod(
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
     # Also update bgBatch when background is updated and bgBatch is not null
-    temp <- .checkBackground(
-      x = counts,
-      background = background,
-      bgBatch = bgBatch,
-      logfile = logfile,
-      verbose = verbose
+    temp <- .checkBackground(counts, background, bgBatch,
+      logfile = params$logfile, verbose = params$verbose
     )
     background <- temp$background
     bgBatch <- temp$bgBatch
@@ -416,50 +408,47 @@ setMethod(
   }
 
   startTime <- Sys.time()
-  .logMessages(paste(rep("-", 50), collapse = ""),
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
-  )
-  .logMessages("Starting DecontX",
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
-  )
-  .logMessages(paste(rep("-", 50), collapse = ""),
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
-  )
-
+  .logBanner("Starting DecontX", params = params)
   if (!is.null(background)) {
-    background <- .matchBackgroundRows(
-      counts = counts,
-      background = background,
-      logfile = logfile,
-      verbose = verbose
+    background <- .matchBackgroundRows(counts, background,
+      logfile = params$logfile, verbose = params$verbose
     )
   }
 
-  totalGenes <- nrow(counts)
-  totalCells <- ncol(counts)
-  geneNames <- rownames(counts)
-  nC <- ncol(counts)
-  allCellNames <- colnames(counts)
+  batches <- .decontXBatches(batch, bgBatch, background, ncol(counts))
+  # Checked for every batch before any of them runs
+  .checkBatchSizes(batches$batch, batches$given, params$legacyInit)
+  .checkBatchClusters(z, batches$batch, batches$given, background)
 
-  ## Set up final decontaminated matrix
-  estRmat <- Matrix::Matrix(
-    data = 0,
-    ncol = totalCells,
-    nrow = totalGenes,
-    sparse = TRUE,
-    dimnames = list(geneNames, allCellNames)
+  res <- .runBatches(counts, z, background, batches, params)
+  returnResult <- list(
+    ## The batches used for the run, then the parameters as given
+    "runParams" = c(
+      list(z = z, batch = batches$batch, batchBackground = batches$bgBatch),
+      params
+    ),
+    "estimates" = res$estimates,
+    "decontXcounts" = .asInputClass(res$decontXcounts, counts, params),
+    "contamination" = res$contamination,
+    "z" = res$z,
+    "batch" = batches$batch
   )
 
-  ## Generate batch labels if none were supplied
-  batchGiven <- !is.null(batch)
+  .logBanner("Completed DecontX. Total time:",
+    format(difftime(Sys.time(), startTime)),
+    params = params
+  )
+
+  returnResult
+}
+
+## The batch of each cell and of each background droplet used for the run,
+## and whether 'batch' was given. Without 'batch', every cell and droplet
+## is in batch "all_cells"
+.decontXBatches <- function(batch, bgBatch, background, numCells) {
+  given <- !is.null(batch)
   if (is.null(batch)) {
-    batch <- rep("all_cells", nC)
+    batch <- rep("all_cells", numCells)
 
     # If batch null, bgBatch has to be null
     if (!is.null(bgBatch)) {
@@ -469,15 +458,15 @@ setMethod(
     if (!is.null(background)) {
       bgBatch <- rep("all_cells", ncol(background))
     }
-  } else {
+  } else if (is.null(background) && !is.null(bgBatch)) {
+    stop("'bgBatch' was given without 'background'; give both or neither.")
+  } else if (!is.null(background) && is.null(bgBatch)) {
     # If batch not null and background supplied,
     # user has to supply bgBatch as well
-    if (!is.null(background) && is.null(bgBatch)) {
-      stop(
-        "Cell batch, and background are supplied. Please also ",
-        "supply background batch."
-      )
-    }
+    stop(
+      "Cell batch, and background are supplied. Please also ",
+      "supply background batch."
+    )
   }
   batch <- as.character(batch)
   if (!is.null(bgBatch)) {
@@ -498,214 +487,219 @@ setMethod(
       )
     }
   }
-  ## The parameters as given, after the batches used for the run
-  runParams <- c(
-    list(z = z, batch = batch, batchBackground = bgBatch),
-    params
-  )
-  batchIndex <- unique(batch)
-  # Checked for every batch before any of them runs
-  .checkBatchSizes(batch, batchGiven, params$legacyInit)
-  if (!is.null(z) && is.null(background)) {
-    for (bat in batchIndex) {
-      .checkOneCluster(z[batch == bat], if (batchGiven) bat)
-    }
-  }
+  list(batch = batch, bgBatch = bgBatch, given = given)
+}
 
-  ## User labels come back as given, without unused levels
+## Without background, the labels of each batch need two clusters or more
+.checkBatchClusters <- function(z, batch, given, background) {
+  if (is.null(z) || !is.null(background)) {
+    return(invisible(NULL))
+  }
+  for (bat in unique(batch)) {
+    .checkOneCluster(z[batch == bat], if (given) bat)
+  }
+  invisible(NULL)
+}
+
+## User labels come back as given, without unused levels. Batched results
+## get the batch prefix when a label could name different clusters:
+## estimated clusters, which are numbered within each batch, and user
+## labels found in more than one batch
+.decontXLabels <- function(z, batch) {
+  labels <- NULL
   if (!is.null(z)) {
-    zLabels <- if (is.factor(z)) droplevels(z) else factor(z)
+    labels <- if (is.factor(z)) droplevels(z) else factor(z)
   }
-  ## Batched results get the batch prefix when a label could name different
-  ## clusters: estimated clusters, which are numbered within each batch, and
-  ## user labels found in more than one batch
-  prefixZ <- length(batchIndex) > 1
-  if (prefixZ && !is.null(z)) {
-    batchesPerLabel <- tapply(batch, zLabels, function(b) length(unique(b)))
-    prefixZ <- any(batchesPerLabel > 1)
+  prefix <- length(unique(batch)) > 1
+  if (prefix && !is.null(z)) {
+    batchesPerLabel <- tapply(batch, labels, function(b) length(unique(b)))
+    prefix <- any(batchesPerLabel > 1)
   }
+  list(labels = labels, prefix = prefix)
+}
 
+## Run decontX on each batch in turn and gather the results of every cell
+.runBatches <- function(counts, z, background, batches, params) {
+  batch <- batches$batch
+  labels <- .decontXLabels(z, batch)
+
+  ## Set up final decontaminated matrix
+  estRmat <- Matrix::Matrix(
+    data = 0,
+    ncol = ncol(counts),
+    nrow = nrow(counts),
+    sparse = TRUE,
+    dimnames = list(rownames(counts), colnames(counts))
+  )
   ## Set result lists upfront for all cells from different batches
-  estConp <- rep(NA, nC)
-  returnZ <- character(nC)
+  estConp <- rep(NA, ncol(counts))
+  returnZ <- character(ncol(counts))
   zLevels <- character()
   resBatch <- list()
 
-  ## Cycle through each sample/batch and run DecontX
-  for (bat in batchIndex) {
-    if (length(batchIndex) == 1) {
-      .logMessages(
-        date(),
-        ".. Analyzing all cells",
-        logfile = logfile,
-        append = TRUE,
-        verbose = verbose
-      )
-    } else {
-      .logMessages(
-        date(),
-        " .. Analyzing cells in batch '",
-        bat, "'",
-        sep = "",
-        logfile = logfile,
-        append = TRUE,
-        verbose = verbose
-      )
-    }
+  for (bat in unique(batch)) {
+    cells <- batch == bat
+    run <- .runBatch(counts, z, background, batches$bgBatch, batch, bat,
+                     params)
+    estRmat <- .setBatchColumns(estRmat, run$decontXcounts, cells)
+    batchLabels <- if (is.null(z)) run$res$z else labels$labels[cells]
+    resBatch[[bat]] <- .batchEstimates(run$res, batchLabels)
 
-    zBat <- NULL
-    countsBat <- counts[, batch == bat, drop = FALSE]
-    bgBat <- background[, bgBatch == bat, drop = FALSE]
-
-    ## Convert to sparse matrix
-    if (!inherits(countsBat, "dgCMatrix")) {
-      .logMessages(
-        date(),
-        ".... Converting to sparse matrix",
-        logfile = logfile,
-        append = TRUE,
-        verbose = verbose
-      )
-      countsBat <- .asDgCMatrix(countsBat)
-    }
-    if (!is.null(bgBat)) {
-      bgBat <- .asDgCMatrix(bgBat)
-    }
-
-    if (!is.null(z)) {
-      zBat <- z[batch == bat]
-    }
-    if (is.null(params$seed)) {
-      res <- .decontXoneBatch(
-        counts = countsBat,
-        z = zBat,
-        background = bgBat,
-        params = params
-      )
-    } else {
-      withr::with_seed(
-        params$seed,
-        res <- .decontXoneBatch(
-          counts = countsBat,
-          z = zBat,
-          background = bgBat,
-          params = params
-        )
-      )
-    }
-
-    .logMessages(
-      date(),
-      ".. Calculating final decontaminated matrix",
-      logfile = logfile,
-      append = TRUE,
-      verbose = verbose
-    )
-
-    estRmat.temp <- calculateNativeMatrix(
-      counts = countsBat,
-      theta = res$theta,
-      eta = res$eta,
-      phi = res$phi,
-      z = as.integer(res$z),
-      pseudocount = 1e-20
-    )
-
-    # Speed up sparse matrix value assignment by cbind -> order recovery
-    allCol <- paste0("col_", seq_len(ncol(estRmat)))
-    colnames(estRmat) <- allCol
-
-    subCol <- paste0("col_", which(batch == bat))
-    colnames(estRmat.temp) <- subCol
-
-    estRmat <- estRmat[, !(allCol %in% subCol), drop = FALSE]
-    estRmat <- cbind(estRmat, estRmat.temp)
-
-    # Recover order and set names
-    estRmat <- estRmat[, allCol]
-    dimnames(estRmat) <- list(geneNames, allCellNames)
-
-    labels <- if (is.null(z)) res$z else zLabels[batch == bat]
-    labelled <- .labelEstimates(res, labels)
-    resBatch[[bat]] <- list(
-      z = labelled$z,
-      phi = labelled$phi,
-      eta = labelled$eta,
-      delta = res$delta,
-      theta = res$theta,
-      contamination = res$contamination,
-      logLikelihood = res$logLikelihood,
-      UMAP = res$UMAP,
-      iteration = res$iteration
-    )
-
-    estConp[batch == bat] <- res$contamination
-    prefix <- if (prefixZ) paste0(bat, "-") else ""
-    returnZ[batch == bat] <- paste0(prefix, labelled$z)
-    zLevels <- c(zLevels, paste0(prefix, levels(labelled$z)))
+    estConp[cells] <- run$res$contamination
+    prefix <- if (labels$prefix) paste0(bat, "-") else ""
+    returnZ[cells] <- paste0(prefix, resBatch[[bat]]$z)
+    zLevels <- c(zLevels, paste0(prefix, levels(resBatch[[bat]]$z)))
   }
-  names(resBatch) <- batchIndex
+  names(resBatch) <- unique(batch)
 
   # Unprefixed user labels keep the level order of the whole 'z'
-  if (is.null(z) || prefixZ) {
+  if (is.null(z) || labels$prefix) {
     returnZ <- factor(returnZ, levels = zLevels)
   } else {
-    returnZ <- zLabels
+    returnZ <- labels$labels
   }
-
-  returnResult <- list(
-    "runParams" = runParams,
-    "estimates" = resBatch,
-    "decontXcounts" = estRmat,
-    "contamination" = estConp,
-    "z" = returnZ,
-    "batch" = batch
+  list(
+    estimates = resBatch,
+    decontXcounts = estRmat,
+    contamination = estConp,
+    z = returnZ
   )
+}
 
-
-  if (inherits(counts, c("DelayedMatrix", "DelayedArray"))) {
-    .logMessages(
-      date(),
-      ".. Converting decontaminated matrix to a DelayedMatrix",
-      logfile = logfile,
-      append = TRUE,
-      verbose = verbose
+## Run decontX on the cells and background droplets of one batch, and
+## compute their decontaminated counts
+.runBatch <- function(counts, z, background, bgBatch, batch, bat, params) {
+  if (length(unique(batch)) == 1) {
+    .logDecontX(date(), ".. Analyzing all cells", params = params)
+  } else {
+    .logDecontX(date(), " .. Analyzing cells in batch '", bat, "'",
+      sep = "", params = params
     )
-
-    ## Counts on disk in HDF5 give an HDF5Matrix; other seeds stay sparse
-    isHDF5 <- DelayedArray::seedApply(counts, methods::is, "HDF5ArraySeed")
-    if (any(unlist(isHDF5))) {
-      returnResult$decontXcounts <-
-        methods::as(returnResult$decontXcounts, "HDF5Matrix")
-    }
-    returnResult$decontXcounts <-
-      DelayedArray::DelayedArray(returnResult$decontXcounts)
   }
 
-  endTime <- Sys.time()
-  .logMessages(paste(rep("-", 50), collapse = ""),
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
-  )
-  .logMessages("Completed DecontX. Total time:",
-    format(difftime(endTime, startTime)),
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
-  )
-  .logMessages(paste(rep("-", 50), collapse = ""),
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
+  countsBat <- counts[, batch == bat, drop = FALSE]
+  bgBat <- background[, bgBatch == bat, drop = FALSE]
+  zBat <- if (is.null(z)) NULL else z[batch == bat]
+
+  ## Convert to sparse matrix
+  if (!inherits(countsBat, "dgCMatrix")) {
+    .logDecontX(date(), ".... Converting to sparse matrix", params = params)
+    countsBat <- .asDgCMatrix(countsBat)
+  }
+  if (!is.null(bgBat)) {
+    bgBat <- .asDgCMatrix(bgBat)
+  }
+
+  res <- .withSeed(
+    params$seed,
+    .decontXoneBatch(
+      counts = countsBat,
+      z = zBat,
+      background = bgBat,
+      params = params
+    )
   )
 
-  returnResult
+  .logDecontX(date(), ".. Calculating final decontaminated matrix",
+    params = params
+  )
+  decontXcounts <- calculateNativeMatrix(
+    counts = countsBat,
+    theta = res$theta,
+    eta = res$eta,
+    phi = res$phi,
+    z = as.integer(res$z),
+    pseudocount = .decontXPseudocount
+  )
+  list(res = res, decontXcounts = decontXcounts)
+}
+
+## Put the decontaminated counts of one batch into its columns of the
+## result
+.setBatchColumns <- function(estRmat, batchCounts, cells) {
+  dimNames <- dimnames(estRmat)
+
+  # Speed up sparse matrix value assignment by cbind -> order recovery
+  allCol <- paste0("col_", seq_len(ncol(estRmat)))
+  colnames(estRmat) <- allCol
+
+  subCol <- paste0("col_", which(cells))
+  colnames(batchCounts) <- subCol
+
+  estRmat <- estRmat[, !(allCol %in% subCol), drop = FALSE]
+  estRmat <- cbind(estRmat, batchCounts)
+
+  # Recover order and set names
+  estRmat <- estRmat[, allCol]
+  dimnames(estRmat) <- dimNames
+  estRmat
+}
+
+## The estimates of one batch, with z, phi and eta labelled
+.batchEstimates <- function(res, labels) {
+  labelled <- .labelEstimates(res, labels)
+  list(
+    z = labelled$z,
+    phi = labelled$phi,
+    eta = labelled$eta,
+    delta = res$delta,
+    theta = res$theta,
+    contamination = res$contamination,
+    logLikelihood = res$logLikelihood,
+    UMAP = res$UMAP,
+    iteration = res$iteration
+  )
+}
+
+## DelayedMatrix counts give a DelayedMatrix result: an HDF5Matrix when the
+## counts are on disk in HDF5, otherwise the sparse result
+.asInputClass <- function(decontXcounts, counts, params) {
+  if (!inherits(counts, c("DelayedMatrix", "DelayedArray"))) {
+    return(decontXcounts)
+  }
+  .logDecontX(date(),
+    ".. Converting decontaminated matrix to a DelayedMatrix",
+    params = params
+  )
+  isHDF5 <- DelayedArray::seedApply(counts, methods::is, "HDF5ArraySeed")
+  if (any(unlist(isHDF5))) {
+    decontXcounts <- methods::as(decontXcounts, "HDF5Matrix")
+  }
+  DelayedArray::DelayedArray(decontXcounts)
+}
+
+## Evaluate code with the random number generator seeded by
+## withr::with_seed(), or in the current stream when seed is NULL
+.withSeed <- function(seed, code) {
+  if (is.null(seed)) {
+    return(code)
+  }
+  withr::with_seed(seed, code)
+}
+
+## Log a message to params$logfile, or to the console without one
+.logDecontX <- function(..., params, sep = " ") {
+  .logMessages(...,
+    sep = sep,
+    logfile = params$logfile,
+    append = TRUE,
+    verbose = params$verbose
+  )
+}
+
+## Log a message between two lines of dashes
+.logBanner <- function(..., params) {
+  rule <- paste(rep("-", 50), collapse = "")
+  .logDecontX(rule, params = params)
+  .logDecontX(..., params = params)
+  .logDecontX(rule, params = params)
 }
 
 
 # This function updates decontamination for one batch
 # params$seed is passed on to .decontxInitializeZ()
+# .decontX() checks the counts, delta and the clusters of each batch
+# before calling it
 #
 # Do not remove the @importFrom below: fit_dirichlet is fetched from the
 # MCMCprecision namespace by the C++ EM step (src/DecontX.cpp, via
@@ -718,34 +712,35 @@ setMethod(
                              z,
                              background,
                              params) {
-  logfile <- params$logfile
-  verbose <- params$verbose
-  delta <- params$delta
-  .checkCountsDecon(counts)
-  .checkDelta(delta)
-  if (!is.null(z) && is.null(background)) {
-    .checkOneCluster(z)
-  }
+  init <- .initializeBatch(counts, z, params)
 
-  nC <- ncol(counts)
-  deconMethod <- "clustering"
+  .logDecontX(date(), ".... Estimating contamination", params = params)
+  start <- .initializeEM(counts, init$z, background, params$delta)
+  em <- .runEM(counts, init$z, background, start, params)
 
-  ## Generating UMAP and cell cluster labels if none are provided
-  umap <- NULL
-  if (is.null(z)) {
+  list(
+    "logLikelihood" = em$logLikelihood,
+    "contamination" = em$contamination,
+    "theta" = em$theta,
+    "delta" = em$delta,
+    "phi" = em$phi,
+    "eta" = em$eta,
+    "UMAP" = init$umap,
+    "iteration" = em$iteration,
+    "z" = init$z
+  )
+}
+
+## The UMAP of one batch, and its cluster labels as integer codes:
+## estimated when z is NULL, otherwise the given ones
+.initializeBatch <- function(counts, z, params) {
+  estimateCellTypes <- is.null(z)
+  if (estimateCellTypes) {
     m <- ".... Generating UMAP and estimating cell types"
-    estimateCellTypes <- TRUE
   } else {
     m <- ".... Generating UMAP"
-    estimateCellTypes <- FALSE
   }
-  .logMessages(
-    date(),
-    m,
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
-  )
+  .logDecontX(date(), m, params = params)
 
   varGenes <- .processvarGenes(params$varGenes)
   dbscanEps <- .processdbscanEps(params$dbscanEps)
@@ -768,136 +763,106 @@ setMethod(
   )
   rownames(umap) <- colnames(counts)
 
-  z <- .processCellLabels(z, numCells = nC)
+  list(z = .processCellLabels(z, numCells = ncol(counts)), umap = umap)
+}
 
-  iter <- 1L
-  numIterWithoutImprovement <- 0L
-  stopIter <- 3L
-
-  .logMessages(
-    date(),
-    ".... Estimating contamination",
-    logfile = logfile,
-    append = TRUE,
-    verbose = verbose
+## The starting point of the EM: contamination drawn from the delta prior,
+## and phi and eta from it. With background, eta is the background's gene
+## profile
+.initializeEM <- function(counts, z, background, delta) {
+  theta <- stats::rbeta(
+    n = ncol(counts),
+    shape1 = delta[1],
+    shape2 = delta[2]
   )
 
-  if (deconMethod == "clustering") {
-    ## Initialization
-    theta <- stats::rbeta(
-      n = nC,
-      shape1 = delta[1],
-      shape2 = delta[2]
-    )
+  nextDecon <- decontXInitialize(
+    counts = counts,
+    theta = theta,
+    z = z,
+    pseudocount = .decontXPseudocount
+  )
+  phi <- nextDecon$phi
+  eta <- nextDecon$eta
 
-    nextDecon <- decontXInitialize(
+  # if background is not null, use empirical dist. to replace eta
+  if (!is.null(background)) {
+    # Add pseudocount to each gene in eta
+    eta_tilda <- Matrix::rowSums(background) + .decontXPseudocount
+    eta <- eta_tilda / sum(eta_tilda)
+    # Make eta a matrix same dimension as phi
+    eta <- matrix(eta, length(eta), dim(phi)[2])
+  }
+  list(theta = theta, phi = phi, eta = eta)
+}
+
+## The EM updates, until theta converges or maxIter. With background, eta
+## stays the background's profile
+.runEM <- function(counts, z, background, start, params) {
+  theta <- start$theta
+  phi <- start$phi
+  eta <- start$eta
+  delta <- params$delta
+  ll <- c()
+  iter <- 1L
+  converged <- FALSE
+  counts.colsums <- Matrix::colSums(counts)
+  while (iter <= params$maxIter && !isTRUE(converged)) {
+    theta.previous <- theta
+    nextDecon <- decontXEM(
       counts = counts,
+      counts_colsums = counts.colsums,
+      phi = phi,
+      estimate_eta = is.null(background),
+      eta = eta,
       theta = theta,
       z = z,
-      pseudocount = 1e-20
+      estimate_delta = isTRUE(params$estimateDelta),
+      delta = delta,
+      pseudocount = .decontXPseudocount
     )
+    theta <- nextDecon$theta
     phi <- nextDecon$phi
     eta <- nextDecon$eta
+    delta <- nextDecon$delta
 
-    # if background is not null, use empirical dist. to replace eta
-    if (!is.null(background)) {
-      # Add pseudocount to each gene in eta
-      eta_tilda <- Matrix::rowSums(background) + 1e-20
-      eta <- eta_tilda / sum(eta_tilda)
-      # Make eta a matrix same dimension as phi
-      eta <- matrix(eta, length(eta), dim(phi)[2])
+    max.divergence <- max(abs(theta.previous - theta))
+    if (max.divergence < params$convergence) {
+      converged <- TRUE
     }
 
-    ll <- c()
-
-    ## EM updates
-    theta.previous <- theta
-    converged <- FALSE
-    counts.colsums <- Matrix::colSums(counts)
-    while (iter <= params$maxIter && !isTRUE(converged) &&
-             numIterWithoutImprovement <= stopIter) {
-      if (is.null(background)) {
-        nextDecon <- decontXEM(
-          counts = counts,
-          counts_colsums = counts.colsums,
-          phi = phi,
-          estimate_eta = TRUE,
-          eta = eta,
-          theta = theta,
-          z = z,
-          estimate_delta = isTRUE(params$estimateDelta),
-          delta = delta,
-          pseudocount = 1e-20
-        )
-      } else {
-        nextDecon <- decontXEM(
-          counts = counts,
-          counts_colsums = counts.colsums,
-          phi = phi,
-          estimate_eta = FALSE,
-          eta = eta,
-          theta = theta,
-          z = z,
-          estimate_delta = isTRUE(params$estimateDelta),
-          delta = delta,
-          pseudocount = 1e-20
-        )
-      }
-
-
-      theta <- nextDecon$theta
-      phi <- nextDecon$phi
-      eta <- nextDecon$eta
-      delta <- nextDecon$delta
-
-      max.divergence <- max(abs(theta.previous - theta))
-      if (max.divergence < params$convergence) {
-        converged <- TRUE
-      }
-      theta.previous <- theta
-
-      ## Calculate likelihood and check for convergence
-      if (iter %% params$iterLogLik == 0 || converged) {
-        llTemp <- decontXLogLik(
-          counts = counts,
-          z = z,
-          phi = phi,
-          eta = eta,
-          theta = theta,
-          pseudocount = 1e-20
-        )
-
-        ll <- c(ll, llTemp)
-
-        .logMessages(date(),
-          "...... Completed iteration:",
-          iter,
-          "| converge:",
-          signif(max.divergence, 4),
-          logfile = logfile,
-          append = TRUE,
-          verbose = verbose
-        )
-      }
-
-      iter <- iter + 1L
+    ## Calculate likelihood and check for convergence
+    if (iter %% params$iterLogLik == 0 || converged) {
+      ll <- c(ll, .emLogLik(counts, z, phi, eta, theta, iter, max.divergence,
+                            params))
     }
+    iter <- iter + 1L
   }
 
-  resConp <- nextDecon$contamination
-  names(resConp) <- colnames(counts)
-
+  contamination <- nextDecon$contamination
+  names(contamination) <- colnames(counts)
   list(
-    "logLikelihood" = ll,
-    "contamination" = resConp,
-    "theta" = theta,
-    "delta" = delta,
-    "phi" = phi,
-    "eta" = eta,
-    "UMAP" = umap,
-    "iteration" = iter - 1L,
-    "z" = z
+    logLikelihood = ll, contamination = contamination, theta = theta,
+    delta = delta, phi = phi, eta = eta, iteration = iter - 1L
   )
+}
+
+## The log-likelihood after an EM update, logged with the iteration and the
+## largest change in theta
+.emLogLik <- function(counts, z, phi, eta, theta, iter, divergence, params) {
+  ll <- decontXLogLik(
+    counts = counts,
+    z = z,
+    phi = phi,
+    eta = eta,
+    theta = theta,
+    pseudocount = .decontXPseudocount
+  )
+  .logDecontX(date(), "...... Completed iteration:", iter,
+    "| converge:", signif(divergence, 4),
+    params = params
+  )
+  ll
 }
 
 
@@ -1307,22 +1272,14 @@ setMethod(
   )
   sce <- scater::logNormCounts(sce, log = TRUE)
 
-  if (!is.null(seed)) {
-    with_seed(
-      seed,
-      resUmap <- scater::calculateUMAP(sce,
-        ntop = varGenes,
-        n_threads = 1,
-        exprs_values = "logcounts"
-      )
-    )
-  } else {
-    resUmap <- scater::calculateUMAP(sce,
+  resUmap <- .withSeed(
+    seed,
+    scater::calculateUMAP(sce,
       ntop = varGenes,
       n_threads = 1,
       exprs_values = "logcounts"
     )
-  }
+  )
 
   list(normed = SingleCellExperiment::logcounts(sce), umap = resUmap)
 }
@@ -1405,7 +1362,6 @@ setMethod(
 #' @author Shiyi Yang, Yuan Yin, Joshua Campbell
 #' @examples
 #' contaminationSim <- simulateContamination(K = 3, delta = c(1, 10))
-#' @importFrom withr with_seed
 #' @export
 simulateContamination <- function(C = 300,
                                   G = 100,
@@ -1415,8 +1371,9 @@ simulateContamination <- function(C = 300,
                                   delta = c(1, 10),
                                   numMarkers = 3,
                                   seed = 12345) {
-  if (is.null(seed)) {
-    res <- .simulateContaminatedMatrix(
+  .withSeed(
+    seed,
+    .simulateContaminatedMatrix(
       C = C,
       G = G,
       K = K,
@@ -1425,22 +1382,7 @@ simulateContamination <- function(C = 300,
       delta = delta,
       numMarkers = numMarkers
     )
-  } else {
-    with_seed(
-      seed,
-      res <- .simulateContaminatedMatrix(
-        C = C,
-        G = G,
-        K = K,
-        NRange = NRange,
-        beta = beta,
-        delta = delta,
-        numMarkers = numMarkers
-      )
-    )
-  }
-
-  res
+  )
 }
 
 
