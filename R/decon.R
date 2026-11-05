@@ -534,7 +534,7 @@ setMethod(
     cells <- batch == bat
     run <- .runBatch(counts, z, background, batches$bgBatch, batch, bat,
                      params)
-    batchCounts[[bat]] <- run$decontXcounts
+    batchCounts <- c(batchCounts, list(run$decontXcounts))
     batchLabels <- if (is.null(z)) run$res$z else labels$labels[cells]
     resBatch[[bat]] <- .batchEstimates(run$res, batchLabels)
 
@@ -551,11 +551,14 @@ setMethod(
   } else {
     returnZ <- labels$labels
   }
+  decontXcounts <- .bindBatches(batchCounts)
+  # Free the per-batch counts before the reorder copies the result
+  rm(batchCounts)
   # The dimnames without the names of the list, as decontX always gave them
   dimNames <- list(rownames(counts), colnames(counts))
   list(
     estimates = resBatch,
-    decontXcounts = .bindBatches(batchCounts, batch, dimNames),
+    decontXcounts = .inCellOrder(decontXcounts, batch, dimNames),
     contamination = estConp,
     z = returnZ
   )
@@ -609,18 +612,22 @@ setMethod(
   list(res = res, decontXcounts = decontXcounts)
 }
 
-## The decontaminated counts of every cell from those of each batch: one
-## cbind in batch order, then one reorder back to the cells' order
-.bindBatches <- function(batchCounts, batch, dimNames) {
-  batches <- unique(batch)
-  if (length(batches) == 1) {
-    bound <- batchCounts[[batches]]
-  } else {
-    bound <- do.call(cbind, unname(batchCounts[batches]))
-    cellOrder <- unlist(lapply(batches, function(b) which(batch == b)))
-    if (is.unsorted(cellOrder)) {
-      bound <- bound[, order(cellOrder), drop = FALSE]
-    }
+## The decontaminated counts of each batch, in a list in batch order, bound
+## into one matrix with a single cbind. One batch's matrix is not copied
+.bindBatches <- function(batchCounts) {
+  if (length(batchCounts) == 1) {
+    return(batchCounts[[1]])
+  }
+  do.call(cbind, batchCounts)
+}
+
+## Put the columns of .bindBatches() back in the cells' order and name them.
+## Its columns hold the cells batch by batch, in order of first appearance
+## of each batch, so one reorder is needed only when batches interleave
+.inCellOrder <- function(bound, batch, dimNames) {
+  byBatch <- order(match(batch, unique(batch)))
+  if (is.unsorted(byBatch)) {
+    bound <- bound[, order(byBatch), drop = FALSE]
   }
   dimnames(bound) <- dimNames
   bound
