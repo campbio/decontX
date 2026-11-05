@@ -239,6 +239,58 @@ test_that("the matrix result has the batch of each cell", {
   )
 })
 
+test_that("interleaved batches give each batch's own results", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  batch <- rep(c("A", "B"), 50)
+  res <- decontX(counts, z = d$sim$z, batch = batch, verbose = FALSE)
+  expect_identical(dimnames(res$decontXcounts), dimnames(counts))
+  for (b in c("A", "B")) {
+    inBatch <- batch == b
+    alone <- decontX(counts[, inBatch],
+      z = d$sim$z[inBatch],
+      verbose = FALSE
+    )
+    expect_identical(
+      res$decontXcounts[, inBatch],
+      alone$decontXcounts
+    )
+    expect_identical(res$contamination[inBatch], alone$contamination)
+  }
+})
+
+test_that(".bindBatches puts each batch's columns back in cell order", {
+  counts <- Matrix::sparseMatrix(
+    i = c(1, 2, 1, 2, 1), j = c(1, 2, 3, 4, 5), x = c(1, 2, 3, 0, 5),
+    dims = c(2, 5)
+  )
+  dimNames <- list(c("g1", "g2"), paste0("c", seq_len(5)))
+  batch <- c("A", "B", "A", "B", "A")
+  batchCounts <- list(
+    A = counts[, batch == "A", drop = FALSE],
+    B = counts[, batch == "B", drop = FALSE]
+  )
+  expected <- counts
+  dimnames(expected) <- dimNames
+  expect_identical(.bindBatches(batchCounts, batch, dimNames), expected)
+
+  # Cells already in batch order, and no column names
+  ordered <- c("A", "A", "A", "B", "B")
+  batchCounts <- list(A = counts[, 1:3], B = counts[, 4:5])
+  dimNames <- list(c("g1", "g2"), NULL)
+  expected <- counts
+  dimnames(expected) <- dimNames
+  expect_identical(.bindBatches(batchCounts, ordered, dimNames), expected)
+
+  # One batch comes back as it is, with the counts' names
+  single <- .bindBatches(list(all_cells = counts), rep("all_cells", 5),
+    list(c("g1", "g2"), paste0("c", seq_len(5)))
+  )
+  expected <- counts
+  dimnames(expected) <- list(c("g1", "g2"), paste0("c", seq_len(5)))
+  expect_identical(single, expected)
+})
+
 test_that("decontX keeps the SCE results out of the metadata", {
   d <- refData()
   sce <- SingleCellExperiment::SingleCellExperiment(

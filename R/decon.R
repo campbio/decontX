@@ -523,15 +523,8 @@ setMethod(
   batch <- batches$batch
   labels <- .decontXLabels(z, batch)
 
-  ## Set up final decontaminated matrix
-  estRmat <- Matrix::Matrix(
-    data = 0,
-    ncol = ncol(counts),
-    nrow = nrow(counts),
-    sparse = TRUE,
-    dimnames = list(rownames(counts), colnames(counts))
-  )
   ## Set result lists upfront for all cells from different batches
+  batchCounts <- list()
   estConp <- rep(NA, ncol(counts))
   returnZ <- character(ncol(counts))
   zLevels <- character()
@@ -541,7 +534,7 @@ setMethod(
     cells <- batch == bat
     run <- .runBatch(counts, z, background, batches$bgBatch, batch, bat,
                      params)
-    estRmat <- .setBatchColumns(estRmat, run$decontXcounts, cells)
+    batchCounts[[bat]] <- run$decontXcounts
     batchLabels <- if (is.null(z)) run$res$z else labels$labels[cells]
     resBatch[[bat]] <- .batchEstimates(run$res, batchLabels)
 
@@ -560,7 +553,7 @@ setMethod(
   }
   list(
     estimates = resBatch,
-    decontXcounts = estRmat,
+    decontXcounts = .bindBatches(batchCounts, batch, dimnames(counts)),
     contamination = estConp,
     z = returnZ
   )
@@ -614,25 +607,21 @@ setMethod(
   list(res = res, decontXcounts = decontXcounts)
 }
 
-## Put the decontaminated counts of one batch into its columns of the
-## result
-.setBatchColumns <- function(estRmat, batchCounts, cells) {
-  dimNames <- dimnames(estRmat)
-
-  # Speed up sparse matrix value assignment by cbind -> order recovery
-  allCol <- paste0("col_", seq_len(ncol(estRmat)))
-  colnames(estRmat) <- allCol
-
-  subCol <- paste0("col_", which(cells))
-  colnames(batchCounts) <- subCol
-
-  estRmat <- estRmat[, !(allCol %in% subCol), drop = FALSE]
-  estRmat <- cbind(estRmat, batchCounts)
-
-  # Recover order and set names
-  estRmat <- estRmat[, allCol]
-  dimnames(estRmat) <- dimNames
-  estRmat
+## The decontaminated counts of every cell from those of each batch: one
+## cbind in batch order, then one reorder back to the cells' order
+.bindBatches <- function(batchCounts, batch, dimNames) {
+  batches <- unique(batch)
+  if (length(batches) == 1) {
+    bound <- batchCounts[[batches]]
+  } else {
+    bound <- do.call(cbind, unname(batchCounts[batches]))
+    cellOrder <- unlist(lapply(batches, function(b) which(batch == b)))
+    if (is.unsorted(cellOrder)) {
+      bound <- bound[, order(cellOrder), drop = FALSE]
+    }
+  }
+  dimnames(bound) <- dimNames
+  bound
 }
 
 ## The estimates of one batch, with z, phi and eta labelled
