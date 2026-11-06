@@ -1,3 +1,12 @@
+# decontX 1.11.17
+
+* With HDF5-backed counts, `decontXcounts` is now a DelayedMatrix held in
+memory instead of one written to a temporary HDF5 file. Runs are faster,
+and a saved object no longer points at a file that is deleted when the R
+session ends. The result needs memory for the sparse decontaminated
+counts; to keep it on disk, save it explicitly, for example with
+`HDF5Array::saveHDF5SummarizedExperiment()`. Values don't change (#76).
+
 # decontX 1.11.16
 
 * `decontX()` makes fewer copies of the decontaminated counts when it puts
