@@ -56,8 +56,10 @@ batches 0.132 s and 268 MB before, 0.024 s and 239 MB after. The audit's
 
 ## Docs and records
 
-- NEWS for 1.11.16: batched runs put the decontaminated counts together
-  faster and with less memory; results don't change (#76).
+- NEWS for 1.11.16: fewer copies when the decontaminated counts are put
+  together, so less memory allocated and slightly faster, with or
+  without `batch`; results don't change (#76). (Reworded after the
+  benchmark below.)
 - DESCRIPTION: 1.11.16.
 - No ADR change.
 
@@ -95,3 +97,10 @@ Made while implementing and reviewing, on 2026-11-05:
   1.75 copies, so the batched peak stays near 2.75 copies, not the
   ADR's "about 2". Going lower would mean building the sparse slots by
   hand, which this PR doesn't do.
+- `dev/bench/bench-decontx.R sim` at 50,000 cells x 2,000 genes, two
+  iterations, devel 3e315cd against the branch: `z_supplied` 28.1 s to
+  27.2 s, R allocations 1,158 MB to 492 MB, peak RSS 2,750 MB to
+  2,666 MB; `batched4` 37.7 s to 37.1 s, allocations 3,014 MB to
+  1,588 MB, peak RSS 3,110 MB to 3,198 MB (1,822 MB to 1,834 MB above
+  the RSS before the call). The batched peak is elsewhere in the run, so
+  NEWS claims fewer allocations, not a lower peak.

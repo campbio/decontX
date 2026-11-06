@@ -1,7 +1,8 @@
 # decontX 1.11.16
 
-* Batched `decontX()` runs put the decontaminated counts together faster
-and with less memory. Results don't change (#76).
+* `decontX()` makes fewer copies of the decontaminated counts when it puts
+them together, so it allocates less memory and runs slightly faster,
+with or without `batch`. Results don't change (#76).
 
 # decontX 1.11.15
 
