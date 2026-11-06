@@ -187,8 +187,7 @@ DelayedMatrix holds the sparse result in memory, also when \code{x} is
 on disk (for example an \code{HDF5Matrix}); to keep it on disk, save it
 explicitly, for example with \code{HDF5Array::writeHDF5Array()}. Values
 obtained from the variational inference procedure may be non-integer.
-However,
-integer counts can be obtained by rounding,
+However, integer counts can be obtained by rounding,
 e.g. \code{round(decontXcounts)}.}
 \item{\code{contamination}:}{Percentage of contamination in each cell.}
 \item{\code{estimates}:}{List of estimated parameters for each batch. If z
