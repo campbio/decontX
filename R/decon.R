@@ -119,10 +119,12 @@
 #' \describe{
 #' \item{\code{decontXcounts}:}{The decontaminated matrix, a sparse
 #' \code{dgCMatrix} whatever the class of \code{x}, or a
-#' \linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (an
-#' \code{HDF5Matrix} when \code{x} is). Values obtained
-#' from the variational inference procedure may be non-integer. However,
-#' integer counts can be obtained by rounding,
+#' \linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one. The
+#' DelayedMatrix holds the sparse result in memory, also when \code{x} is
+#' on disk (for example an \code{HDF5Matrix}); to keep it on disk, save it
+#' explicitly, for example with \code{HDF5Array::writeHDF5Array()}. Values
+#' obtained from the variational inference procedure may be non-integer.
+#' However, integer counts can be obtained by rounding,
 #' e.g. \code{round(decontXcounts)}.}
 #' \item{\code{contamination}:}{Percentage of contamination in each cell.}
 #' \item{\code{estimates}:}{List of estimated parameters for each batch. If z
@@ -160,7 +162,10 @@
 #' \code{x} replaces the assay, the \code{colData} columns and
 #' \code{metadata(x)$decontX}. A UMAP from an earlier run with different
 #' batches (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
-#' \code{reducedDims} and doesn't match the new results.
+#' \code{reducedDims} and doesn't match the new results. When the counts
+#' are on disk, the \code{decontXcounts} assay is held in memory; save the
+#' object with, for example,
+#' \code{HDF5Array::saveHDF5SummarizedExperiment()} to keep it on disk.
 #'
 #' @author Shiyi Yang, Yuan Yin, Joshua Campbell
 #'
@@ -649,8 +654,8 @@ setMethod(
   )
 }
 
-## DelayedMatrix counts give a DelayedMatrix result: an HDF5Matrix when the
-## counts are on disk in HDF5, otherwise the sparse result
+## DelayedMatrix counts give a DelayedMatrix result over the sparse result,
+## held in memory even when the counts are on disk (for example in HDF5)
 .asInputClass <- function(decontXcounts, counts, params) {
   if (!inherits(counts, c("DelayedMatrix", "DelayedArray"))) {
     return(decontXcounts)
@@ -659,10 +664,6 @@ setMethod(
     ".. Converting decontaminated matrix to a DelayedMatrix",
     params = params
   )
-  isHDF5 <- DelayedArray::seedApply(counts, methods::is, "HDF5ArraySeed")
-  if (any(unlist(isHDF5))) {
-    decontXcounts <- methods::as(decontXcounts, "HDF5Matrix")
-  }
   DelayedArray::DelayedArray(decontXcounts)
 }
 
