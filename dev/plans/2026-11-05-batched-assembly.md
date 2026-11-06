@@ -81,7 +81,7 @@ Made while implementing and reviewing, on 2026-11-05:
   a test checks that batch's counts and contamination against a run on
   it alone. On devel, the cells of a `""` batch already get the cluster
   label `"-"` and its estimates can't be read by name; that older bug is
-  unchanged here and needs an issue of its own.
+  unchanged here and is filed as #102.
 - The helper is split in two, so `.runBatches()` can drop the per-batch
   list before the reorder: `.bindBatches(batchCounts)` binds (one batch
   as it is), and `.inCellOrder(bound, batch, dimNames)` reorders, only
