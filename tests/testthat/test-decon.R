@@ -239,6 +239,96 @@ test_that("the matrix result has the batch of each cell", {
   )
 })
 
+test_that("interleaved batches give each batch's own results", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  batch <- rep(c("A", "B"), 50)
+  res <- decontX(counts, z = d$sim$z, batch = batch, verbose = FALSE)
+  expect_identical(dimnames(res$decontXcounts), dimnames(counts))
+  for (b in c("A", "B")) {
+    inBatch <- batch == b
+    alone <- decontX(counts[, inBatch],
+      z = d$sim$z[inBatch],
+      verbose = FALSE
+    )
+    expect_identical(
+      res$decontXcounts[, inBatch],
+      alone$decontXcounts
+    )
+    expect_identical(res$contamination[inBatch], alone$contamination)
+  }
+})
+
+test_that("a batch labelled with an empty string keeps its counts", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  batch <- rep(c("", "B"), 50)
+  res <- decontX(counts, z = d$sim$z, batch = batch, verbose = FALSE)
+  inBatch <- batch == ""
+  alone <- decontX(counts[, inBatch], z = d$sim$z[inBatch], verbose = FALSE)
+  expect_identical(res$decontXcounts[, inBatch], alone$decontXcounts)
+  expect_identical(res$contamination[inBatch], alone$contamination)
+})
+
+test_that("decontXcounts drops the names of the counts' dimnames list", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  names(dimnames(counts)) <- c("genes", "cells")
+  for (batch in list(NULL, d$batch)) {
+    res <- decontX(counts, z = d$sim$z, batch = batch, verbose = FALSE)
+    expect_identical(dimnames(res$decontXcounts), unname(dimnames(counts)))
+  }
+})
+
+test_that(".bindBatches and .inCellOrder put the columns in cell order", {
+  counts <- Matrix::sparseMatrix(
+    i = c(1, 2, 1, 2, 1), j = c(1, 2, 3, 4, 5), x = c(1, 2, 3, 0, 5),
+    dims = c(2, 5)
+  )
+  bindInCellOrder <- function(batch, dimNames) {
+    batchCounts <- lapply(unique(batch), function(b) {
+      counts[, batch == b, drop = FALSE]
+    })
+    .inCellOrder(.bindBatches(batchCounts), batch, dimNames)
+  }
+  withNames <- function(dimNames) {
+    expected <- counts
+    dimnames(expected) <- dimNames
+    expected
+  }
+
+  # Interleaved batches, one of them labelled with an empty string
+  dimNames <- list(c("g1", "g2"), paste0("c", seq_len(5)))
+  for (batch in list(c("A", "B", "A", "B", "A"), c("", "B", "", "B", ""))) {
+    expect_identical(bindInCellOrder(batch, dimNames), withNames(dimNames))
+  }
+
+  # Cells already in batch order, and no column names
+  dimNames <- list(c("g1", "g2"), NULL)
+  expect_identical(
+    bindInCellOrder(c("A", "A", "A", "B", "B"), dimNames),
+    withNames(dimNames)
+  )
+
+  # One batch comes back as it is
+  expect_identical(.bindBatches(list(counts)), counts)
+
+  # One gene stays a matrix
+  oneGene <- counts[1, , drop = FALSE]
+  batchCounts <- list(
+    oneGene[, c(1, 3, 5), drop = FALSE],
+    oneGene[, c(2, 4), drop = FALSE]
+  )
+  expected <- oneGene
+  dimnames(expected) <- list("g1", NULL)
+  expect_identical(
+    .inCellOrder(.bindBatches(batchCounts), c("A", "B", "A", "B", "A"),
+      list("g1", NULL)
+    ),
+    expected
+  )
+})
+
 test_that("decontX keeps the SCE results out of the metadata", {
   d <- refData()
   sce <- SingleCellExperiment::SingleCellExperiment(

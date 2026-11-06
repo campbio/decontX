@@ -523,15 +523,8 @@ setMethod(
   batch <- batches$batch
   labels <- .decontXLabels(z, batch)
 
-  ## Set up final decontaminated matrix
-  estRmat <- Matrix::Matrix(
-    data = 0,
-    ncol = ncol(counts),
-    nrow = nrow(counts),
-    sparse = TRUE,
-    dimnames = list(rownames(counts), colnames(counts))
-  )
   ## Set result lists upfront for all cells from different batches
+  batchCounts <- list()
   estConp <- rep(NA, ncol(counts))
   returnZ <- character(ncol(counts))
   zLevels <- character()
@@ -541,7 +534,7 @@ setMethod(
     cells <- batch == bat
     run <- .runBatch(counts, z, background, batches$bgBatch, batch, bat,
                      params)
-    estRmat <- .setBatchColumns(estRmat, run$decontXcounts, cells)
+    batchCounts <- c(batchCounts, list(run$decontXcounts))
     batchLabels <- if (is.null(z)) run$res$z else labels$labels[cells]
     resBatch[[bat]] <- .batchEstimates(run$res, batchLabels)
 
@@ -558,9 +551,14 @@ setMethod(
   } else {
     returnZ <- labels$labels
   }
+  decontXcounts <- .bindBatches(batchCounts)
+  # Free the per-batch counts before the reorder copies the result
+  rm(batchCounts)
+  # The dimnames without the names of the list, as decontX always gave them
+  dimNames <- list(rownames(counts), colnames(counts))
   list(
     estimates = resBatch,
-    decontXcounts = estRmat,
+    decontXcounts = .inCellOrder(decontXcounts, batch, dimNames),
     contamination = estConp,
     z = returnZ
   )
@@ -614,25 +612,25 @@ setMethod(
   list(res = res, decontXcounts = decontXcounts)
 }
 
-## Put the decontaminated counts of one batch into its columns of the
-## result
-.setBatchColumns <- function(estRmat, batchCounts, cells) {
-  dimNames <- dimnames(estRmat)
+## The decontaminated counts of each batch, in a list in batch order, bound
+## into one matrix with a single cbind. One batch's matrix is not copied
+.bindBatches <- function(batchCounts) {
+  if (length(batchCounts) == 1) {
+    return(batchCounts[[1]])
+  }
+  do.call(cbind, batchCounts)
+}
 
-  # Speed up sparse matrix value assignment by cbind -> order recovery
-  allCol <- paste0("col_", seq_len(ncol(estRmat)))
-  colnames(estRmat) <- allCol
-
-  subCol <- paste0("col_", which(cells))
-  colnames(batchCounts) <- subCol
-
-  estRmat <- estRmat[, !(allCol %in% subCol), drop = FALSE]
-  estRmat <- cbind(estRmat, batchCounts)
-
-  # Recover order and set names
-  estRmat <- estRmat[, allCol]
-  dimnames(estRmat) <- dimNames
-  estRmat
+## Put the columns of .bindBatches() back in the cells' order and name them.
+## Its columns hold the cells batch by batch, in order of first appearance
+## of each batch, so one reorder is needed only when batches interleave
+.inCellOrder <- function(bound, batch, dimNames) {
+  byBatch <- order(match(batch, unique(batch)))
+  if (is.unsorted(byBatch)) {
+    bound <- bound[, order(byBatch), drop = FALSE]
+  }
+  dimnames(bound) <- dimNames
+  bound
 }
 
 ## The estimates of one batch, with z, phi and eta labelled

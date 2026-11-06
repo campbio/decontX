@@ -1,3 +1,9 @@
+# decontX 1.11.16
+
+* `decontX()` makes fewer copies of the decontaminated counts when it puts
+them together, so it allocates less memory and runs slightly faster,
+with or without `batch`. Results don't change (#76).
+
 # decontX 1.11.15
 
 * `decontX()` stops when `bgBatch` is given with `batch` but without
