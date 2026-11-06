@@ -2,7 +2,7 @@
 # commit is installed from `git archive` into its own temporary library, and
 # the paths run in a fresh R process per library. It covers the paths the
 # committed references can't pin at 1e-10: no z (initialization and UMAP),
-# legacyInit, and decontPro's Stan fits. Run it locally, not in CI;
+# legacyInit, HDF5 input, and decontPro's Stan fits. Run it locally, not in CI;
 # installing a commit compiles Stan, which takes several minutes.
 #
 # Usage, from the package root:
@@ -61,6 +61,26 @@ runPaths <- function(helper) {
         suppressWarnings(decontX(d$sim$observedCounts,
           legacyInit = TRUE, verbose = FALSE
         ))
+      },
+      # HDF5Array isn't a decontX dependency, so the test suite can't
+      # cover HDF5 input. Values and contamination, plus the class of the
+      # result's seed (where the result is held)
+      hdf5 = function(d) {
+        if (!requireNamespace("HDF5Array", quietly = TRUE)) {
+          return(structure("HDF5Array is not installed",
+            class = "pathSkipped"
+          ))
+        }
+        counts <- HDF5Array::writeHDF5Array(d$sim$observedCounts,
+          filepath = tempfile(fileext = ".h5"), name = "counts"
+        )
+        res <- decontX(counts, z = d$sim$z, verbose = FALSE)
+        list(
+          decontXcounts = methods::as(res$decontXcounts, "dgCMatrix"),
+          contamination = res$contamination,
+          class = class(res$decontXcounts),
+          seedClass = class(DelayedArray::seed(res$decontXcounts))
+        )
       },
       decontPro = function(d) {
         p <- refProData()
