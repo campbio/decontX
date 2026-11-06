@@ -46,6 +46,16 @@ runPaths <- function(helper) {
   env <- new.env(parent = asNamespace("decontX"))
   sys.source(helper, envir = env)
   local(envir = env, {
+    # decontX on the simulated counts written to a temporary HDF5 file
+    runHDF5 <- function(d) {
+      if (!requireNamespace("HDF5Array", quietly = TRUE)) {
+        return(structure("HDF5Array is not installed", class = "pathSkipped"))
+      }
+      counts <- HDF5Array::writeHDF5Array(d$sim$observedCounts,
+        filepath = tempfile(fileext = ".h5"), name = "counts"
+      )
+      decontX(counts, z = d$sim$z, verbose = FALSE)
+    }
     extraPaths <- list(
       noZ = function(d) decontX(d$sim$observedCounts, verbose = FALSE),
       noZSce = function(d) {
@@ -63,21 +73,26 @@ runPaths <- function(helper) {
         ))
       },
       # HDF5Array isn't a decontX dependency, so the test suite can't
-      # cover HDF5 input. Values and contamination, plus the class of the
-      # result's seed (where the result is held)
+      # cover HDF5 input. hdf5 compares the values and contamination;
+      # hdf5Class compares the class of the result and of its seed (where
+      # the result is held), kept apart so a change of class doesn't hide
+      # a change of values
       hdf5 = function(d) {
-        if (!requireNamespace("HDF5Array", quietly = TRUE)) {
-          return(structure("HDF5Array is not installed",
-            class = "pathSkipped"
-          ))
+        res <- runHDF5(d)
+        if (inherits(res, "pathSkipped")) {
+          return(res)
         }
-        counts <- HDF5Array::writeHDF5Array(d$sim$observedCounts,
-          filepath = tempfile(fileext = ".h5"), name = "counts"
-        )
-        res <- decontX(counts, z = d$sim$z, verbose = FALSE)
         list(
           decontXcounts = methods::as(res$decontXcounts, "dgCMatrix"),
-          contamination = res$contamination,
+          contamination = res$contamination
+        )
+      },
+      hdf5Class = function(d) {
+        res <- runHDF5(d)
+        if (inherits(res, "pathSkipped")) {
+          return(res)
+        }
+        list(
           class = class(res$decontXcounts),
           seedClass = class(DelayedArray::seed(res$decontXcounts))
         )

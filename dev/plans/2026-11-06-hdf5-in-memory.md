@@ -67,3 +67,30 @@ a file that is gone in the next session.
 celda and singleCellTK still get a DelayedMatrix for DelayedArray input.
 Code that relied on the result being an `HDF5Matrix` (for example
 calling `path()` on it) sees the change; that file was temporary anyway.
+
+## Amendments
+
+Made while implementing and reviewing, on 2026-11-06:
+
+- `dev/compare-commits.R` gets two paths, not one in-memory flag: `hdf5`
+  (values as a dgCMatrix, and contamination), which stays identical,
+  and `hdf5Class` (the class of the result and of its seed), which this
+  PR changes from HDF5Matrix/HDF5ArraySeed to DelayedMatrix/dgCMatrix.
+  `/code-review` pointed out that one path holding both would always
+  differ across this change and could hide a change of values. Both
+  share `runHDF5()` and are skipped without HDF5Array.
+- The matrix result's help names `HDF5Array::writeHDF5Array()`, and the
+  SingleCellExperiment text `saveHDF5SummarizedExperiment()`: the right
+  call for each. NEWS names both, and says HDF5Array's dump settings
+  (`setHDF5DumpDir()`) no longer apply to the result.
+- `/code-review` findings left as they are: the result staying in
+  memory for as long as the object lives is the A5-06 decision, and
+  NEWS says so; the help page describes the current class, and NEWS
+  records the change; no new test, since the existing test of a
+  dense-backed DelayedMatrix already fails if the result were written
+  back to the input's backend.
+- `dev/bench/bench-decontx.R real` (pbmc4k, 3 iterations), devel 5cc463b
+  against the branch: `sce_hdf5` 20.5 s to 8.6 s, R allocations
+  2,719 MB to 1,454 MB, peak RSS 2,753 MB to 2,128 MB; the in-memory
+  `z_estimated` control 6.6 s to 6.8 s (noise; a `make docs` run
+  overlapped part of it).

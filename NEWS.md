@@ -4,8 +4,11 @@
 memory instead of one written to a temporary HDF5 file. Runs are faster,
 and a saved object no longer points at a file that is deleted when the R
 session ends. The result needs memory for the sparse decontaminated
-counts; to keep it on disk, save it explicitly, for example with
-`HDF5Array::saveHDF5SummarizedExperiment()`. Values don't change (#76).
+counts, and HDF5Array's dump settings (such as `setHDF5DumpDir()`) no
+longer apply to it. To keep it on disk, save it explicitly:
+`HDF5Array::saveHDF5SummarizedExperiment()` for a SingleCellExperiment,
+or `HDF5Array::writeHDF5Array()` for the matrix. Values don't change
+(#76).
 
 # decontX 1.11.16
 
