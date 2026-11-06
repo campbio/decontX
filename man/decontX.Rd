@@ -182,9 +182,12 @@ with the following items:
 \describe{
 \item{\code{decontXcounts}:}{The decontaminated matrix, a sparse
 \code{dgCMatrix} whatever the class of \code{x}, or a
-\linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one (an
-\code{HDF5Matrix} when \code{x} is). Values obtained
-from the variational inference procedure may be non-integer. However,
+\linkS4class[DelayedArray]{DelayedMatrix} when \code{x} is one. The
+DelayedMatrix holds the sparse result in memory, also when \code{x} is
+on disk (for example an \code{HDF5Matrix}); to keep it on disk, save it
+explicitly, for example with \code{HDF5Array::writeHDF5Array()}. Values
+obtained from the variational inference procedure may be non-integer.
+However,
 integer counts can be obtained by rounding,
 e.g. \code{round(decontXcounts)}.}
 \item{\code{contamination}:}{Percentage of contamination in each cell.}
@@ -223,7 +226,10 @@ cell cluster labels will be stored in
 \code{x} replaces the assay, the \code{colData} columns and
 \code{metadata(x)$decontX}. A UMAP from an earlier run with different
 batches (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
-\code{reducedDims} and doesn't match the new results.
+\code{reducedDims} and doesn't match the new results. When the counts
+are on disk, the \code{decontXcounts} assay is held in memory; save the
+object with, for example,
+\code{HDF5Array::saveHDF5SummarizedExperiment()} to keep it on disk.
 }
 \description{
 Identifies contamination from factors such as ambient RNA
