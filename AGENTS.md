@@ -73,8 +73,8 @@ upstream functions exist, so never describe it as transitional.
 ## Tests
 
 - `tests/testthat/`: `test-decon.R`, `test-decontPro.R`,
-  `test-matrixSums.R`, `test-simulateContamination.R`, and shared fixtures in `helper-decontx.R`
-  (testthat edition 3).
+  `test-matrixSums.R`, `test-simulateContamination.R`, and shared
+  fixtures in `helper-decontx.R` (testthat edition 3).
 - Several decontPro tests run a real Stan variational fit. They use a
   10 x 8 fixture to stay under a second each; keep decontPro fixtures
   that small, and wrap real fits in `quietStan()` so rstan's progress
