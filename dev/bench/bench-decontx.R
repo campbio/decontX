@@ -758,7 +758,9 @@ modeSim <- function(outdir, lib) {
 ## SingleCellExperiment as distributed
 modeReal <- function(outdir, lib) {
   dataset <- envOr("DECONTX_BENCH_PBMC", "pbmc4k")
-  if (!file.exists(dataFile(outdir, dataset))) {
+  ## Data cached before decontX 1.11.19's bench have no z: load them again
+  cached <- dataFile(outdir, dataset)
+  if (!file.exists(cached) || is.null(readRDS(cached)$z)) {
     runWorker(paste0("loadpbmc_", dataset), outdir, lib)
   }
   runs <- splitList(envOr("DECONTX_BENCH_REAL_RUNS", "z_estimated,sce_hdf5"))

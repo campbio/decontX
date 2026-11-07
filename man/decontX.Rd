@@ -196,7 +196,9 @@ contamination on another embedding with \code{reducedDimName}.
 embedding (variable genes, PCA and UMAP). With more than one thread the
 PCA can differ in the last digits on large data sets, which can move
 the UMAP coordinates slightly and, rarely, change estimated clusters.
-Has no effect with \code{embedding = FALSE}. Default 1.}
+With \code{legacyInit = TRUE}, only the UMAP uses the threads; it was
+the same with one and four threads on 8,000 simulated cells. Has no
+effect with \code{embedding = FALSE}. Default 1.}
 }
 \value{
 If \code{x} is a matrix-like object, a list will be returned

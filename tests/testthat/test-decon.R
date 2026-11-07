@@ -1124,6 +1124,30 @@ test_that("embedding = FALSE writes no UMAP and keeps an earlier one", {
   )
 })
 
+test_that("embedding = FALSE stores the same SCE results without a UMAP", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  for (batch in list(NULL, d$batch)) {
+    with <- decontX(sce, z = d$sim$z, batch = batch, verbose = FALSE)
+    without <- decontX(sce,
+      z = d$sim$z, batch = batch, embedding = FALSE,
+      verbose = FALSE
+    )
+    expect_identical(decontXcounts(without), decontXcounts(with))
+    expect_identical(
+      SummarizedExperiment::colData(without),
+      SummarizedExperiment::colData(with)
+    )
+    expect_identical(
+      withoutEmbedding(S4Vectors::metadata(without)$decontX),
+      withoutEmbedding(S4Vectors::metadata(with)$decontX)
+    )
+    expect_length(SingleCellExperiment::reducedDimNames(without), 0)
+  }
+})
+
 test_that("embedding = FALSE needs z", {
   d <- refData()
   expect_error(
@@ -1216,6 +1240,25 @@ test_that("numThreads reaches the legacy UMAP", {
   expect_identical(threads, 3)
 })
 
+test_that("numThreads > 1 gives the same legacy results with z", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  one <- suppressWarnings(
+    decontX(x, z = d$sim$z, legacyInit = TRUE, verbose = FALSE)
+  )
+  two <- suppressWarnings(decontX(x,
+    z = d$sim$z, legacyInit = TRUE, numThreads = 2,
+    verbose = FALSE
+  ))
+  expect_identical(two$decontXcounts, one$decontXcounts)
+  expect_identical(two$contamination, one$contamination)
+  expect_identical(
+    two$estimates$all_cells$UMAP,
+    one$estimates$all_cells$UMAP
+  )
+})
+
 test_that("numThreads > 1 gives the same decontamination with z", {
   d <- refData()
   x <- d$sim$observedCounts
@@ -1268,6 +1311,42 @@ test_that("the contamination plot uses a reducedDim for every cell", {
   expect_error(
     plotDecontXContamination(sce, reducedDimName = "TSNE"),
     regexp = "'TSNE' is not a reducedDim of 'x'\\. Available: 'PCA'"
+  )
+  for (bad in list(1, NA_character_, c("PCA", "PCA"))) {
+    expect_error(
+      plotDecontXContamination(sce, reducedDimName = bad),
+      regexp = "'reducedDimName' must be a single reducedDim name"
+    )
+  }
+  expect_error(
+    plotDecontXContamination(sce, batch = c("A", "B")),
+    regexp = "'batch' must be NULL or a single batch name"
+  )
+
+  # A subset of the cells: every cell works, a batch needs the run's cells
+  b <- ggplot2::ggplot_build(
+    plotDecontXContamination(sce[, 1:10], reducedDimName = "PCA")
+  )
+  expect_equal(b$data[[1]]$x, unname(coords[1:10, 1]))
+  expect_error(
+    plotDecontXContamination(sce[, 1:10], reducedDimName = "PCA", batch = "A"),
+    regexp = "'x' has 10 cells and the run had 100"
+  )
+
+  # The decontX UMAP is missing from the SCE's estimates too
+  expect_error(plotDecontXContamination(sce),
+    regexp = "Batch 'A' has no decontX UMAP"
+  )
+
+  SingleCellExperiment::reducedDim(sce, "PCA") <- coords[, 1, drop = FALSE]
+  expect_error(
+    plotDecontXContamination(sce, reducedDimName = "PCA"),
+    regexp = "reducedDim 'PCA' needs at least two columns"
+  )
+  SingleCellExperiment::reducedDims(sce) <- list()
+  expect_error(
+    plotDecontXContamination(sce, reducedDimName = "PCA"),
+    regexp = "'x' has no reducedDims"
   )
   expect_error(
     plotDecontXContamination(sce, reducedDimName = "PCA", batch = "C"),

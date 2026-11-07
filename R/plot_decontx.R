@@ -17,7 +17,9 @@
 #' the contamination on instead of the decontX UMAP, for example after
 #' running \code{decontX} with \code{embedding = FALSE}. Its first two
 #' columns are used. Only when \code{x} is a
-#' \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default
+#' \linkS4class[SingleCellExperiment]{SingleCellExperiment}. With
+#' \code{batch}, the cells of the batch are found from the batches of the
+#' decontX run, so \code{x} needs the same cells as that run. Default
 #' \code{NULL}.
 #' @return Returns a \code{ggplot} object.
 #' @author Shiyi Yang, Joshua Campbell
@@ -53,6 +55,9 @@ plotDecontXContamination <- function(x,
           on a count matrix. Are you sure 'x' is output from decontX?")
   }
   batches <- names(estimates)
+  if (!is.null(batch) && !(length(batch) == 1 && !is.na(batch))) {
+    stop("'batch' must be NULL or a single batch name.")
+  }
   if (!is.null(batch) && !(batch %in% batches)) {
     stop(
       "'", batch, "' is not one of the batches in 'x'. Batches available",
@@ -76,7 +81,15 @@ plotDecontXContamination <- function(x,
     coords <- .reducedDimCoords(x, reducedDimName)
     contamin <- SummarizedExperiment::colData(x)$decontX_contamination
     if (!is.null(batch)) {
-      cells <- decontXResult$runParams$batch == batch
+      runBatch <- decontXResult$runParams$batch
+      if (length(runBatch) != ncol(x)) {
+        stop(
+          "'batch' needs the cells decontX was run on: 'x' has ", ncol(x),
+          " cells and the run had ", length(runBatch), ". Plot without ",
+          "'batch', or subset 'x' to the batch's cells."
+        )
+      }
+      cells <- runBatch == batch
       coords <- coords[cells, , drop = FALSE]
       contamin <- contamin[cells]
     }
@@ -129,12 +142,18 @@ plotDecontXContamination <- function(x,
 
 ## The coordinates of a reducedDim of an SCE, cells x dimensions
 .reducedDimCoords <- function(x, reducedDimName) {
-  available <- SingleCellExperiment::reducedDimNames(x)
   if (!(is.character(reducedDimName) && length(reducedDimName) == 1 &&
-          reducedDimName %in% available)) {
+          !is.na(reducedDimName))) {
+    stop("'reducedDimName' must be a single reducedDim name.")
+  }
+  available <- SingleCellExperiment::reducedDimNames(x)
+  if (length(available) == 0) {
+    stop("'x' has no reducedDims.")
+  }
+  if (!(reducedDimName %in% available)) {
     stop(
-      "'", paste(reducedDimName, collapse = ","), "' is not a reducedDim ",
-      "of 'x'. Available: '", paste(available, collapse = "', '"), "'"
+      "'", reducedDimName, "' is not a reducedDim of 'x'. Available: '",
+      paste(available, collapse = "', '"), "'"
     )
   }
   coords <- SingleCellExperiment::reducedDim(x, reducedDimName)

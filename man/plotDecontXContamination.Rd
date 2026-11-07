@@ -32,7 +32,9 @@ c("blue","green","yellow","orange","red").}
 the contamination on instead of the decontX UMAP, for example after
 running \code{decontX} with \code{embedding = FALSE}. Its first two
 columns are used. Only when \code{x} is a
-\linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default
+\linkS4class[SingleCellExperiment]{SingleCellExperiment}. With
+\code{batch}, the cells of the batch are found from the batches of the
+decontX run, so \code{x} needs the same cells as that run. Default
 \code{NULL}.}
 }
 \value{
