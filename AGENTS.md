@@ -29,12 +29,13 @@ including `make site-check`.
 ## Layout
 
 - `R/decon.R`: DecontX core. The `decontX()` S4 generic and methods, the
-  EM algorithm, the `decontXcounts()` accessors, `simulateContamination()`,
-  `retrieveFeatureIndex()`.
+  EM algorithm, initialization, and argument and background checks.
+- `R/decontXcounts.R`: the `decontXcounts()` accessors.
+- `R/simulateContamination.R`: `simulateContamination()`.
 - `R/decontPro.R`: the `decontPro()` S4 generic and methods (Stan-based).
 - `R/plot_decontx.R`, `R/plot_decontPro.R`: plotting functions.
-- `R/celda_functions.R`: internal helpers copied from celda (see Related
-  packages).
+- `R/celda_functions.R`: helpers copied from celda (see Related
+  packages), including the exported `retrieveFeatureIndex()`.
 - `R/stan_helpers.R`: Stan model wiring (`.call_stan_vb()`,
   `.process_stan_vb_out()`).
 - `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixSums*`
@@ -72,8 +73,8 @@ upstream functions exist, so never describe it as transitional.
 ## Tests
 
 - `tests/testthat/`: `test-decon.R`, `test-decontPro.R`,
-  `test-matrixSums.R`, and shared fixtures in `helper-decontx.R`
-  (testthat edition 3).
+  `test-matrixSums.R`, `test-simulateContamination.R`, and shared
+  fixtures in `helper-decontx.R` (testthat edition 3).
 - Several decontPro tests run a real Stan variational fit. They use a
   10 x 8 fixture to stay under a second each; keep decontPro fixtures
   that small, and wrap real fits in `quietStan()` so rstan's progress
