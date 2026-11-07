@@ -89,7 +89,8 @@
 #' using \code{\link[scrapper]{modelGeneVariances}} from the 'scrapper'
 #' package (or by the variance of the log-normalized counts when
 #' \code{legacyInit = TRUE}). If \code{z} is provided, it is used only for
-#' the UMAP stored in the results. Default 5000.
+#' the UMAP stored in the results, and not at all with
+#' \code{embedding = FALSE}. Default 5000.
 #' @param dbscanEps Numeric. The clustering resolution parameter
 #' used in '\link[dbscan]{dbscan}' to estimate broad cell clusters.
 #' Used only when z is not provided. Default 1.
@@ -108,10 +109,25 @@
 #'  package. It is kept for backwards compatibility and will remain
 #'  available as long as the upstream functions are still provided by
 #'  scater/scuttle. If \code{z} is provided, it is used only for the UMAP
-#'  stored in the results. Default FALSE.
+#'  stored in the results, and not at all with \code{embedding = FALSE}.
+#'  Default FALSE.
 #' @param logfile Character. Messages will be redirected to a file named
 #'  `logfile`. If NULL, messages will be printed to stdout.  Default NULL.
 #' @param verbose Logical. Whether to print log messages. Default TRUE.
+#' @param embedding Logical. Whether to compute the low-dimensional
+#'  embedding of the cells (currently a UMAP) that decontX uses to estimate
+#'  the cell clusters and stores in the results. When \code{z} is provided,
+#'  the embedding is used only for the stored results, so
+#'  \code{embedding = FALSE} skips it, which saves most of the run time on
+#'  large data sets; the decontamination is the same either way. Then no
+#'  UMAP is stored, and \code{\link{plotDecontXContamination}} can plot the
+#'  contamination on another embedding with \code{reducedDimName}.
+#'  \code{embedding = FALSE} needs \code{z}. Default TRUE.
+#' @param numThreads Integer. Number of threads for computing the
+#'  embedding (variable genes, PCA and UMAP). With more than one thread the
+#'  PCA can differ in the last digits on large data sets, which can move
+#'  the UMAP coordinates slightly and, rarely, change estimated clusters.
+#'  Has no effect with \code{embedding = FALSE}. Default 1.
 #' @param ... For the generic, further arguments to pass to each method.
 #'
 #' @return If \code{x} is a matrix-like object, a list will be returned
@@ -127,9 +143,10 @@
 #' However, integer counts can be obtained by rounding,
 #' e.g. \code{round(decontXcounts)}.}
 #' \item{\code{contamination}:}{Percentage of contamination in each cell.}
-#' \item{\code{estimates}:}{List of estimated parameters for each batch. If z
-#' was not supplied, then the UMAP coordinates used to generated cell
-#' cluster labels will also be stored here. The columns of \code{phi} and
+#' \item{\code{estimates}:}{List of estimated parameters for each batch,
+#' including the UMAP coordinates (\code{UMAP}), which are used to generate
+#' the cell cluster labels when z is not supplied. \code{UMAP} is
+#' \code{NULL} with \code{embedding = FALSE}. The columns of \code{phi} and
 #' \code{eta} are named by cluster label, in the order of the levels of the
 #' batch's \code{z}.}
 #' \item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
@@ -158,11 +175,14 @@
 #' will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
 #' will be stored in \code{metadata(x)$decontX}. The UMAPs used to generated
 #' cell cluster labels will be stored in
-#' \code{reducedDims} slot in \code{x}. Running \code{decontX} again on
+#' \code{reducedDims} slot in \code{x}, except with
+#' \code{embedding = FALSE}. Running \code{decontX} again on
 #' \code{x} replaces the assay, the \code{colData} columns and
-#' \code{metadata(x)$decontX}. A UMAP from an earlier run with different
-#' batches (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
-#' \code{reducedDims} and doesn't match the new results. When the counts
+#' \code{metadata(x)$decontX}. A UMAP from an earlier run
+#' (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
+#' \code{reducedDims} when the new run doesn't replace it, because the
+#' batches differ or the new run has \code{embedding = FALSE}, and it
+#' doesn't match the new results. When the counts
 #' are on disk, the \code{decontXcounts} assay is held in memory; save the
 #' object with, for example,
 #' \code{HDF5Array::saveHDF5SummarizedExperiment()} to keep it on disk.
@@ -204,7 +224,9 @@ setMethod("decontX", "SingleCellExperiment", function(x,
                                                       seed = 12345,
                                                       legacyInit = FALSE,
                                                       logfile = NULL,
-                                                      verbose = TRUE) {
+                                                      verbose = TRUE,
+                                                      embedding = TRUE,
+                                                      numThreads = 1) {
   .checkAssayName(x, assayName, "assayName", "x")
   mat <- SummarizedExperiment::assay(x, i = assayName)
   .checkCountsMatrix(mat, "The 'x' assay")
@@ -219,7 +241,9 @@ setMethod("decontX", "SingleCellExperiment", function(x,
     seed = seed,
     legacyInit = legacyInit,
     logfile = logfile,
-    verbose = verbose
+    verbose = verbose,
+    embedding = embedding,
+    numThreads = numThreads
   )
 
   bgCounts <- NULL
@@ -285,7 +309,9 @@ setMethod("decontX", "ANY", function(x,
                                      seed = 12345,
                                      legacyInit = FALSE,
                                      logfile = NULL,
-                                     verbose = TRUE) {
+                                     verbose = TRUE,
+                                     embedding = TRUE,
+                                     numThreads = 1) {
   hint <- ""
   if (inherits(x, "SummarizedExperiment")) {
     hint <- " Convert it with as(x, \"SingleCellExperiment\")."
@@ -305,7 +331,9 @@ setMethod("decontX", "ANY", function(x,
     seed = seed,
     legacyInit = legacyInit,
     logfile = logfile,
-    verbose = verbose
+    verbose = verbose,
+    embedding = embedding,
+    numThreads = numThreads
   )
 
   # Objects without dimensions get .checkBackground()'s message
@@ -340,6 +368,12 @@ setMethod("decontX", "ANY", function(x,
   .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
+  if (!params$embedding && is.null(z)) {
+    stop(
+      "'embedding = FALSE' needs 'z': the cell clusters are estimated ",
+      "from the embedding."
+    )
+  }
 
   if (!is.null(background)) {
     # Remove cells with the same ID between x and the background matrix
@@ -671,8 +705,14 @@ setMethod("decontX", "ANY", function(x,
 }
 
 ## The UMAP of one batch, and its cluster labels as integer codes:
-## estimated when z is NULL, otherwise the given ones
+## estimated when z is NULL, otherwise the given ones. Without the
+## embedding (z is then given) the UMAP is NULL
 .initializeBatch <- function(counts, z, params) {
+  if (!params$embedding) {
+    .checkLibSizes(counts)
+    return(list(z = .processCellLabels(z, numCells = ncol(counts)),
+                umap = NULL))
+  }
   estimateCellTypes <- is.null(z)
   if (estimateCellTypes) {
     m <- ".... Generating UMAP and estimating cell types"
@@ -690,7 +730,8 @@ setMethod("decontX", "ANY", function(x,
     dbscanEps = dbscanEps,
     estimateCellTypes = estimateCellTypes,
     seed = params$seed,
-    legacyInit = params$legacyInit
+    legacyInit = params$legacyInit,
+    numThreads = params$numThreads
   )
   if (is.null(z)) {
     z <- celda.init$z
@@ -818,7 +859,9 @@ setMethod("decontX", "ANY", function(x,
                            seed,
                            legacyInit,
                            logfile,
-                           verbose) {
+                           verbose,
+                           embedding,
+                           numThreads) {
   .checkEMArgs(maxIter, convergence, iterLogLik)
   .checkDelta(delta)
   .processvarGenes(varGenes)
@@ -826,7 +869,8 @@ setMethod("decontX", "ANY", function(x,
   flags <- list(
     estimateDelta = estimateDelta,
     legacyInit = legacyInit,
-    verbose = verbose
+    verbose = verbose,
+    embedding = embedding
   )
   for (flag in names(flags)) {
     if (!(isTRUE(flags[[flag]]) || isFALSE(flags[[flag]]))) {
@@ -841,6 +885,9 @@ setMethod("decontX", "ANY", function(x,
         !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
     stop("'logfile' must be NULL or a single character string.")
   }
+  if (!(.isWholeNumber(numThreads, min = 1) && is.finite(numThreads))) {
+    stop("'numThreads' must be a single whole number of at least 1.")
+  }
   list(
     maxIter = maxIter,
     delta = delta,
@@ -852,16 +899,23 @@ setMethod("decontX", "ANY", function(x,
     seed = seed,
     legacyInit = legacyInit,
     logfile = logfile,
-    verbose = verbose
+    verbose = verbose,
+    embedding = embedding,
+    numThreads = numThreads
   )
 }
 
 ## The UMAPs to store with one row per cell, named as the SCE reducedDims:
 ## a single batch's UMAP as it is, or each batch's padded with NA for the
 ## cells of the other batches. The single UMAP keeps its DecontX_UMAP_1/2
-## columns and the padded ones get UMAP_1/2, as decontX always stored them
+## columns and the padded ones get UMAP_1/2, as decontX always stored them.
+## None when the run had no embedding
 .decontXUMAPs <- function(result, cellNames) {
   batches <- names(result$estimates)
+  # Without the embedding, no batch has a UMAP
+  if (is.null(result$estimates[[1]]$UMAP)) {
+    return(list())
+  }
   if (length(batches) == 1) {
     return(list(decontX_UMAP = result$estimates[[1]]$UMAP))
   }
@@ -1088,16 +1142,19 @@ setMethod("decontX", "ANY", function(x,
                                 dbscanEps,
                                 estimateCellTypes,
                                 seed,
-                                legacyInit) {
+                                legacyInit,
+                                numThreads) {
   if (isTRUE(legacyInit)) {
     init <- .decontxInitializeZLegacy(counts,
       varGenes = varGenes,
-      seed = seed
+      seed = seed,
+      numThreads = numThreads
     )
   } else {
     init <- .decontxInitializeZScrapper(counts,
       varGenes = varGenes,
-      seed = seed
+      seed = seed,
+      numThreads = numThreads
     )
   }
   resUmap <- init$umap
@@ -1142,14 +1199,8 @@ setMethod("decontX", "ANY", function(x,
 ## UMAP via the 'scrapper' package. scrapper does not use R's RNG; the
 ## UMAP is seeded explicitly, so results are deterministic for a given
 ## seed (and with scrapper's own default seeds when seed = NULL).
-.decontxInitializeZScrapper <- function(counts, varGenes, seed) {
-  libSizes <- Matrix::colSums(counts)
-  if (any(libSizes == 0)) {
-    stop(
-      "All cells must have at least one count. Remove empty cells or ",
-      "droplets before running decontX."
-    )
-  }
+.decontxInitializeZScrapper <- function(counts, varGenes, seed, numThreads) {
+  libSizes <- .checkLibSizes(counts)
   sf <- scrapper::centerSizeFactors(libSizes)
   normed <- scrapper::normalizeCounts(counts, size.factors = sf)
 
@@ -1163,7 +1214,7 @@ setMethod("decontX", "ANY", function(x,
   ## remove every gene in very sparse datasets and abort
   geneVar <- scrapper::modelGeneVariances(normed,
     mean.filter = FALSE,
-    num.threads = 1
+    num.threads = numThreads
   )
   hvg <- scrapper::chooseHighlyVariableGenes(geneVar$statistics$residuals,
     top = varGenes
@@ -1173,12 +1224,12 @@ setMethod("decontX", "ANY", function(x,
   ## which this pipeline replaces
   pca <- scrapper::runPca(normed[hvg, , drop = FALSE],
     number = 50,
-    num.threads = 1
+    num.threads = numThreads
   )
 
   ## scrapper >= 1.5 split runUmap's 'seed' into 'initialize.seed' and
   ## 'optimize.seed'; support both APIs
-  umapArgs <- list(pca$components, num.threads = 1)
+  umapArgs <- list(pca$components, num.threads = numThreads)
   if (!is.null(seed)) {
     if ("seed" %in% names(formals(scrapper::runUmap))) {
       umapArgs$seed <- seed
@@ -1198,7 +1249,7 @@ setMethod("decontX", "ANY", function(x,
 ## reproduced with legacyInit = TRUE. logNormCounts/normalizeCounts are
 ## deprecated upstream in favor of 'scrapper'; this path keeps working
 ## for as long as scater/scuttle continue to export them.
-.decontxInitializeZLegacy <- function(counts, varGenes, seed) {
+.decontxInitializeZLegacy <- function(counts, varGenes, seed, numThreads) {
   if (!.hasScater()) {
     stop(
       "'legacyInit = TRUE' requires the 'scater' package. Install it ",
@@ -1215,12 +1266,25 @@ setMethod("decontX", "ANY", function(x,
     seed,
     scater::calculateUMAP(sce,
       ntop = varGenes,
-      n_threads = 1,
+      n_threads = numThreads,
       exprs_values = "logcounts"
     )
   )
 
   list(normed = SingleCellExperiment::logcounts(sce), umap = resUmap)
+}
+
+## The library size of each cell, which must be above zero: the
+## normalization divides by it, and the EM can't estimate an empty cell
+.checkLibSizes <- function(counts) {
+  libSizes <- Matrix::colSums(counts)
+  if (any(libSizes == 0)) {
+    stop(
+      "All cells must have at least one count. Remove empty cells or ",
+      "droplets before running decontX."
+    )
+  }
+  libSizes
 }
 
 ## A function of its own so tests can mock a missing scater

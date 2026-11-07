@@ -106,3 +106,22 @@
       Warning in `.simulateContaminatedMatrix()`:
       Only 10 clusters are simulated. Try to increase number of cells 'C' if more clusters are needed
 
+# embedding = FALSE leaves the UMAP out of the log
+
+    Code
+      writeLines(maskLog(readLines(logfile)))
+    Output
+      -------------------------------------------------- |
+      Starting DecontX |
+      -------------------------------------------------- |
+      <date> .. Analyzing all cells |
+      <date> .... Converting to sparse matrix |
+      <date> .... Estimating contamination |
+      <date> ...... Completed iteration: <n> | converge: <x> |
+      <date> ...... Completed iteration: <n> | converge: <x> |
+      <date> ...... Completed iteration: <n> | converge: <x> |
+      <date> .. Calculating final decontaminated matrix |
+      -------------------------------------------------- |
+      Completed DecontX. Total time: <time> |
+      -------------------------------------------------- |
+
