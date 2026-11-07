@@ -187,7 +187,9 @@ embedding of the cells (currently a UMAP) that decontX uses to estimate
 the cell clusters and stores in the results. When \code{z} is provided,
 the embedding is used only for the stored results, so
 \code{embedding = FALSE} skips it, which saves most of the run time on
-large data sets; the decontamination is the same either way. Then no
+large data sets; the decontamination is the same either way (except
+with \code{legacyInit = TRUE} and \code{seed = NULL}, where the legacy
+UMAP draws from the session's random numbers before the EM). Then no
 UMAP is stored, and \code{\link{plotDecontXContamination}} can plot the
 contamination on another embedding with \code{reducedDimName}.
 \code{embedding = FALSE} needs \code{z}. Default TRUE.}

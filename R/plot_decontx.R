@@ -19,7 +19,8 @@
 #' columns are used. Only when \code{x} is a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment}. With
 #' \code{batch}, the cells of the batch are found from the batches of the
-#' decontX run, so \code{x} needs the same cells as that run. Default
+#' decontX run, so \code{x} needs the same cells, in the same order, as that
+#' run. Default
 #' \code{NULL}.
 #' @return Returns a \code{ggplot} object.
 #' @author Shiyi Yang, Joshua Campbell
@@ -80,6 +81,9 @@ plotDecontXContamination <- function(x,
   } else {
     coords <- .reducedDimCoords(x, reducedDimName)
     contamin <- SummarizedExperiment::colData(x)$decontX_contamination
+    if (is.null(contamin)) {
+      stop("'x' has no 'decontX_contamination' column in its colData.")
+    }
     if (!is.null(batch)) {
       runBatch <- decontXResult$runParams$batch
       if (length(runBatch) != ncol(x)) {

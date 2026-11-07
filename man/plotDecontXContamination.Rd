@@ -34,7 +34,8 @@ running \code{decontX} with \code{embedding = FALSE}. Its first two
 columns are used. Only when \code{x} is a
 \linkS4class[SingleCellExperiment]{SingleCellExperiment}. With
 \code{batch}, the cells of the batch are found from the batches of the
-decontX run, so \code{x} needs the same cells as that run. Default
+decontX run, so \code{x} needs the same cells, in the same order, as that
+run. Default
 \code{NULL}.}
 }
 \value{

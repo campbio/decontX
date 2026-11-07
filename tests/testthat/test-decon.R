@@ -1194,23 +1194,22 @@ test_that("numThreads reaches every threaded initialization call", {
   record <- function(name, value) {
     seen[[name]] <<- value
   }
-  # The originals, taken before the mocks replace them in scrapper
-  modelGeneVariances <- scrapper::modelGeneVariances
-  runPca <- scrapper::runPca
-  runUmap <- scrapper::runUmap
+  # Each mock is the scrapper function with a first line that records
+  # num.threads, so it keeps the function's formals: decontX reads them to
+  # choose runUmap's seed arguments
+  recording <- function(fn, name) {
+    body(fn) <- bquote({
+      .(record)(.(name), num.threads)
+      .(body(fn))
+    })
+    fn
+  }
   local_mocked_bindings(
-    modelGeneVariances = function(..., num.threads) {
-      record("modelGeneVariances", num.threads)
-      modelGeneVariances(..., num.threads = num.threads)
-    },
-    runPca = function(..., num.threads) {
-      record("runPca", num.threads)
-      runPca(..., num.threads = num.threads)
-    },
-    runUmap = function(..., num.threads) {
-      record("runUmap", num.threads)
-      runUmap(..., num.threads = num.threads)
-    },
+    modelGeneVariances = recording(
+      scrapper::modelGeneVariances, "modelGeneVariances"
+    ),
+    runPca = recording(scrapper::runPca, "runPca"),
+    runUmap = recording(scrapper::runUmap, "runUmap"),
     .package = "scrapper"
   )
   res <- decontX(d$sim$observedCounts,
@@ -1336,6 +1335,13 @@ test_that("the contamination plot uses a reducedDim for every cell", {
   # The decontX UMAP is missing from the SCE's estimates too
   expect_error(plotDecontXContamination(sce),
     regexp = "Batch 'A' has no decontX UMAP"
+  )
+
+  noContamination <- sce
+  noContamination$decontX_contamination <- NULL
+  expect_error(
+    plotDecontXContamination(noContamination, reducedDimName = "PCA"),
+    regexp = "'x' has no 'decontX_contamination' column"
   )
 
   SingleCellExperiment::reducedDim(sce, "PCA") <- coords[, 1, drop = FALSE]

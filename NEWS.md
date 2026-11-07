@@ -3,8 +3,10 @@
 * New `decontX()` argument `embedding`. With `embedding = FALSE` and
 cluster labels given in `z`, `decontX()` skips the embedding (the
 normalization, variable genes, PCA and UMAP), which is most of the run
-time on large data sets. The decontamination is the same; only the decontX
-UMAP is left out of the results. `embedding = FALSE` needs `z` (#79).
+time on large data sets. The decontamination is the same (except with
+`legacyInit = TRUE` and `seed = NULL`, where the EM's random start
+differs); only the decontX UMAP is left out of the results.
+`embedding = FALSE` needs `z` (#79).
 * New `decontX()` argument `numThreads` (default 1) for computing the
 embedding. With more than one thread the PCA can differ in the last digits
 on large data sets, which can move the UMAP coordinates slightly and,
