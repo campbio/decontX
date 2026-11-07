@@ -57,7 +57,8 @@ pushed, one at a time.
 - #76 lands as five PRs from and into devel (decided 2026-11-03; ADR-0004
   "Decided 2026-11-03"): (1) the core contract, `.decontXParams()`, the
   formals test, and #96; (2) decomposition; (3) batched assembly;
-  (4) HDF5; (5) the file move.
+  (4) HDF5; (5) the file move. All five are done (PRs #100, #101, #103,
+  #104 and the file move; 1.11.14 to 1.11.18).
 - Separate PRs:
   - plyr replaced exactly, reshape2 by a faithful helper (#77; A4-09,
     A4-10);
@@ -67,8 +68,7 @@ pushed, one at a time.
     D2-11, D2-13 to D2-15, A2-02, A7-16);
   - scrapper >= 1.5 and the old-API branch removed; unreachable code
     removed; explicit `decontXcounts` methods (A3-11 to A3-13);
-  - small quality items (A4-11, A4-13 to A4-16);
-  - a pure file-move PR last (#76; A4-17).
+  - small quality items (A4-11, A4-13 to A4-16).
 
 ### I-e: speed and memory
 
