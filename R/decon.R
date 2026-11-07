@@ -372,16 +372,10 @@ setMethod("decontX", "ANY", function(x,
   .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
-  if (!params$embedding && is.null(z)) {
-    stop(
-      "'embedding = FALSE' needs 'z': the cell clusters are estimated ",
-      "from the embedding."
-    )
-  }
+  .checkEmbeddingZ(z, params$embedding)
 
   if (!is.null(background)) {
-    # Remove cells with the same ID between x and the background matrix
-    # Also update bgBatch when background is updated and bgBatch is not null
+    # Drop background barcodes that are also cells, with their bgBatch
     temp <- .checkBackground(counts, background, bgBatch,
       logfile = params$logfile, verbose = params$verbose
     )
@@ -870,28 +864,13 @@ setMethod("decontX", "ANY", function(x,
   .checkDelta(delta)
   .processvarGenes(varGenes)
   .processdbscanEps(dbscanEps)
-  flags <- list(
+  .checkFlags(list(
     estimateDelta = estimateDelta,
     legacyInit = legacyInit,
     verbose = verbose,
     embedding = embedding
-  )
-  for (flag in names(flags)) {
-    if (!(isTRUE(flags[[flag]]) || isFALSE(flags[[flag]]))) {
-      stop("'", flag, "' must be TRUE or FALSE.")
-    }
-  }
-  if (!is.null(seed) &&
-        !(.isNumber(seed) && abs(seed) <= .Machine$integer.max)) {
-    stop("'seed' must be NULL or a single number in R's integer range.")
-  }
-  if (!is.null(logfile) &&
-        !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
-    stop("'logfile' must be NULL or a single character string.")
-  }
-  if (!.isWholeNumber(numThreads, min = 1)) {
-    stop("'numThreads' must be a single whole number of at least 1.")
-  }
+  ))
+  .checkRunArgs(seed, logfile, numThreads)
   list(
     maxIter = maxIter,
     delta = delta,
@@ -932,6 +911,40 @@ setMethod("decontX", "ANY", function(x,
   })
   names(umaps) <- paste("decontX", batches, "UMAP", sep = "_")
   umaps
+}
+
+## Arguments that must be TRUE or FALSE, in a named list
+.checkFlags <- function(flags) {
+  for (flag in names(flags)) {
+    if (!(isTRUE(flags[[flag]]) || isFALSE(flags[[flag]]))) {
+      stop("'", flag, "' must be TRUE or FALSE.")
+    }
+  }
+}
+
+## The seed, the log file and the number of threads
+.checkRunArgs <- function(seed, logfile, numThreads) {
+  if (!is.null(seed) &&
+        !(.isNumber(seed) && abs(seed) <= .Machine$integer.max)) {
+    stop("'seed' must be NULL or a single number in R's integer range.")
+  }
+  if (!is.null(logfile) &&
+        !(is.character(logfile) && length(logfile) == 1 && !is.na(logfile))) {
+    stop("'logfile' must be NULL or a single character string.")
+  }
+  if (!.isWholeNumber(numThreads, min = 1)) {
+    stop("'numThreads' must be a single whole number of at least 1.")
+  }
+}
+
+## Without the embedding, the clusters can't be estimated
+.checkEmbeddingZ <- function(z, embedding) {
+  if (!embedding && is.null(z)) {
+    stop(
+      "'embedding = FALSE' needs 'z': the cell clusters are estimated ",
+      "from the embedding."
+    )
+  }
 }
 
 ## The EM loop arguments
