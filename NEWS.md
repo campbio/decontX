@@ -9,9 +9,10 @@ differs); only the decontX UMAP is left out of the results.
 `embedding = FALSE` needs `z` (#79).
 * New `decontX()` argument `numThreads` (default 1) for computing the
 embedding. With more than one thread the PCA can differ in the last digits
-on large data sets, which can move the UMAP coordinates slightly and,
-rarely, change estimated clusters. With `legacyInit = TRUE` only the UMAP
-uses the threads (#79).
+on large data sets, which can move the UMAP coordinates and change
+estimated clusters: on 100,000 simulated cells, four threads found 11
+clusters instead of 10. Set `numThreads` the same way to reproduce a run.
+With `legacyInit = TRUE` only the UMAP uses the threads (#79).
 * `plotDecontXContamination()` can plot the contamination on any reducedDim
 of a SingleCellExperiment with the new argument `reducedDimName`, for
 example after a run with `embedding = FALSE`. With `reducedDimName` and
