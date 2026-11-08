@@ -61,7 +61,8 @@ numeric matrix, a sparse matrix from package \link[Matrix]{Matrix} or
 Cells in each batch will be subsetted and converted to a sparse matrix
 of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
 analysis. Each batch needs at least 3 cells (15 with
-\code{legacyInit = TRUE}) for the initialization. This
+\code{legacyInit = TRUE}) for the embedding, or 2 with
+\code{embedding = FALSE}. This
 object should only contain filtered cells after cell calling. Empty
 cell barcodes (low expression droplets before cell calling) are not needed
 to run DecontX.}

@@ -1166,6 +1166,49 @@ test_that("embedding = FALSE still stops on cells without counts", {
   )
 })
 
+test_that("embedding = FALSE needs 2 cells in each batch", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  # The 3-cell (15 with legacyInit) minimum is for the PCA and UMAP only
+  res <- decontX(x[, 1:2],
+    z = c(1, 2), embedding = FALSE, maxIter = 2, verbose = FALSE
+  )
+  expect_true(all(is.finite(res$contamination)))
+  res <- decontX(x,
+    z = c(d$sim$z[1:98], 1, 2), batch = c(rep("A", 98), "B", "B"),
+    embedding = FALSE, maxIter = 2, verbose = FALSE
+  )
+  expect_true(all(is.finite(res$contamination)))
+  # One cell can't estimate the contamination prior, even with background,
+  # where one cluster is allowed
+  expect_error(
+    decontX(x,
+      z = d$sim$z, batch = c(rep("A", 99), "B"), background = d$bg,
+      bgBatch = c(rep("A", 39), "B"), embedding = FALSE, verbose = FALSE
+    ),
+    regexp = paste0(
+      "Each batch needs at least 2 cells to estimate the contamination ",
+      "prior; batch 'B' has 1\\."
+    )
+  )
+  expect_error(
+    decontX(x[, 1, drop = FALSE],
+      z = 1, background = d$bg, embedding = FALSE, verbose = FALSE
+    ),
+    regexp = "'x' needs at least 2 cells to estimate the contamination prior"
+  )
+})
+
+test_that("embedding = FALSE has no 15-cell minimum with legacyInit", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  res <- decontX(d$sim$observedCounts[, 1:10],
+    z = rep(1:2, 5), legacyInit = TRUE, embedding = FALSE, maxIter = 2,
+    verbose = FALSE
+  )
+  expect_true(all(is.finite(res$contamination)))
+})
+
 test_that("embedding = FALSE leaves the UMAP out of the log", {
   d <- refData()
   logfile <- withr::local_tempfile(fileext = ".log")

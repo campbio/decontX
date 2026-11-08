@@ -13,7 +13,8 @@
 #' Cells in each batch will be subsetted and converted to a sparse matrix
 #' of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
 #' analysis. Each batch needs at least 3 cells (15 with
-#' \code{legacyInit = TRUE}) for the initialization. This
+#' \code{legacyInit = TRUE}) for the embedding, or 2 with
+#' \code{embedding = FALSE}. This
 #' object should only contain filtered cells after cell calling. Empty
 #' cell barcodes (low expression droplets before cell calling) are not needed
 #' to run DecontX.
@@ -395,7 +396,7 @@ setMethod("decontX", "ANY", function(x,
 
   batches <- .decontXBatches(batch, bgBatch, background, ncol(counts))
   # Checked for every batch before any of them runs
-  .checkBatchSizes(batches$batch, batches$given, params$legacyInit)
+  .checkBatchSizes(batches$batch, batches$given, params)
   .checkBatchClusters(z, batches$batch, batches$given, background)
 
   res <- .runBatches(counts, z, background, batches, params)
@@ -1077,10 +1078,18 @@ setMethod("decontX", "ANY", function(x,
 }
 
 ## The initialization's PCA and UMAP need a few cells in each batch
-.checkBatchSizes <- function(batch, batchGiven, legacyInit) {
-  # uwot's 15 neighbors in the legacy UMAP; scrapper's PCA needs 3 cells
-  minCells <- if (isTRUE(legacyInit)) 15 else 3
-  legacy <- if (isTRUE(legacyInit)) " with 'legacyInit = TRUE'" else ""
+.checkBatchSizes <- function(batch, batchGiven, params) {
+  # uwot's 15 neighbors in the legacy UMAP; scrapper's PCA needs 3 cells.
+  # Without the embedding, the EM's prior on the contamination can't be
+  # estimated from one cell.
+  minCells <- if (!params$embedding) 2 else if (params$legacyInit) 15 else 3
+  legacy <- if (!params$embedding) {
+    " to estimate the contamination prior"
+  } else if (params$legacyInit) {
+    " with 'legacyInit = TRUE'"
+  } else {
+    ""
+  }
   sizes <- table(factor(batch, levels = unique(batch)))
   small <- sizes[sizes < minCells]
   if (length(small) == 0) {

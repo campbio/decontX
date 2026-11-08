@@ -40,6 +40,14 @@ through `.decontXParams()` (also at the end), so they are recorded in
   moved into a small helper that the scrapper initialization calls too,
   so the opt-out doesn't let empty cells reach the EM. It returns
   `umap = NULL`.
+- `.checkBatchSizes()` lowers its minimum from 3 cells per batch (15
+  with `legacyInit = TRUE`), which only the PCA and UMAP need, to 2. With
+  one cell, the default `estimateDelta = TRUE` can't fit the
+  contamination prior (MCMCprecision warns "Maximum number of iterations
+  reached" each iteration), so the error says the 2 cells are for that.
+  The EM's other need (two clusters per batch, or one with background)
+  is still checked by `.checkBatchClusters()`. Added after review,
+  approved 2026-11-07.
 - Each batch's `estimates$UMAP` is `NULL`. `.decontXUMAPs()` returns an
   empty list, so the SCE method writes no `decontX_UMAP` or
   `decontX_<batch>_UMAP`. A decontX UMAP from an earlier run stays in
