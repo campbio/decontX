@@ -64,20 +64,37 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
 
   int i;
   int j;
-  int k;
   int nr = phi.nrow();
   double x;
   double pcontamin;
   double pnative;
   double normp;
   double px;
+
+  // The loop below runs for every nonzero count on every EM iteration, so
+  // it reads and writes through raw pointers. Rcpp's checked accessors
+  // (operator() looks up the dim attribute on every call) cost about 20% of
+  // the loop. The guards above already check every size and the range of z,
+  // and the sparse iterator only yields rows below counts.rows().
+  const double *phi_p = phi.begin();
+  const double *eta_p = eta.begin();
+  const double *theta_p = theta.begin();
+  const int *z_p = z.begin();
+  double *new_phi_p = new_phi.begin();
+  double *native_total_p = native_total.begin();
   for (int j = 0; j < counts.cols(); ++j)
   {
+    const R_xlen_t col = static_cast<R_xlen_t>(nr) * (z_p[j] - 1);
+    const double *phi_k = phi_p + col;
+    const double *eta_k = eta_p + col;
+    double *new_phi_k = new_phi_p + col;
+    const double theta_j = theta_p[j];
+    // Same terms in the same order as adding to native_total[j] directly
+    double native_j = 0;
     for (Eigen::MappedSparseMatrix<double>::InnerIterator i_(counts, j); i_; ++i_)
     {
       i = i_.index();
       x = i_.value();
-      k = z[j] - 1;
 
       // Calculate variational probabilities
       // Removing the log/exp speeds it up and produces the same result since
@@ -85,16 +102,17 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
 
       //pnative = log(phi(i,k) + pseudocount) + log(theta(j) + pseudocount);
       //pcontamin = log(eta(i,k) + pseudocount) + log(1 - theta(j) + pseudocount);
-      pnative = (phi[nr * k + i] + pseudocount) * (theta[j] + pseudocount);
-      pcontamin = (eta[nr * k + i] + pseudocount) * (1 - theta[j] + pseudocount);
+      pnative = (phi_k[i] + pseudocount) * (theta_j + pseudocount);
+      pcontamin = (eta_k[i] + pseudocount) * (1 - theta_j + pseudocount);
 
       // Normalize probabilities and add to proper components
       //normp = exp(pnative) / (exp(pcontamin) + exp(pnative));
       normp = pnative / (pcontamin + pnative);
       px = normp * x;
-      new_phi(i, k) += px;
-      native_total(j) += px;
+      new_phi_k[i] += px;
+      native_j += px;
     }
+    native_total_p[j] = native_j;
   }
 
   // Calculate Eta using Weights from Phi
@@ -194,7 +212,6 @@ double decontXLogLik(const Eigen::MappedSparseMatrix<double> &counts,
   double loglik = 0;
 
   int i;
-  int k;
   double x;
   int nr = phi.nrow();
 
@@ -202,15 +219,24 @@ double decontXLogLik(const Eigen::MappedSparseMatrix<double> &counts,
   // ll <- sum(Matrix::t(counts) * log(theta * t(phi)[z, ] +
   //       (1 - theta) * t(eta)[z, ] + 1e-20))
 
+  // Raw pointers as in decontXEM(); the guards above check every size and
+  // the range of z
+  const double *phi_p = phi.begin();
+  const double *eta_p = eta.begin();
+  const double *theta_p = theta.begin();
+  const int *z_p = z.begin();
   for (int j = 0; j < counts.cols(); ++j)
   {
+    const R_xlen_t col = static_cast<R_xlen_t>(nr) * (z_p[j] - 1);
+    const double *phi_k = phi_p + col;
+    const double *eta_k = eta_p + col;
+    const double theta_j = theta_p[j];
     for (Eigen::MappedSparseMatrix<double>::InnerIterator i_(counts, j); i_; ++i_)
     {
       i = i_.index();
       x = i_.value();
-      k = z[j] - 1;
 
-      loglik += x * log((phi[nr * k + i] * theta[j]) + (eta[nr * k + i] * (1 - theta[j])) + pseudocount);
+      loglik += x * log((phi_k[i] * theta_j) + (eta_k[i] * (1 - theta_j)) + pseudocount);
     }
   }
 
