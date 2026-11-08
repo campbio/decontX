@@ -73,9 +73,10 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
 
   // The loop below runs for every nonzero count on every EM iteration, so
   // it reads and writes through raw pointers. Rcpp's checked accessors
-  // (operator() looks up the dim attribute on every call) cost about 20% of
-  // the loop. The guards above already check every size and the range of z,
-  // and the sparse iterator only yields rows below counts.rows().
+  // (operator() looks up the dim attribute on every call) more than doubled
+  // its time. The guards above already check every size and the range of z,
+  // and the sparse iterator of a valid dgCMatrix only yields rows below
+  // counts.rows().
   const double *phi_p = phi.begin();
   const double *eta_p = eta.begin();
   const double *theta_p = theta.begin();

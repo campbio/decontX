@@ -1,3 +1,9 @@
+# decontX 1.11.20
+
+* `decontX()`'s EM step is faster: a run with cluster labels given in `z`
+and `embedding = FALSE` takes about half the time on the PBMC4k data
+(3.4 s to 1.7 s). The results are unchanged (#80).
+
 # decontX 1.11.19
 
 * New `decontX()` argument `embedding`. With `embedding = FALSE` and
