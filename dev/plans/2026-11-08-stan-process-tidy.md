@@ -9,7 +9,7 @@ into native, ambient and background parts, three N x M matrices (ADTs x
 droplets). It:
 
 1. computes the denominator `ambient_rate_est + cell_rate_est +
-   background_rate_est` three times, two extra full-size matrices and four
+   background_rate_est` three times: two extra full-size sums and four
    extra element-wise additions;
 2. assigns `background_est` from `val$background` twice; the second
    assignment changes nothing;
@@ -66,5 +66,7 @@ on a synthetic hand-built fit (8 cell types, Poisson counts). Outputs
 | 215 x 52,222 | 267 ms | 210 ms | 1.76 GB | 1.67 GB |
 
 The allocation saving is one N x M double matrix at both sizes (16 MB and
-90 MB). The time saving is small next to the Stan fit, so there is no
+90 MB), not two: R reuses some of the temporaries. The spec review counted
+the large allocations with `Rprofmem` at 40 x 50,000 and got 9 on devel
+and 8 on the branch. The time saving is small next to the Stan fit, so there is no
 NEWS line.
