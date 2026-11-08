@@ -16,7 +16,8 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
                      const double &pseudocount)
 {
 
-  // Perform error checking
+  // Perform error checking. These checks also keep the unchecked indexing
+  // in the loop below in bounds, so keep them complete.
   if (counts.cols() != theta.size())
   {
     stop("Length of 'theta' must be equal to the number of columns in 'counts'.");
@@ -183,7 +184,8 @@ double decontXLogLik(const Eigen::MappedSparseMatrix<double> &counts,
                      const double &pseudocount)
 {
 
-  // Perform error checking
+  // Perform error checking. These checks also keep the unchecked indexing
+  // in the loop below in bounds, so keep them complete.
   if (counts.cols() != theta.size())
   {
     stop("Length of 'theta' must be equal to the number of columns in 'counts'.");
