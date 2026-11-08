@@ -1006,7 +1006,7 @@ setMethod("decontX", "ANY", function(x,
 ## Each batch's estimates are read back by name, and R never matches an
 ## empty name: [[""]] returns NULL
 .checkBatchNames <- function(values, arg) {
-  if (any(as.character(values) == "")) {
+  if ("" %in% as.character(values)) {
     stop("'", arg, "' must not contain empty strings (\"\").")
   }
   invisible(NULL)

@@ -1,11 +1,13 @@
 # decontX 1.11.23
 
 * `decontX()` now stops with an error when `batch` or `bgBatch` contains an
-empty string (`""`). Before, every cell in a batch named `""` got the
-cluster label `"-"`, and that batch's estimates couldn't be read back by
-name; its contamination and decontaminated counts were right. With a
-SingleCellExperiment and the default `embedding = TRUE`, the run failed
-with an unclear error while storing the UMAPs (#102).
+empty string (`""`). The estimates of a batch named `""` couldn't be read
+back by name, and its cells lost their cluster labels in `z` when decontX
+estimated the clusters or when the labels also appeared in another batch:
+every cell got `"-"` (or `""` when it was the only batch). With more than
+one batch, a SingleCellExperiment and the default `embedding = TRUE`, the
+run failed with an unclear error while storing the UMAPs. Contamination
+and decontaminated counts were right (#102).
 
 # decontX 1.11.21
 
