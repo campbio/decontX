@@ -913,16 +913,16 @@ test_that("decontX checks that z and batch have one value per cell", {
 test_that("decontX stops on an empty batch name (#102)", {
   d <- refData()
   x <- d$sim$observedCounts
-  # "" can't name a list element, so the batch's labels were lost
+  # [[""]] never matches, so the batch's estimates couldn't be read back
   batchEmpty <- replace(d$batch, d$batch == "A", "")
   for (batch in list(batchEmpty, factor(batchEmpty))) {
     expect_error(decontX(x, z = d$sim$z, batch = batch, verbose = FALSE),
       regexp = "'batch' must not contain empty strings"
     )
+    expect_error(decontX(x, batch = batch, verbose = FALSE),
+      regexp = "'batch' must not contain empty strings"
+    )
   }
-  expect_error(decontX(x, batch = batchEmpty, verbose = FALSE),
-    regexp = "'batch' must not contain empty strings"
-  )
 })
 
 test_that("decontX checks its scalar arguments", {

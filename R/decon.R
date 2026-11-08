@@ -1003,8 +1003,8 @@ setMethod("decontX", "ANY", function(x,
   invisible(NULL)
 }
 
-## A batch name becomes a list name, a reducedDim name and a label prefix,
-## and "" can't be any of them: R never matches an empty list name
+## Each batch's estimates are read back by name, and R never matches an
+## empty name: [[""]] returns NULL
 .checkBatchNames <- function(values, arg) {
   if (any(as.character(values) == "")) {
     stop("'", arg, "' must not contain empty strings (\"\").")
