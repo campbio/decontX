@@ -13,8 +13,8 @@ decontXInitialize <- function(counts, theta, z, pseudocount) {
     .Call(`_decontX_decontXInitialize`, counts, theta, z, pseudocount)
 }
 
-calculateNativeMatrix <- function(counts, theta, eta, phi, z, pseudocount) {
-    .Call(`_decontX_calculateNativeMatrix`, counts, theta, eta, phi, z, pseudocount)
+calculateNativeCounts <- function(counts, theta, eta, phi, z, pseudocount) {
+    .Call(`_decontX_calculateNativeCounts`, counts, theta, eta, phi, z, pseudocount)
 }
 
 #' Fast normalization for numeric matrix

@@ -537,7 +537,7 @@ phaseRules <- c(
   decontXEM = "em_decontXEM",
   decontXLogLik = "em_loglik",
   decontXInitialize = "em_initialize",
-  calculateNativeMatrix = "native_matrix",
+  calculateNativeCounts = "native_matrix",
   run_umap = "init_umap_optimize",
   findKNN = "init_umap_knn",
   buildIndex = "init_umap_knn",

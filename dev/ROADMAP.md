@@ -82,7 +82,10 @@ tolerance.
   `dev/plans/2026-11-07-embedding-numthreads.md`).
 - Unchecked indexing in the EM loop (#80; A5-03); the direct
   `calculateNativeMatrix` (A5-04, D2-09, within 1e-14);
-  `.process_stan_vb_out` tidy-up (A4-20).
+  `.process_stan_vb_out` tidy-up (A4-20). Unchecked indexing done in
+  1.11.20 (spec `dev/plans/2026-11-08-em-unchecked-indexing.md`); the
+  direct native counts in 1.11.21 (`calculateNativeCounts()`; spec
+  `dev/plans/2026-11-08-native-matrix-direct.md`).
 - The real-PBMC benchmark once at the end, recorded in the audit.
 
 ## Phase II: multi-container support (spike results, then ADR-0005)

@@ -313,16 +313,20 @@ Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double> &counts,
                             Rcpp::Named("eta") = new_eta);
 }
 
+// The native counts: each nonzero count times its native probability.
+// Returns only the new values, in the order of the counts' x slot; the
+// caller puts them in a copy of the counts, which shares the i and p slots.
 // [[Rcpp::export]]
-Eigen::SparseMatrix<double> calculateNativeMatrix(const Eigen::MappedSparseMatrix<double> &counts,
-                                                  const NumericVector &theta,
-                                                  const NumericMatrix &eta,
-                                                  const NumericMatrix &phi,
-                                                  const IntegerVector &z,
-                                                  const double &pseudocount)
+NumericVector calculateNativeCounts(const Eigen::MappedSparseMatrix<double> &counts,
+                                    const NumericVector &theta,
+                                    const NumericMatrix &eta,
+                                    const NumericMatrix &phi,
+                                    const IntegerVector &z,
+                                    const double &pseudocount)
 {
 
-  // Perform error checking
+  // Perform error checking. These checks also keep the unchecked indexing
+  // in the loop below in bounds, so keep them complete.
   if (counts.cols() != theta.size())
   {
     stop("Length of 'theta' must be equal to the number of columns in 'counts'.");
@@ -348,31 +352,45 @@ Eigen::SparseMatrix<double> calculateNativeMatrix(const Eigen::MappedSparseMatri
     stop("The entries in 'z' need to be between 1 and the number of columns in eta and phi.");
   }
 
-  Eigen::SparseMatrix<double> native_matrix = counts;
+  // A dgCMatrix is always compressed, so the column starts (p), row indices
+  // (i) and values (x) are R's own vectors, read here without copying
+  const int *col_start = counts.outerIndexPtr();
+  const int *row_index = counts.innerIndexPtr();
+  const double *count_value = counts.valuePtr();
+  NumericVector native_value(col_start[counts.cols()]);
+  double *native_p = native_value.begin();
 
+  // Raw pointers as in decontXEM()
+  const double *phi_p = phi.begin();
+  const double *eta_p = eta.begin();
+  const double *theta_p = theta.begin();
+  const int *z_p = z.begin();
+  int nr = phi.nrow();
   int i;
-  int k;
-  double x;
   double pcontamin;
   double pnative;
   double normp;
   for (int j = 0; j < counts.cols(); ++j)
   {
-    for (Eigen::MappedSparseMatrix<double>::InnerIterator i_(counts, j); i_; ++i_)
+    const R_xlen_t col = static_cast<R_xlen_t>(nr) * (z_p[j] - 1);
+    const double *phi_k = phi_p + col;
+    const double *eta_k = eta_p + col;
+    const double theta_j = theta_p[j];
+    for (int idx = col_start[j]; idx < col_start[j + 1]; ++idx)
     {
-      i = i_.index();
-      x = i_.value();
-      k = z[j] - 1;
+      i = row_index[idx];
 
-      // Calculate variational probabilities
-      pnative = log(phi(i, k) + pseudocount) + log(theta(j) + pseudocount);
-      pcontamin = log(eta(i, k) + pseudocount) + log(1 - theta(j) + pseudocount);
+      // Calculate variational probabilities, in the same direct form as
+      // decontXEM(). This used to go through log() and exp(), which agrees
+      // to within about 1e-14 relative and is much slower.
+      pnative = (phi_k[i] + pseudocount) * (theta_j + pseudocount);
+      pcontamin = (eta_k[i] + pseudocount) * (1 - theta_j + pseudocount);
 
-      // Normalize probabilities and add to proper components
-      normp = exp(pnative) / (exp(pcontamin) + exp(pnative));
-      native_matrix.coeffRef(i, j) *= normp;
+      // Normalize probabilities and scale the count
+      normp = pnative / (pcontamin + pnative);
+      native_p[idx] = count_value[idx] * normp;
     }
   }
 
-  return native_matrix;
+  return native_value;
 }

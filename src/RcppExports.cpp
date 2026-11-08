@@ -61,9 +61,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calculateNativeMatrix
-Eigen::SparseMatrix<double> calculateNativeMatrix(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
-RcppExport SEXP _decontX_calculateNativeMatrix(SEXP countsSEXP, SEXP thetaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
+// calculateNativeCounts
+NumericVector calculateNativeCounts(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
+RcppExport SEXP _decontX_calculateNativeCounts(SEXP countsSEXP, SEXP thetaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -73,7 +73,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const NumericMatrix& >::type phi(phiSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type z(zSEXP);
     Rcpp::traits::input_parameter< const double& >::type pseudocount(pseudocountSEXP);
-    rcpp_result_gen = Rcpp::wrap(calculateNativeMatrix(counts, theta, eta, phi, z, pseudocount));
+    rcpp_result_gen = Rcpp::wrap(calculateNativeCounts(counts, theta, eta, phi, z, pseudocount));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -189,7 +189,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_decontX_decontXEM", (DL_FUNC) &_decontX_decontXEM, 10},
     {"_decontX_decontXLogLik", (DL_FUNC) &_decontX_decontXLogLik, 6},
     {"_decontX_decontXInitialize", (DL_FUNC) &_decontX_decontXInitialize, 4},
-    {"_decontX_calculateNativeMatrix", (DL_FUNC) &_decontX_calculateNativeMatrix, 6},
+    {"_decontX_calculateNativeCounts", (DL_FUNC) &_decontX_calculateNativeCounts, 6},
     {"_decontX_fastNormProp", (DL_FUNC) &_decontX_fastNormProp, 2},
     {"_decontX_fastNormPropLog", (DL_FUNC) &_decontX_fastNormPropLog, 2},
     {"_decontX_fastNormPropSqrt", (DL_FUNC) &_decontX_fastNormPropSqrt, 2},

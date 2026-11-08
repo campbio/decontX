@@ -1805,11 +1805,7 @@ test_that("decontX returns the user's cluster labels as a factor", {
   est <- res$estimates$all_cells
   expect_identical(colnames(est$phi), levels(est$z))
   expect_identical(colnames(est$phi)[as.integer(est$z)], z12)
-  native <- calculateNativeMatrix(
-    counts = methods::as(x, "dgCMatrix"), theta = est$theta,
-    eta = est$eta, phi = est$phi, z = as.integer(est$z),
-    pseudocount = 1e-20
-  )
+  native <- .nativeCounts(methods::as(x, "dgCMatrix"), est)
   expect_equal(unname(as.matrix(native)), unname(as.matrix(res$decontXcounts)))
 
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
@@ -2265,6 +2261,53 @@ test_that("internal checks stop on input no exported function passes", {
   )
 })
 
+test_that("decontXcounts are the counts times the native probability", {
+  sim <- simulateContamination(C = 30, G = 40, K = 3, seed = 1)
+  counts <- methods::as(sim$observedCounts, "dgCMatrix")
+  # Dense R form of the native counts, with the EM's pseudocount
+  expectedNative <- function(counts, est) {
+    k <- as.integer(est$z)
+    theta <- rep(est$theta, each = nrow(counts))
+    native <- (est$phi[, k] + 1e-20) * (theta + 1e-20)
+    contaminant <- (est$eta[, k] + 1e-20) * (1 - theta + 1e-20)
+    unname(as.matrix(counts) * native / (native + contaminant))
+  }
+
+  res <- decontX(counts, z = sim$z, embedding = FALSE, verbose = FALSE)
+  expect_equal(unname(as.matrix(res$decontXcounts)),
+    expectedNative(counts, res$estimates$all_cells),
+    tolerance = 1e-12
+  )
+  # Same sparsity pattern as the counts
+  expect_identical(res$decontXcounts@i, counts@i)
+  expect_identical(res$decontXcounts@p, counts@p)
+
+  # Interleaved batches: each batch's counts go back to their own cells
+  batch <- rep(c("a", "b"), length.out = ncol(counts))
+  res <- decontX(counts,
+    z = sim$z, batch = batch, embedding = FALSE, verbose = FALSE
+  )
+  expected <- matrix(0, nrow(counts), ncol(counts))
+  for (b in c("a", "b")) {
+    cells <- batch == b
+    expected[, cells] <- expectedNative(
+      counts[, cells, drop = FALSE], res$estimates[[b]]
+    )
+  }
+  expect_equal(unname(as.matrix(res$decontXcounts)), expected,
+    tolerance = 1e-12
+  )
+
+  # A subclass of dgCMatrix gives a plain dgCMatrix
+  classEnv <- new.env()
+  countsClass <- methods::setClass("decontXTestCounts",
+    contains = "dgCMatrix", slots = c(note = "character"), where = classEnv
+  )
+  subCounts <- countsClass(counts, note = "extra")
+  res <- decontX(subCounts, z = sim$z, embedding = FALSE, verbose = FALSE)
+  expect_identical(as.character(class(res$decontXcounts)), "dgCMatrix")
+})
+
 test_that("the C++ EM functions check the shapes of their arguments", {
   counts <- methods::as(matrix(as.numeric(1:12), 4, 3), "CsparseMatrix")
   valid <- list(
@@ -2302,7 +2345,7 @@ test_that("the C++ EM functions check the shapes of their arguments", {
   checks <- list(
     decontXEM = names(changes),
     decontXLogLik = c("theta", "z", "phiRows", "etaRows", "etaCols", "zRange"),
-    calculateNativeMatrix = c(
+    calculateNativeCounts = c(
       "theta", "z", "phiRows", "etaRows", "etaCols", "zRange"
     ),
     decontXInitialize = c("theta", "z")
