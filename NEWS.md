@@ -1,3 +1,12 @@
+# decontX 1.11.21
+
+* `decontX()` builds the decontaminated counts faster and with less memory:
+on 100,000 simulated cells with `z` given and `embedding = FALSE`, the run
+takes 1.2 s instead of 2.8 s and peaks about 1.2 GB lower. The native
+probability is now computed in the same direct form as in the EM, so the
+decontaminated counts can change in the last digits (at most about 1e-14
+relative); contamination estimates are unchanged (#80).
+
 # decontX 1.11.20
 
 * `decontX()`'s EM step is faster: a run with cluster labels given in `z`

@@ -64,4 +64,34 @@ practice.
 
 ## Measurements
 
-(filled in after the benchmark)
+`dev/bench/bench-decontx.R`, run `z_supplied_noembed`, installed builds of
+the part 1 code (6d28421, same C++ and R as devel 3df858e) and the branch
+(79b4869), R 4.6.1, macOS arm64, same session. Median wall time; peak RSS
+of the case's process.
+
+| Data | devel | branch | Change | R alloc (MB) | Peak RSS (MB) |
+|---|---|---|---|---|---|
+| PBMC4k (4,340 cells, 5.7M nonzeros) | 1.78 s | 1.58 s | -11% | 366 -> 344 | 1697 -> 1376 |
+| sim 10k cells (5.7M) | 0.27 s | 0.13 s | -53% | 88 -> 66 | 1427 -> 1109 |
+| sim 50k cells (28.9M) | 1.66 s | 0.74 s | -56% | 425 -> 315 | 2583 -> 1916 |
+| sim 100k cells (57.0M) | 2.83 s | 1.24 s | -56% | 824 -> 607 | 3556 -> 2341 |
+
+PBMC4k gains less because its EM runs 107 iterations against 11-12 on the
+simulated data, while the native matrix is built once.
+
+Tolerance (scratch script, installed devel-equivalent vs branch;
+`decontXcounts` compared on nonzero values; contamination, `z` and
+estimates compared with `identical()`):
+
+| Path | Max relative diff | Structure (`i`, `p`, dims, dimnames) | Rest |
+|---|---|---|---|
+| single | 2.4e-15 | identical | identical |
+| batched | 3.6e-15 | identical | identical |
+| background | 7.4e-15 | identical | identical |
+| noZ | 2.4e-15 | identical | identical |
+| sim 100k | 6.4e-15 | identical | identical |
+| PBMC4k | 8.6e-15 | identical | identical |
+
+`decontx-refs.rds` regenerated: only `decontXcounts` changed, in the five
+decontX paths (single, batched, background, bgBatched, fixedDelta); the
+simulateContamination references are identical.
