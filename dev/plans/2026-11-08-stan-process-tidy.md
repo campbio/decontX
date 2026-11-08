@@ -52,3 +52,19 @@ droplets and at 215 x 52,222 (the size in issue #46).
 Version 1.11.22. One NEWS line only if the memory saving is worth
 mentioning. ROADMAP I-e notes it as done. No doc or vignette changes;
 decontPro isn't reached through celda or singleCellTK.
+
+## Measurements
+
+`bench::mark`, 10 iterations, devel's and the branch's
+`.process_stan_vb_out()` sourced into one R 4.6.1 session (macOS arm64),
+on a synthetic hand-built fit (8 cell types, Poisson counts). Outputs
+`identical()` at both sizes.
+
+| ADTs x droplets | Median, devel | Median, branch | R alloc, devel | R alloc, branch |
+|---|---|---|---|---|
+| 40 x 50,000 | 49 ms | 40 ms | 321 MB | 305 MB |
+| 215 x 52,222 | 267 ms | 210 ms | 1.76 GB | 1.67 GB |
+
+The allocation saving is one N x M double matrix at both sizes (16 MB and
+90 MB). The time saving is small next to the Stan fit, so there is no
+NEWS line.
