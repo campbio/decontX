@@ -213,17 +213,6 @@ test_that("interleaved batches give each batch's own results", {
   }
 })
 
-test_that("a batch labelled with an empty string keeps its counts", {
-  d <- refData()
-  counts <- d$sim$observedCounts
-  batch <- rep(c("", "B"), 50)
-  res <- decontX(counts, z = d$sim$z, batch = batch, verbose = FALSE)
-  inBatch <- batch == ""
-  alone <- decontX(counts[, inBatch], z = d$sim$z[inBatch], verbose = FALSE)
-  expect_identical(res$decontXcounts[, inBatch], alone$decontXcounts)
-  expect_identical(res$contamination[inBatch], alone$contamination)
-})
-
 test_that("decontXcounts drops the names of the counts' dimnames list", {
   d <- refData()
   counts <- d$sim$observedCounts
@@ -921,6 +910,21 @@ test_that("decontX checks that z and batch have one value per cell", {
   )
 })
 
+test_that("decontX stops on an empty batch name (#102)", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  # "" can't name a list element, so the batch's labels were lost
+  batchEmpty <- replace(d$batch, d$batch == "A", "")
+  for (batch in list(batchEmpty, factor(batchEmpty))) {
+    expect_error(decontX(x, z = d$sim$z, batch = batch, verbose = FALSE),
+      regexp = "'batch' must not contain empty strings"
+    )
+  }
+  expect_error(decontX(x, batch = batchEmpty, verbose = FALSE),
+    regexp = "'batch' must not contain empty strings"
+  )
+})
+
 test_that("decontX checks its scalar arguments", {
   d <- refData()
   x <- d$sim$observedCounts
@@ -1610,6 +1614,9 @@ test_that("decontX checks bgBatch against batch and the background", {
   )
   expect_error(run(replace(d$bgBatch, 1, NA)),
     regexp = "'bgBatch' must not contain NA"
+  )
+  expect_error(run(replace(d$bgBatch, 1, "")),
+    regexp = "'bgBatch' must not contain empty strings"
   )
   expect_error(run(rep(c("C", "A", "B"), length.out = 40)),
     regexp = "'bgBatch' has values that aren't in 'batch': C"
