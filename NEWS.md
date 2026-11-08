@@ -1,3 +1,10 @@
+# decontX 1.11.23
+
+* `decontX()` now stops with an error when `batch` or `bgBatch` contains an
+empty string (`""`). Before, every cell in a batch named `""` got the
+cluster label `"-"`, and that batch's estimates couldn't be read back by
+name; its contamination and decontaminated counts were right (#102).
+
 # decontX 1.11.21
 
 * `decontX()` builds the decontaminated counts faster and with less memory:
