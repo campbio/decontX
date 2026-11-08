@@ -1805,12 +1805,12 @@ test_that("decontX returns the user's cluster labels as a factor", {
   est <- res$estimates$all_cells
   expect_identical(colnames(est$phi), levels(est$z))
   expect_identical(colnames(est$phi)[as.integer(est$z)], z12)
-  native <- calculateNativeMatrix(
+  native <- calculateNativeCounts(
     counts = methods::as(x, "dgCMatrix"), theta = est$theta,
     eta = est$eta, phi = est$phi, z = as.integer(est$z),
     pseudocount = 1e-20
   )
-  expect_equal(unname(as.matrix(native)), unname(as.matrix(res$decontXcounts)))
+  expect_equal(native, res$decontXcounts@x)
 
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = x))
   sceOne <- decontX(sce, z = labels, maxIter = 5, verbose = FALSE)
@@ -2265,6 +2265,27 @@ test_that("internal checks stop on input no exported function passes", {
   )
 })
 
+test_that("decontXcounts are the counts times the native probability", {
+  sim <- simulateContamination(C = 30, G = 40, K = 3, seed = 1)
+  counts <- methods::as(sim$observedCounts, "dgCMatrix")
+  res <- decontX(counts, z = sim$z, verbose = FALSE)
+  est <- res$estimates$all_cells
+
+  # Dense R form of the native probability, with the EM's pseudocount
+  k <- as.integer(est$z)
+  theta <- rep(est$theta, each = nrow(counts))
+  native <- (est$phi[, k] + 1e-20) * (theta + 1e-20)
+  contaminant <- (est$eta[, k] + 1e-20) * (1 - theta + 1e-20)
+  expected <- as.matrix(counts) * native / (native + contaminant)
+  expect_equal(unname(as.matrix(res$decontXcounts)), unname(expected),
+    tolerance = 1e-12
+  )
+
+  # Same sparsity pattern as the counts
+  expect_identical(res$decontXcounts@i, counts@i)
+  expect_identical(res$decontXcounts@p, counts@p)
+})
+
 test_that("the C++ EM functions check the shapes of their arguments", {
   counts <- methods::as(matrix(as.numeric(1:12), 4, 3), "CsparseMatrix")
   valid <- list(
@@ -2302,7 +2323,7 @@ test_that("the C++ EM functions check the shapes of their arguments", {
   checks <- list(
     decontXEM = names(changes),
     decontXLogLik = c("theta", "z", "phiRows", "etaRows", "etaCols", "zRange"),
-    calculateNativeMatrix = c(
+    calculateNativeCounts = c(
       "theta", "z", "phiRows", "etaRows", "etaCols", "zRange"
     ),
     decontXInitialize = c("theta", "z")

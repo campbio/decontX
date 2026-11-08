@@ -580,7 +580,12 @@ setMethod("decontX", "ANY", function(x,
   .logDecontX(date(), ".. Calculating final decontaminated matrix",
     params = params
   )
-  decontXcounts <- calculateNativeMatrix(
+  ## Only the values change, so a copy of the counts takes the new ones.
+  ## Slot assignment copies shallowly, so the row indices and column
+  ## pointers are shared, not copied. The result is unnamed, as
+  ## .inCellOrder() names it
+  decontXcounts <- countsBat
+  methods::slot(decontXcounts, "x") <- calculateNativeCounts(
     counts = countsBat,
     theta = res$theta,
     eta = res$eta,
@@ -588,6 +593,7 @@ setMethod("decontX", "ANY", function(x,
     z = as.integer(res$z),
     pseudocount = .decontXPseudocount
   )
+  dimnames(decontXcounts) <- NULL
   list(res = res, decontXcounts = decontXcounts)
 }
 
