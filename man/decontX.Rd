@@ -26,7 +26,9 @@ decontX(x, ...)
   seed = 12345,
   legacyInit = FALSE,
   logfile = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  embedding = TRUE,
+  numThreads = 1
 )
 
 \S4method{decontX}{ANY}(
@@ -45,7 +47,9 @@ decontX(x, ...)
   seed = 12345,
   legacyInit = FALSE,
   logfile = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  embedding = TRUE,
+  numThreads = 1
 )
 }
 \arguments{
@@ -57,7 +61,8 @@ numeric matrix, a sparse matrix from package \link[Matrix]{Matrix} or
 Cells in each batch will be subsetted and converted to a sparse matrix
 of class \code{dgCMatrix} from package \link[Matrix]{Matrix} before
 analysis. Each batch needs at least 3 cells (15 with
-\code{legacyInit = TRUE}) for the initialization. This
+\code{legacyInit = TRUE}) for the embedding, or 2 with
+\code{embedding = FALSE}. This
 object should only contain filtered cells after cell calling. Empty
 cell barcodes (low expression droplets before cell calling) are not needed
 to run DecontX.}
@@ -147,7 +152,8 @@ dimensionality reduction before clustering. Variability is calculated
 using \code{\link[scrapper]{modelGeneVariances}} from the 'scrapper'
 package (or by the variance of the log-normalized counts when
 \code{legacyInit = TRUE}). If \code{z} is provided, it is used only for
-the UMAP stored in the results. Default 5000.}
+the UMAP stored in the results, and not at all with
+\code{embedding = FALSE}. Default 5000.}
 
 \item{dbscanEps}{Numeric. The clustering resolution parameter
 used in '\link[dbscan]{dbscan}' to estimate broad cell clusters.
@@ -169,12 +175,34 @@ normalization functions were deprecated in favor of the 'scrapper'
 package. It is kept for backwards compatibility and will remain
 available as long as the upstream functions are still provided by
 scater/scuttle. If \code{z} is provided, it is used only for the UMAP
-stored in the results. Default FALSE.}
+stored in the results, and not at all with \code{embedding = FALSE}.
+Default FALSE.}
 
 \item{logfile}{Character. Messages will be redirected to a file named
 \code{logfile}. If NULL, messages will be printed to stdout.  Default NULL.}
 
 \item{verbose}{Logical. Whether to print log messages. Default TRUE.}
+
+\item{embedding}{Logical. Whether to compute the low-dimensional
+embedding of the cells (currently a UMAP) that decontX uses to estimate
+the cell clusters and stores in the results. When \code{z} is provided,
+the embedding is used only for the stored results, so
+\code{embedding = FALSE} skips it, which saves most of the run time on
+large data sets; the decontamination is the same either way (except
+with \code{legacyInit = TRUE} and \code{seed = NULL}, where the legacy
+UMAP draws from the session's random numbers before the EM). Then no
+UMAP is stored, and \code{\link{plotDecontXContamination}} can plot the
+contamination on another embedding with \code{reducedDimName}.
+\code{embedding = FALSE} needs \code{z}. Default TRUE.}
+
+\item{numThreads}{Integer. Number of threads for computing the
+embedding (variable genes, PCA and UMAP). With more than one thread the
+PCA can differ in the last digits on large data sets, which can move
+the UMAP coordinates and change estimated clusters, so use the same
+\code{numThreads} to reproduce a run.
+With \code{legacyInit = TRUE}, only the UMAP uses the threads; it was
+the same with one and four threads on 8,000 simulated cells. Has no
+effect with \code{embedding = FALSE}. Default 1.}
 }
 \value{
 If \code{x} is a matrix-like object, a list will be returned
@@ -190,9 +218,10 @@ obtained from the variational inference procedure may be non-integer.
 However, integer counts can be obtained by rounding,
 e.g. \code{round(decontXcounts)}.}
 \item{\code{contamination}:}{Percentage of contamination in each cell.}
-\item{\code{estimates}:}{List of estimated parameters for each batch. If z
-was not supplied, then the UMAP coordinates used to generated cell
-cluster labels will also be stored here. The columns of \code{phi} and
+\item{\code{estimates}:}{List of estimated parameters for each batch,
+including the UMAP coordinates (\code{UMAP}), which are used to generate
+the cell cluster labels when z is not supplied. \code{UMAP} is
+\code{NULL} with \code{embedding = FALSE}. The columns of \code{phi} and
 \code{eta} are named by cluster label, in the order of the levels of the
 batch's \code{z}.}
 \item{\code{z}:}{Factor of the cell cluster labels used for analysis. A
@@ -221,11 +250,14 @@ counts will be stored as an assay and can be accessed with
 will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
 will be stored in \code{metadata(x)$decontX}. The UMAPs used to generated
 cell cluster labels will be stored in
-\code{reducedDims} slot in \code{x}. Running \code{decontX} again on
+\code{reducedDims} slot in \code{x}, except with
+\code{embedding = FALSE}. Running \code{decontX} again on
 \code{x} replaces the assay, the \code{colData} columns and
-\code{metadata(x)$decontX}. A UMAP from an earlier run with different
-batches (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
-\code{reducedDims} and doesn't match the new results. When the counts
+\code{metadata(x)$decontX}. A UMAP from an earlier run
+(\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
+\code{reducedDims} when the new run doesn't replace it, because the
+batches differ or the new run has \code{embedding = FALSE}, and it
+doesn't match the new results. When the counts
 are on disk, the \code{decontXcounts} assay is held in memory; save the
 object with, for example,
 \code{HDF5Array::saveHDF5SummarizedExperiment()} to keep it on disk.

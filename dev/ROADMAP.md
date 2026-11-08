@@ -77,6 +77,9 @@ the PR (real PBMC mode for EM changes). Bit-identical, or the documented
 tolerance.
 - Opt-out of initialization when `z` is given, and opt-in `numThreads`
   (#79; A5-01, A5-02). New arguments: in ADR-0004 or a short ADR.
+  Done in 1.11.19 (`embedding`, `numThreads`, and `reducedDimName` in
+  `plotDecontXContamination()`; spec
+  `dev/plans/2026-11-07-embedding-numthreads.md`).
 - Unchecked indexing in the EM loop (#80; A5-03); the direct
   `calculateNativeMatrix` (A5-04, D2-09, within 1e-14);
   `.process_stan_vb_out` tidy-up (A4-20).

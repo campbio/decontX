@@ -50,6 +50,16 @@
 #                            (default "10000,50000,100000").
 #   DECONTX_BENCH_RUNS       decontX runs for sim mode (default
 #                            "z_supplied,z_estimated,batched4,background").
+#                            Also available (decontX 1.11.19 and later):
+#                            "z_supplied_noembed" (z given,
+#                            embedding = FALSE) and "z_estimated_threads4"
+#                            (numThreads = 4).
+#   DECONTX_BENCH_REAL_RUNS  decontX runs for real mode (default
+#                            "z_estimated,sce_hdf5"); also takes the sim
+#                            run types without batches or background.
+#                            Real data have no known clusters, so z is
+#                            the z a default decontX() run estimates
+#                            when the data are first loaded.
 #   DECONTX_BENCH_PRO_CELLS  Cell counts for decontPro in sim mode
 #                            (default "2000,5000"; "" skips decontPro).
 #                            Profile mode uses the largest.
@@ -327,14 +337,16 @@ simulateAdt <- function(cells) {
   list(counts = sim$observedCounts, cellType = sim$z)
 }
 
-## Load a 10x PBMC data set and keep cells and genes with counts
+## Load a 10x PBMC data set and keep cells and genes with counts. The
+## clusters a default decontX() run estimates stand in for known ones
 loadPbmc <- function(dataset, file) {
   sce <- TENxPBMCData::TENxPBMCData(dataset = dataset)
   counts <- methods::as(SingleCellExperiment::counts(sce), "dgCMatrix")
   colnames(counts) <- sce$Barcode
   rownames(counts) <- SummarizedExperiment::rowData(sce)$ENSEMBL_ID
   counts <- counts[Matrix::rowSums(counts) > 0, Matrix::colSums(counts) > 0]
-  saveRDS(list(counts = counts), file)
+  z <- as.character(decontX::decontX(counts, verbose = FALSE)$z)
+  saveRDS(list(counts = counts, z = z), file)
 }
 
 dataFile <- function(outdir, name) {
@@ -384,8 +396,17 @@ decontXCall <- function(run, data) {
     z_supplied = function() {
       decontX::decontX(data$counts, z = data$z, verbose = FALSE)
     },
+    z_supplied_noembed = function() {
+      decontX::decontX(data$counts,
+        z = data$z, embedding = FALSE,
+        verbose = FALSE
+      )
+    },
     z_estimated = function() {
       decontX::decontX(data$counts, verbose = FALSE)
+    },
+    z_estimated_threads4 = function() {
+      decontX::decontX(data$counts, numThreads = 4, verbose = FALSE)
     },
     batched4 = function() {
       decontX::decontX(data$counts,
@@ -737,10 +758,13 @@ modeSim <- function(outdir, lib) {
 ## SingleCellExperiment as distributed
 modeReal <- function(outdir, lib) {
   dataset <- envOr("DECONTX_BENCH_PBMC", "pbmc4k")
-  if (!file.exists(dataFile(outdir, dataset))) {
+  ## Data cached before decontX 1.11.19's bench have no z: load them again
+  cached <- dataFile(outdir, dataset)
+  if (!file.exists(cached) || is.null(readRDS(cached)$z)) {
     runWorker(paste0("loadpbmc_", dataset), outdir, lib)
   }
-  tasks <- paste("real", dataset, c("z_estimated", "sce_hdf5"), sep = "_")
+  runs <- splitList(envOr("DECONTX_BENCH_REAL_RUNS", "z_estimated,sce_hdf5"))
+  tasks <- paste("real", dataset, runs, sep = "_")
   results <- runTasks(tasks, outdir, lib,
     resultsFile(outdir, "real")
   )

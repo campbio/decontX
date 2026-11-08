@@ -1,3 +1,24 @@
+# decontX 1.11.19
+
+* New `decontX()` argument `embedding`. With `embedding = FALSE` and
+cluster labels given in `z`, `decontX()` skips the embedding (the
+normalization, variable genes, PCA and UMAP), which is most of the run
+time on large data sets. The decontamination is the same (except with
+`legacyInit = TRUE` and `seed = NULL`, where the EM's random start
+differs); only the decontX UMAP is left out of the results.
+`embedding = FALSE` needs `z`, and lowers the minimum batch size from 3
+cells (15 with `legacyInit = TRUE`) to 2 (#79).
+* New `decontX()` argument `numThreads` (default 1) for computing the
+embedding. With more than one thread the PCA can differ in the last digits
+on large data sets, which can move the UMAP coordinates and change
+estimated clusters: on 100,000 simulated cells, four threads found 11
+clusters instead of 10. Set `numThreads` the same way to reproduce a run.
+With `legacyInit = TRUE` only the UMAP uses the threads (#79).
+* `plotDecontXContamination()` can plot the contamination on any reducedDim
+of a SingleCellExperiment with the new argument `reducedDimName`, for
+example after a run with `embedding = FALSE`. With `reducedDimName` and
+`batch = NULL` it plots every cell (#79).
+
 # decontX 1.11.17
 
 * With HDF5-backed counts, `decontXcounts` is now a DelayedMatrix held in

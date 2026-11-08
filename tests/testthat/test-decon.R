@@ -978,8 +978,22 @@ test_that("decontX checks its scalar arguments", {
     list(
       args = list(logfile = 1),
       regexp = "'logfile' must be NULL or a single character string"
+    ),
+    list(
+      args = list(embedding = "yes"),
+      regexp = "'embedding' must be TRUE or FALSE"
+    ),
+    list(
+      args = list(embedding = NA),
+      regexp = "'embedding' must be TRUE or FALSE"
     )
   )
+  for (bad in list(0, 1.5, NA, "2", c(1, 2), Inf, -1)) {
+    checks <- c(checks, list(list(
+      args = list(numThreads = bad),
+      regexp = "'numThreads' must be a single whole number of at least 1"
+    )))
+  }
   for (check in checks) {
     call <- utils::modifyList(list(x = x, z = z, verbose = FALSE), check$args)
     expect_error(do.call(decontX, call), regexp = check$regexp)
@@ -1028,7 +1042,7 @@ test_that("decontX checks assay names before running", {
 })
 
 test_that("the zero-count error doesn't suggest supplying z", {
-  # Initialization runs even when z is supplied (#79 adds an opt-out)
+  # Initialization runs by default even when z is supplied
   d <- refData()
   counts <- d$sim$observedCounts
   counts[, 1] <- 0
@@ -1036,6 +1050,370 @@ test_that("the zero-count error doesn't suggest supplying z", {
     regexp = "at least one count"
   )
   expect_false(grepl("'z'", conditionMessage(err)))
+})
+
+## embedding and numThreads (#79)
+
+# A decontX result without the parts the embedding and the new arguments
+# change, to compare runs with and without the embedding
+withoutEmbedding <- function(res) {
+  res$runParams$embedding <- NULL
+  res$runParams$numThreads <- NULL
+  res$estimates <- lapply(res$estimates, function(e) {
+    e$UMAP <- NULL
+    e
+  })
+  res
+}
+
+test_that("embedding = FALSE gives the same decontamination without a UMAP", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  for (batch in list(NULL, d$batch)) {
+    with <- decontX(x, z = d$sim$z, batch = batch, verbose = FALSE)
+    without <- decontX(x,
+      z = d$sim$z, batch = batch, embedding = FALSE,
+      verbose = FALSE
+    )
+    for (e in without$estimates) {
+      expect_true("UMAP" %in% names(e))
+      expect_null(e$UMAP)
+    }
+    expect_false(without$runParams$embedding)
+    expect_identical(withoutEmbedding(without), withoutEmbedding(with))
+  }
+})
+
+test_that("embedding = FALSE with legacyInit gives the same decontamination", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  with <- suppressWarnings(
+    decontX(x, z = d$sim$z, legacyInit = TRUE, verbose = FALSE)
+  )
+  without <- decontX(x,
+    z = d$sim$z, legacyInit = TRUE, embedding = FALSE,
+    verbose = FALSE
+  )
+  expect_null(without$estimates$all_cells$UMAP)
+  expect_identical(withoutEmbedding(without), withoutEmbedding(with))
+})
+
+test_that("embedding = FALSE writes no UMAP and keeps an earlier one", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  res <- decontX(sce, z = d$sim$z, embedding = FALSE, verbose = FALSE)
+  expect_identical(SingleCellExperiment::reducedDimNames(res), character())
+  expect_identical(
+    res$decontX_contamination,
+    decontX(sce, z = d$sim$z, verbose = FALSE)$decontX_contamination
+  )
+
+  # A UMAP from an earlier run stays, and the batched run adds none
+  earlier <- decontX(sce, z = d$sim$z, verbose = FALSE)
+  res <- decontX(earlier,
+    z = d$sim$z, batch = d$batch, embedding = FALSE,
+    verbose = FALSE
+  )
+  expect_identical(SingleCellExperiment::reducedDimNames(res), "decontX_UMAP")
+  expect_identical(
+    SingleCellExperiment::reducedDim(res, "decontX_UMAP"),
+    SingleCellExperiment::reducedDim(earlier, "decontX_UMAP")
+  )
+})
+
+test_that("embedding = FALSE stores the same SCE results without a UMAP", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  for (batch in list(NULL, d$batch)) {
+    with <- decontX(sce, z = d$sim$z, batch = batch, verbose = FALSE)
+    without <- decontX(sce,
+      z = d$sim$z, batch = batch, embedding = FALSE,
+      verbose = FALSE
+    )
+    expect_identical(decontXcounts(without), decontXcounts(with))
+    expect_identical(
+      SummarizedExperiment::colData(without),
+      SummarizedExperiment::colData(with)
+    )
+    expect_identical(
+      withoutEmbedding(S4Vectors::metadata(without)$decontX),
+      withoutEmbedding(S4Vectors::metadata(with)$decontX)
+    )
+    expect_length(SingleCellExperiment::reducedDimNames(without), 0)
+  }
+})
+
+test_that("embedding = FALSE needs z", {
+  d <- refData()
+  expect_error(
+    decontX(d$sim$observedCounts, embedding = FALSE, verbose = FALSE),
+    regexp = "'embedding = FALSE' needs 'z'"
+  )
+})
+
+test_that("embedding = FALSE still stops on cells without counts", {
+  d <- refData()
+  counts <- d$sim$observedCounts
+  counts[, 1] <- 0
+  expect_error(
+    decontX(counts, z = d$sim$z, embedding = FALSE, verbose = FALSE),
+    regexp = "All cells must have at least one count"
+  )
+})
+
+test_that("embedding = FALSE needs 2 cells in each batch", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  # The 3-cell (15 with legacyInit) minimum is for the PCA and UMAP only
+  res <- decontX(x[, 1:2],
+    z = c(1, 2), embedding = FALSE, maxIter = 2, verbose = FALSE
+  )
+  expect_true(all(is.finite(res$contamination)))
+  res <- decontX(x,
+    z = c(d$sim$z[1:98], 1, 2), batch = c(rep("A", 98), "B", "B"),
+    embedding = FALSE, maxIter = 2, verbose = FALSE
+  )
+  expect_true(all(is.finite(res$contamination)))
+  # One cell can't estimate the contamination prior, even with background,
+  # where one cluster is allowed
+  expect_error(
+    decontX(x,
+      z = d$sim$z, batch = c(rep("A", 99), "B"), background = d$bg,
+      bgBatch = c(rep("A", 39), "B"), embedding = FALSE, verbose = FALSE
+    ),
+    regexp = paste0(
+      "Each batch needs at least 2 cells to estimate the contamination ",
+      "prior; batch 'B' has 1\\."
+    )
+  )
+  expect_error(
+    decontX(x[, 1, drop = FALSE],
+      z = 1, background = d$bg, embedding = FALSE, verbose = FALSE
+    ),
+    regexp = "'x' needs at least 2 cells to estimate the contamination prior"
+  )
+})
+
+test_that("embedding = FALSE has no 15-cell minimum with legacyInit", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  res <- decontX(d$sim$observedCounts[, 1:10],
+    z = rep(1:2, 5), legacyInit = TRUE, embedding = FALSE, maxIter = 2,
+    verbose = FALSE
+  )
+  expect_true(all(is.finite(res$contamination)))
+})
+
+test_that("embedding = FALSE leaves the UMAP out of the log", {
+  d <- refData()
+  logfile <- withr::local_tempfile(fileext = ".log")
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, embedding = FALSE, maxIter = 3, iterLogLik = 1,
+    convergence = 0, logfile = logfile
+  )
+  expect_snapshot(writeLines(maskLog(readLines(logfile))))
+})
+
+test_that("runParams records embedding and numThreads", {
+  d <- refData()
+  res <- decontX(d$sim$observedCounts, z = d$sim$z, verbose = FALSE)
+  expect_true(res$runParams$embedding)
+  expect_identical(res$runParams$numThreads, 1)
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, embedding = FALSE, numThreads = 2L, verbose = FALSE
+  )
+  expect_false(res$runParams$embedding)
+  expect_identical(res$runParams$numThreads, 2L)
+})
+
+test_that("numThreads reaches every threaded initialization call", {
+  d <- refData()
+  seen <- list()
+  record <- function(name, value) {
+    seen[[name]] <<- value
+  }
+  # Each mock is the scrapper function with a first line that records
+  # num.threads, so it keeps the function's formals: decontX reads them to
+  # choose runUmap's seed arguments
+  recording <- function(fn, name) {
+    body(fn) <- bquote({
+      .(record)(.(name), num.threads)
+      .(body(fn))
+    })
+    fn
+  }
+  local_mocked_bindings(
+    modelGeneVariances = recording(
+      scrapper::modelGeneVariances, "modelGeneVariances"
+    ),
+    runPca = recording(scrapper::runPca, "runPca"),
+    runUmap = recording(scrapper::runUmap, "runUmap"),
+    .package = "scrapper"
+  )
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, numThreads = 3, maxIter = 2, verbose = FALSE
+  )
+  expect_identical(
+    seen,
+    list(modelGeneVariances = 3, runPca = 3, runUmap = 3)
+  )
+})
+
+test_that("numThreads reaches the legacy UMAP", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  threads <- NULL
+  local_mocked_bindings(
+    calculateUMAP = function(x, ..., n_threads) {
+      threads <<- n_threads
+      matrix(0, ncol(x), 2)
+    },
+    .package = "scater"
+  )
+  res <- suppressWarnings(decontX(d$sim$observedCounts,
+    z = d$sim$z, legacyInit = TRUE, numThreads = 3, maxIter = 2,
+    verbose = FALSE
+  ))
+  expect_identical(threads, 3)
+})
+
+test_that("numThreads > 1 gives the same legacy results with z", {
+  skip_if_not_installed("scater")
+  d <- refData()
+  x <- d$sim$observedCounts
+  one <- suppressWarnings(
+    decontX(x, z = d$sim$z, legacyInit = TRUE, verbose = FALSE)
+  )
+  two <- suppressWarnings(decontX(x,
+    z = d$sim$z, legacyInit = TRUE, numThreads = 2,
+    verbose = FALSE
+  ))
+  expect_identical(two$decontXcounts, one$decontXcounts)
+  expect_identical(two$contamination, one$contamination)
+  expect_identical(
+    two$estimates$all_cells$UMAP,
+    one$estimates$all_cells$UMAP
+  )
+})
+
+test_that("numThreads > 1 gives the same decontamination with z", {
+  d <- refData()
+  x <- d$sim$observedCounts
+  one <- decontX(x, z = d$sim$z, verbose = FALSE)
+  two <- decontX(x, z = d$sim$z, numThreads = 2, verbose = FALSE)
+  expect_identical(two$decontXcounts, one$decontXcounts)
+  expect_identical(two$contamination, one$contamination)
+  expect_identical(dim(two$estimates$all_cells$UMAP), c(ncol(x), 2L))
+})
+
+test_that("the contamination plot uses a reducedDim for every cell", {
+  d <- refData()
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = d$sim$observedCounts)
+  )
+  coords <- withr::with_seed(1, matrix(rnorm(2 * ncol(sce)), ncol = 2))
+  colnames(coords) <- c("PC1", "PC2")
+  SingleCellExperiment::reducedDim(sce, "PCA") <- coords
+  sce <- decontX(sce,
+    z = d$sim$z, batch = d$batch, embedding = FALSE,
+    verbose = FALSE
+  )
+
+  # Every cell, with the reducedDim's column names as the axis titles
+  b <- ggplot2::ggplot_build(
+    plotDecontXContamination(sce, reducedDimName = "PCA")
+  )
+  expect_equal(b$data[[1]]$x, unname(coords[, 1]))
+  expect_equal(b$data[[1]]$y, unname(coords[, 2]))
+  expect_equal(b$plot$data$Contamination, sce$decontX_contamination)
+  expect_identical(b$plot$labels$x, "PC1")
+  expect_identical(b$plot$labels$y, "PC2")
+
+  # One batch's cells
+  b <- ggplot2::ggplot_build(
+    plotDecontXContamination(sce, reducedDimName = "PCA", batch = "B")
+  )
+  inB <- d$batch == "B"
+  expect_equal(b$data[[1]]$x, unname(coords[inB, 1]))
+  expect_equal(b$plot$data$Contamination, sce$decontX_contamination[inB])
+
+  # Unnamed columns get generic axis titles
+  SingleCellExperiment::reducedDim(sce, "PCA") <- unname(coords)
+  b <- ggplot2::ggplot_build(
+    plotDecontXContamination(sce, reducedDimName = "PCA")
+  )
+  expect_identical(b$plot$labels$x, "Dim_1")
+  expect_identical(b$plot$labels$y, "Dim_2")
+
+  expect_error(
+    plotDecontXContamination(sce, reducedDimName = "TSNE"),
+    regexp = "'TSNE' is not a reducedDim of 'x'\\. Available: 'PCA'"
+  )
+  for (bad in list(1, NA_character_, c("PCA", "PCA"))) {
+    expect_error(
+      plotDecontXContamination(sce, reducedDimName = bad),
+      regexp = "'reducedDimName' must be a single reducedDim name"
+    )
+  }
+  expect_error(
+    plotDecontXContamination(sce, batch = c("A", "B")),
+    regexp = "'batch' must be NULL or a single batch name"
+  )
+
+  # A subset of the cells: every cell works, a batch needs the run's cells
+  b <- ggplot2::ggplot_build(
+    plotDecontXContamination(sce[, 1:10], reducedDimName = "PCA")
+  )
+  expect_equal(b$data[[1]]$x, unname(coords[1:10, 1]))
+  expect_error(
+    plotDecontXContamination(sce[, 1:10], reducedDimName = "PCA", batch = "A"),
+    regexp = "'x' has 10 cells and the run had 100"
+  )
+
+  # The decontX UMAP is missing from the SCE's estimates too
+  expect_error(plotDecontXContamination(sce),
+    regexp = "Batch 'A' has no decontX UMAP"
+  )
+
+  noContamination <- sce
+  noContamination$decontX_contamination <- NULL
+  expect_error(
+    plotDecontXContamination(noContamination, reducedDimName = "PCA"),
+    regexp = "'x' has no 'decontX_contamination' column"
+  )
+
+  SingleCellExperiment::reducedDim(sce, "PCA") <- coords[, 1, drop = FALSE]
+  expect_error(
+    plotDecontXContamination(sce, reducedDimName = "PCA"),
+    regexp = "reducedDim 'PCA' needs at least two columns"
+  )
+  SingleCellExperiment::reducedDims(sce) <- list()
+  expect_error(
+    plotDecontXContamination(sce, reducedDimName = "PCA"),
+    regexp = "'x' has no reducedDims"
+  )
+  expect_error(
+    plotDecontXContamination(sce, reducedDimName = "PCA", batch = "C"),
+    regexp = "'C' is not one of the batches in 'x'"
+  )
+})
+
+test_that("the contamination plot explains a missing decontX UMAP", {
+  d <- refData()
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, embedding = FALSE, verbose = FALSE
+  )
+  expect_error(plotDecontXContamination(res),
+    regexp = "no decontX UMAP.*embedding = FALSE.*reducedDimName"
+  )
+  expect_error(plotDecontXContamination(res, reducedDimName = "PCA"),
+    regexp = "'reducedDimName' needs 'x' to be a SingleCellExperiment"
+  )
 })
 
 test_that("decontX still accepts integer, factor and Inf arguments", {
@@ -1054,7 +1432,9 @@ test_that("decontX still accepts integer, factor and Inf arguments", {
     seed = 1L,
     legacyInit = FALSE,
     logfile = NULL,
-    verbose = FALSE
+    verbose = FALSE,
+    embedding = TRUE,
+    numThreads = 2L
   ))
   expect_no_error(.checkCellValues(as.character(d$sim$z), "z", ncol(counts)))
   expect_no_error(.decontXParams(
@@ -1068,7 +1448,9 @@ test_that("decontX still accepts integer, factor and Inf arguments", {
     seed = NULL,
     legacyInit = TRUE,
     logfile = tempfile(),
-    verbose = TRUE
+    verbose = TRUE,
+    embedding = FALSE,
+    numThreads = 1
   ))
 })
 
@@ -1345,7 +1727,10 @@ test_that("the k-means fallback clusters the PCA components", {
   expect_lte(ncol(received), 50L)
   # The PCs of the default initialization (varGenes = 5000, seed = 12345);
   # decontX runs it on a dgCMatrix, so the last digits can differ
-  pcs <- .decontxInitializeZScrapper(x, varGenes = 5000, seed = 12345)$pcs
+  pcs <- .decontxInitializeZScrapper(x,
+    varGenes = 5000, seed = 12345,
+    numThreads = 1
+  )$pcs
   expect_equal(received, pcs)
 })
 
