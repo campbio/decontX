@@ -22,10 +22,13 @@ counts once per batch, after the EM. It:
   returns only the new `x` values (length nnz, in the order of the counts'
   `x` slot). It uses the EM's direct formula and raw pointers, walks the
   columns in storage order (no `coeffRef()`), and keeps the same guards.
-- R (`.decontXbatch()`): copy the counts, replace `@x` with the result and
-  set `@Dimnames` to `list(NULL, NULL)`. `@<-` copies the object shallowly,
-  so `i` and `p` are shared, not copied. Clearing the dimnames keeps the
-  result as before (unnamed; `.inCellOrder()` names it).
+- R: `.runBatch()` calls a new helper, `.nativeCounts()`, which coerces
+  the counts to a plain dgCMatrix (a no-op for a dgCMatrix; drops a
+  subclass, as the old Eigen result did), replaces its `x` slot with the
+  result and clears the dimnames. Slot assignment copies the object
+  shallowly, so `i` and `p` are shared, not copied. Clearing the dimnames
+  keeps the batches unnamed when they are bound, as before
+  (`.inCellOrder()` names the result).
 - `R/RcppExports.R` and `src/RcppExports.cpp` regenerated; the profile
   phase label in `dev/bench/bench-decontx.R` follows the new name.
 - Out of scope: `decontXInitialize()` and a shared pointer helper.
@@ -47,8 +50,12 @@ way).
 - `test-decon.R` tests that call `calculateNativeMatrix()` directly switch
   to `calculateNativeCounts()`, including the C++ guard test.
 - New: `decontXcounts` equals a dense R oracle of the direct formula at
-  1e-12. It passes on devel too: this is a speedup within tolerance, with
-  no behaviour change for a test to catch first.
+  1e-12, for one batch and for interleaved batches. It passes on devel
+  too: this is a speedup within tolerance, with no behaviour change for a
+  test to catch first.
+- Added after code review: a dgCMatrix subclass still gives a plain
+  dgCMatrix (the first version of this change returned the subclass; the
+  test failed on it before the fix).
 
 ## Benchmark
 

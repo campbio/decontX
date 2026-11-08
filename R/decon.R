@@ -580,21 +580,28 @@ setMethod("decontX", "ANY", function(x,
   .logDecontX(date(), ".. Calculating final decontaminated matrix",
     params = params
   )
-  ## Only the values change, so a copy of the counts takes the new ones.
-  ## Slot assignment copies shallowly, so the row indices and column
-  ## pointers are shared, not copied. The result is unnamed, as
-  ## .inCellOrder() names it
-  decontXcounts <- countsBat
-  methods::slot(decontXcounts, "x") <- calculateNativeCounts(
-    counts = countsBat,
+  decontXcounts <- .nativeCounts(countsBat, res)
+  list(res = res, decontXcounts = decontXcounts)
+}
+
+## The decontaminated counts of one batch: each count times its native
+## probability. Only the values change, so the result is a plain dgCMatrix
+## copy of the counts with new values (a subclass is dropped). Slot
+## assignment copies shallowly, so the row indices and column pointers are
+## shared, not copied. Unnamed, so the batches bind without names, as they
+## always have; .inCellOrder() names the bound result
+.nativeCounts <- function(counts, res) {
+  native <- methods::as(counts, "dgCMatrix")
+  methods::slot(native, "x") <- calculateNativeCounts(
+    counts = native,
     theta = res$theta,
     eta = res$eta,
     phi = res$phi,
     z = as.integer(res$z),
     pseudocount = .decontXPseudocount
   )
-  dimnames(decontXcounts) <- NULL
-  list(res = res, decontXcounts = decontXcounts)
+  dimnames(native) <- NULL
+  native
 }
 
 ## The decontaminated counts of each batch, in a list in batch order, bound
