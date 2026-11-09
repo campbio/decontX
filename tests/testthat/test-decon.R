@@ -2373,7 +2373,7 @@ test_that("the C++ EM functions check the shapes of their arguments", {
   }
 })
 
-test_that("cluster labels are numbered in the order the EM has used", {
+test_that("cluster labels are numbered in the order the EM uses", {
   # Labels are numbered by first appearance. Character labels stay
   # character, so with 10 or more of them the codes sort as text
   z <- paste0("c", c(1:12, 1:12))
