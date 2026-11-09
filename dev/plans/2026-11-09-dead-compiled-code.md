@@ -43,6 +43,11 @@ fixed on devel: the loop runs over `new_eta.ncol()`.
 - Regenerate `R/RcppExports.R`, `src/RcppExports.cpp`, `man/`, `NAMESPACE`
   and `src/stanExports_shrinkage.h`.
 
+Amended at code review: per-cluster `rowSums()` over `seq_len(K)` (a
+`vapply`) replaces `t(rowsum(t(cellRmat), z))`. It always gives K columns
+instead of relying on every cluster being present, and skips two full
+transposes of the count matrix. The values are the same.
+
 ## Tests
 
 - Test first: the existing C++ `delta` check in `test-decon.R` matches

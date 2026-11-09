@@ -19,7 +19,7 @@ calculateNativeCounts <- function(counts, theta, eta, phi, z, pseudocount) {
 
 #' Fast normalization for numeric matrix
 #'
-#' @param R_counts An integer matrix
+#' @param R_counts A numeric matrix of counts
 #' @param R_alpha A double value to be added to the matrix as a pseudocount
 #' @return A numeric matrix where the columns have been normalized to proportions
 #' @noRd
