@@ -535,3 +535,24 @@ test_that("plotBoxByCluster returns a box plot per feature", {
   )
   expect_identical(cd3$data$cell_type, factor(c(1, 2, 1, 1, 2, 1)))
 })
+
+test_that("plotDensity and plotBoxByCluster stack both counts", {
+  counts <- matrix(c(60L, 72L, 52L, 49L, 89L, 112L),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  decontaminated <- counts - 0.5
+  variable <- factor(rep(c("con", "decon"), each = 3),
+    levels = c("con", "decon")
+  )
+  p <- plotDensity(counts, decontaminated, "CD4")
+  expect_identical(p[[1]]$data, data.frame(
+    variable = variable,
+    value = c(72, 49, 112, 71.5, 48.5, 111.5)
+  ))
+  p <- plotBoxByCluster(counts, decontaminated, c("b", "a", "b"), "CD3")
+  expect_identical(p[[1]]$data, data.frame(
+    cell_type = factor(rep(c("b", "a", "b"), 2)),
+    variable = variable,
+    value = c(60, 52, 89, 59.5, 51.5, 88.5)
+  ))
+})

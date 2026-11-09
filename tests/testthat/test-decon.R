@@ -2372,3 +2372,74 @@ test_that("the C++ EM functions check the shapes of their arguments", {
     expect_no_error(do.call(f, valid[names(formals(f))]))
   }
 })
+
+test_that("cluster labels are numbered in the order the EM has used", {
+  # Labels are numbered by first appearance. Character labels stay
+  # character, so with 10 or more of them the codes sort as text
+  z <- paste0("c", c(1:12, 1:12))
+  labels <- .processCellLabels(z, numCells = 24)
+  expect_identical(
+    levels(labels),
+    c("1", "10", "11", "12", "2", "3", "4", "5", "6", "7", "8", "9")
+  )
+  expect_identical(as.character(labels), as.character(c(1:12, 1:12)))
+  expect_identical(
+    as.integer(labels)[1:12],
+    c(1L, 5:12, 2:4)
+  )
+
+  # Numbers and logicals are numbered as numbers
+  labels <- .processCellLabels(c(12, 3, 3, 0, 12), numCells = 5)
+  expect_identical(labels, factor(c(1, 2, 2, 3, 1)))
+  labels <- .processCellLabels(c(TRUE, FALSE, TRUE), numCells = 3)
+  expect_identical(labels, factor(c(1, 2, 1)))
+
+  # Factors keep their labels, without unused levels
+  z <- factor(c("b", "a", "b"), levels = c("c", "b", "a"))
+  expect_identical(
+    .processCellLabels(z, numCells = 3),
+    factor(c("b", "a", "b"), levels = c("b", "a"))
+  )
+})
+
+test_that("the marker plots' data have one row per marker and cell", {
+  x <- matrix(c(0, 3, 5, 1, 2, 0),
+    nrow = 2,
+    dimnames = list(c("CD3", "CD19"), c("10", "2", "3"))
+  )
+  markers <- list(T = "CD3", B = "CD19")
+  # Cell names that look like numbers become numbers
+  df <- plotDecontXMarkerExpression(x, c("CD3", "CD19"), z = c(1, 2, 1))$data
+  expect_identical(df[1:3], data.frame(
+    Marker = factor(rep(c("CD3", "CD19"), 3), levels = c("CD3", "CD19")),
+    Cell = rep(c(10L, 2L, 3L), each = 2),
+    Expression = c(0, 3, 5, 1, 2, 0)
+  ))
+  expect_identical(as.character(df$Cluster), rep(c("1", "2", "1"), each = 2))
+
+  # Other names become factors in their order
+  colnames(x) <- c("c", "a", "b")
+  df <- plotDecontXMarkerExpression(x, "CD19", z = c(1, 2, 1))$data
+  expect_identical(df$Cell, factor(c("c", "a", "b"), levels = c("c", "a", "b")))
+  expect_identical(df$Expression, c(3, 1, 0))
+
+  # Without cell names, the cells are numbered
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = unname(x) + 1, decontXcounts = unname(x))
+  )
+  rownames(sce) <- rownames(x)
+  df <- plotDecontXMarkerExpression(sce, "CD3", z = c(1, 2, 1),
+    assayName = c("counts", "decontXcounts")
+  )$data
+  expect_identical(df$Cell, rep(1:3, 2))
+  expect_identical(df$Expression, c(1, 6, 3, 0, 5, 2))
+  expect_identical(df$assay, factor(rep(c("counts", "decontXcounts"),
+    each = 3
+  ), levels = c("counts", "decontXcounts")))
+
+  # Markers and clusters are numbered
+  df <- plotDecontXMarkerPercentage(x, markers, z = c(1, 2, 1))$data
+  expect_identical(df$markers, c(1L, 2L, 1L, 2L))
+  expect_identical(df$cellType, c(1L, 1L, 2L, 2L))
+  expect_identical(df$percent, c(50, 50, 100, 100))
+})

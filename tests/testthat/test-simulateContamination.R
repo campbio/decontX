@@ -50,3 +50,9 @@ test_that("simulateContamination uses one delta value for both shapes", {
     simulateContamination(C = 50, G = 40, delta = c(2, 2))
   )
 })
+
+test_that("simulateContamination numbers fewer clusters than K from 1", {
+  sim <- suppressWarnings(simulateContamination(C = 10, G = 40, K = 50))
+  expect_type(sim$z, "integer")
+  expect_identical(unique(sim$z), seq_len(max(sim$z)))
+})
