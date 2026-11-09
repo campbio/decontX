@@ -68,7 +68,9 @@ pushed, one at a time.
     D2-11, D2-13 to D2-15, A2-02, A7-16). Done in 1.11.25, with
     per-cluster `rowSums()` in place of `rowsum()` (spec
     `dev/plans/2026-11-09-dead-compiled-code.md`); celda keeps its own
-    copies of the matrix sums, so nothing there changes;
+    copies of the matrix sums, so nothing there changes. D2-13: the GPL
+    (>= 3) `license.stan` notice stays, since rstantools' generated files
+    are GPL; decontX's own code stays MIT;
   - scrapper >= 1.5 and the old-API branch removed; unreachable code
     removed; explicit `decontXcounts` methods (A3-11 to A3-13);
   - small quality items (A4-11, A4-13 to A4-16).

@@ -37,11 +37,15 @@ fixed on devel: the loop runs over `new_eta.ncol()`.
   `Eigen::MappedSparseMatrix<double>`.
 - `delta` message: "non-negative values".
 - `@noRd` on the remaining C++ helper and the two Stan helpers.
-- `license.stan`: an MIT notice with the holders from `LICENSE`; the
-  regenerated Stan header then matches DESCRIPTION.
 - A "do not remove" comment on `importFrom(RcppParallel, ...)`.
-- Regenerate `R/RcppExports.R`, `src/RcppExports.cpp`, `man/`, `NAMESPACE`
-  and `src/stanExports_shrinkage.h`.
+- Regenerate `R/RcppExports.R`, `src/RcppExports.cpp`, `man/` and
+  `NAMESPACE`.
+
+Amended at hand-off (D2-13): `license.stan` keeps its original GPL (>= 3)
+text. rstantools writes it on purpose: its documentation says the files it
+copies into a package are GPL (>= 3), and the Stan model compiles against
+GPL headers (rstan, RcppParallel, Rcpp). decontX's own code stays MIT;
+AGENTS.md records the decision, and no new license file is added.
 
 Amended at code review: per-cluster `rowSums()` over `seq_len(K)` (a
 `vapply`) replaces `t(rowsum(t(cellRmat), z))`. It always gives K columns

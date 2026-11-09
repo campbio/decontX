@@ -42,10 +42,13 @@ including `make site-check`.
   (`fastNormProp()`, used by `simulateContamination()`).
 - `inst/stan/shrinkage.stan`: the DecontPro Stan model. Changing it is a
   structural change and needs an ADR first.
-- `inst/stan/include/license.stan`: the license comment rstantools puts at
-  the top of `src/stanExports_shrinkage.h` (MIT, as in DESCRIPTION). A
-  change reaches the header only when `src/` is rebuilt, which runs
-  `configure` and so `rstantools::rstan_config()`.
+- `inst/stan/include/license.stan`: the GPL (>= 3) notice rstantools puts
+  at the top of `src/stanExports_shrinkage.h`. Keep it: decontX's own code
+  is MIT (DESCRIPTION), but the files rstantools generates and the
+  libraries the Stan model compiles against (rstan, RcppParallel, Rcpp)
+  are GPL (decided 2026-11-09, #78). A change reaches the header only when
+  `src/` is rebuilt, which runs `configure` and so
+  `rstantools::rstan_config()`.
 - Generated files, never hand-edited:
   - Rcpp: `R/RcppExports.R`, `src/RcppExports.cpp`.
   - rstantools: `R/stanmodels.R`, `src/stanExports_shrinkage.*` (from
