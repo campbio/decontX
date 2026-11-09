@@ -2433,9 +2433,8 @@ test_that("the marker plots' data have one row per marker and cell", {
   )$data
   expect_identical(df$Cell, rep(1:3, 2))
   expect_identical(df$Expression, c(1, 6, 3, 0, 5, 2))
-  expect_identical(df$assay, factor(rep(c("counts", "decontXcounts"),
-    each = 3
-  ), levels = c("counts", "decontXcounts")))
+  assays <- c("counts", "decontXcounts")
+  expect_identical(df$assay, factor(rep(assays, each = 3), levels = assays))
 
   # Markers and clusters are numbered
   df <- plotDecontXMarkerPercentage(x, markers, z = c(1, 2, 1))$data

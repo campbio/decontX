@@ -463,10 +463,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
         x[geneMarkerIndex, ],
         assayName[i]
       )
-      df <- reshape2::melt(as.matrix(counts),
-        varnames = c("Marker", "Cell"),
-        value.name = "Expression"
-      )
+      df <- .meltMatrix(as.matrix(counts), c("Marker", "Cell"), "Expression")
       df.list[[i]] <- cbind(df, assay = assayName[i])
     }
     df <- do.call(rbind, df.list)
@@ -476,16 +473,13 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   } else {
     ## If 'x' is matrix, then calculate percentages directly
     counts <- x[geneMarkerIndex, , drop = FALSE]
-    df <- reshape2::melt(as.matrix(counts),
-      varnames = c("Marker", "Cell"),
-      value.name = "Expression"
-    )
+    df <- .meltMatrix(as.matrix(counts), c("Marker", "Cell"), "Expression")
     legend <- "none"
   }
 
-  # Create data.frame and add cell type groups back in. melt() lists the
-  # cells in column order, one row per marker, so the clusters are added by
-  # position: melt() turns numeric-like cell names into numbers, which
+  # Create data.frame and add cell type groups back in. .meltMatrix() lists
+  # the cells in column order, one row per marker, so the clusters are added
+  # by position: it turns numeric-like cell names into numbers, which
   # would index 'z' by position instead of by name.
   cellClusters <- rep(z, each = length(geneMarkerIndex))
   df <- cbind(df,
@@ -675,10 +669,32 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   # Calculate percentages within each cell cluster
   zTotals <- tabulate(z)
   percentByCellType <- round(sweep(countsByCellType, 2, zTotals, "/") * 100)
-  df <- reshape2::melt(percentByCellType,
-    varnames = c("markers", "cellType"),
-    value.name = "percent"
-  )
+  .meltMatrix(percentByCellType, c("markers", "cellType"), "percent")
+}
 
-  df
+
+## A matrix in long form, one row per entry in column order, as
+## reshape2::melt() gave it: dimnames that look like numbers or logicals
+## become them, other dimnames become factors in their order, and missing
+## dimnames become row or column numbers
+.meltMatrix <- function(m, varnames, valueName) {
+  dn <- dimnames(m)
+  if (is.null(dn)) {
+    dn <- list(NULL, NULL)
+  }
+  for (i in seq_along(dn)) {
+    if (is.null(dn[[i]])) {
+      dn[[i]] <- seq_len(dim(m)[i])
+    } else {
+      values <- utils::type.convert(dn[[i]], as.is = TRUE)
+      if (is.character(values)) {
+        values <- factor(values, levels = unique(values))
+      }
+      dn[[i]] <- values
+    }
+  }
+  names(dn) <- varnames
+  labels <- expand.grid(dn, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+  values <- stats::setNames(data.frame(as.vector(m)), valueName)
+  cbind(labels, values)
 }

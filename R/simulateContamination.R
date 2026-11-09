@@ -96,7 +96,7 @@ simulateContamination <- function(C = 300,
       " more clusters are needed"
     )
     K <- length(unique(z))
-    z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
+    z <- match(z, unique(z))
   }
 
   # sample() on a single value would draw from 1 to that value instead

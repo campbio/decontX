@@ -1153,7 +1153,6 @@ setMethod("decontX", "ANY", function(x,
 
 
 ## Make sure provided cell labels are the right type
-#' @importFrom plyr mapvalues
 .processCellLabels <- function(z, numCells) {
   if (length(z) != numCells) {
     stop(
@@ -1165,7 +1164,10 @@ setMethod("decontX", "ANY", function(x,
     # An unused level would be an empty cluster, which gives NaN estimates
     z <- droplevels(z)
   } else {
-    z <- plyr::mapvalues(z, unique(z), seq_along(unique(z)))
+    # Number the labels by first appearance, keeping their type: character
+    # labels get character codes, which as.factor() sorts as text ("1",
+    # "10", "2"). The EM orders the clusters by these levels
+    z[] <- match(z, unique(z))
     z <- as.factor(z)
   }
   z

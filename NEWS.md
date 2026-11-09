@@ -1,3 +1,8 @@
+# decontX 1.11.24
+
+* decontX no longer imports plyr or reshape2. Their few uses are now done in
+base R, with the same results (#77).
+
 # decontX 1.11.23
 
 * `decontX()` now stops with an error when `batch` or `bgBatch` contains an

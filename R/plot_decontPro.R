@@ -55,11 +55,10 @@ plotDensity <- function(counts,
     feature <- features[i]
 
 
-    df <- data.frame(
-      con = counts[feature, ],
-      decon = decontaminated_counts[feature, ]
+    df.m <- .meltConDecon(
+      counts[feature, ],
+      decontaminated_counts[feature, ]
     )
-    df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
     xScale <- ggplot2::scale_x_continuous(
       transform = "pseudo_log",
@@ -179,13 +178,11 @@ plotBoxByCluster <- function(counts,
     feature <- features[i]
 
 
-    df <- data.frame(
-      con = counts[feature, ],
-      decon = decontaminated_counts[feature, ],
-      cell_type = as.factor(cell_type)
+    df.m <- .meltConDecon(
+      counts[feature, ],
+      decontaminated_counts[feature, ],
+      as.factor(cell_type)
     )
-
-    df.m <- reshape2::melt(df, measure.var = c("con", "decon"))
 
 
     # Plot
@@ -264,4 +261,21 @@ plotBoxByCluster <- function(counts,
     units = "in"
   )
   invisible(file)
+}
+
+
+## The counts before ("con") and after ("decon") decontamination stacked in
+## one column, as reshape2::melt() gave them, with the cell types repeated
+## when given
+.meltConDecon <- function(con, decon, cellType = NULL) {
+  df <- data.frame(
+    variable = factor(rep(c("con", "decon"), each = length(con)),
+      levels = c("con", "decon")
+    ),
+    value = unname(c(con, decon))
+  )
+  if (!is.null(cellType)) {
+    df <- data.frame(cell_type = rep(cellType, 2), df)
+  }
+  df
 }
