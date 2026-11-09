@@ -2347,7 +2347,10 @@ test_that("the C++ EM functions check the shapes of their arguments", {
       z = c(1L, 3L, 1L),
       regexp = "between 1 and the number of columns in eta and phi"
     ),
-    delta = list(delta = c(10, -1), regexp = "'delta' must be a numeric")
+    delta = list(
+      delta = c(10, -1),
+      regexp = "'delta' must be a numeric vector of length 2 with non-negative"
+    )
   )
   checks <- list(
     decontXEM = names(changes),
