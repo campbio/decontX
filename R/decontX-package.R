@@ -11,7 +11,6 @@
 #' @useDynLib decontX, .registration = TRUE
 #' @import methods
 #' @import Rcpp
-#' @importFrom RcppParallel RcppParallelLibs
 #' @import rstantools
 #' @importFrom rstan sampling
 #' @importFrom ggplot2 .data
@@ -20,4 +19,10 @@
 #' Stan Development Team (2022). RStan: the R interface to Stan. R package
 #' version 2.21.7. https://mc-stan.org
 #'
+NULL
+
+# Do not remove this import. The compiled Stan model links against the TBB
+# library that RcppParallel ships, and importing from RcppParallel loads that
+# library before decontX's own. rstantools sets packages up this way.
+#' @importFrom RcppParallel RcppParallelLibs
 NULL
