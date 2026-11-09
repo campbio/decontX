@@ -12,12 +12,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // decontXEM
-Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& counts_colsums, const NumericVector& theta, const bool& estimate_eta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const bool& estimate_delta, const NumericVector& delta, const double& pseudocount);
+Rcpp::List decontXEM(const Eigen::Map<Eigen::SparseMatrix<double> >& counts, const NumericVector& counts_colsums, const NumericVector& theta, const bool& estimate_eta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const bool& estimate_delta, const NumericVector& delta, const double& pseudocount);
 RcppExport SEXP _decontX_decontXEM(SEXP countsSEXP, SEXP counts_colsumsSEXP, SEXP thetaSEXP, SEXP estimate_etaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP estimate_deltaSEXP, SEXP deltaSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::SparseMatrix<double> >& >::type counts(countsSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type counts_colsums(counts_colsumsSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const bool& >::type estimate_eta(estimate_etaSEXP);
@@ -32,12 +32,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // decontXLogLik
-double decontXLogLik(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
+double decontXLogLik(const Eigen::Map<Eigen::SparseMatrix<double> >& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
 RcppExport SEXP _decontX_decontXLogLik(SEXP countsSEXP, SEXP thetaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::SparseMatrix<double> >& >::type counts(countsSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type eta(etaSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type phi(phiSEXP);
@@ -48,12 +48,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // decontXInitialize
-Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const IntegerVector& z, const double& pseudocount);
+Rcpp::List decontXInitialize(const Eigen::Map<Eigen::SparseMatrix<double> >& counts, const NumericVector& theta, const IntegerVector& z, const double& pseudocount);
 RcppExport SEXP _decontX_decontXInitialize(SEXP countsSEXP, SEXP thetaSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::SparseMatrix<double> >& >::type counts(countsSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type z(zSEXP);
     Rcpp::traits::input_parameter< const double& >::type pseudocount(pseudocountSEXP);
@@ -62,12 +62,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // calculateNativeCounts
-NumericVector calculateNativeCounts(const Eigen::MappedSparseMatrix<double>& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
+NumericVector calculateNativeCounts(const Eigen::Map<Eigen::SparseMatrix<double> >& counts, const NumericVector& theta, const NumericMatrix& eta, const NumericMatrix& phi, const IntegerVector& z, const double& pseudocount);
 RcppExport SEXP _decontX_calculateNativeCounts(SEXP countsSEXP, SEXP thetaSEXP, SEXP etaSEXP, SEXP phiSEXP, SEXP zSEXP, SEXP pseudocountSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MappedSparseMatrix<double>& >::type counts(countsSEXP);
+    Rcpp::traits::input_parameter< const Eigen::Map<Eigen::SparseMatrix<double> >& >::type counts(countsSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type theta(thetaSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type eta(etaSEXP);
     Rcpp::traits::input_parameter< const NumericMatrix& >::type phi(phiSEXP);
