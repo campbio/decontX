@@ -28,3 +28,4 @@ Numbering is sequential, zero-padded to four digits.
 | [0005](0005-multi-container-methods.md) | Add Seurat, AnnData and ExperimentSubset methods that return the same class | Proposed | 2026-10-27 |
 | [0006](0006-decontpro-arguments.md) | Rename decontPro's arguments to camelCase and expose its fit controls | Proposed | 2026-10-27 |
 | [0007](0007-pkgdown-site.md) | Publish a pkgdown site on GitHub Pages with release and development versions | Proposed | 2026-10-27 |
+| [0008](0008-drop-plyr-and-reshape2.md) | Drop plyr and reshape2 from Imports | Accepted | 2026-11-08 |

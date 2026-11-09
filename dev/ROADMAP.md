@@ -61,7 +61,7 @@ pushed, one at a time.
   #104 and the file move; 1.11.14 to 1.11.18).
 - Separate PRs:
   - plyr replaced exactly, reshape2 by a faithful helper (#77; A4-09,
-    A4-10);
+    A4-10). Done in 1.11.24, with ADR-0008;
   - dead compiled code deleted (#78), `.colSumByGroup` becomes `rowsum()`,
     `matrixSums.c` and `R/matrixSums.R` go (coordinate with celda), then
     the `MappedSparseMatrix` migration (D2-01, D2-04 to D2-07, D2-10,
