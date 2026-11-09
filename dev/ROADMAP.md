@@ -65,7 +65,9 @@ pushed, one at a time.
   - dead compiled code deleted (#78), `.colSumByGroup` becomes `rowsum()`,
     `matrixSums.c` and `R/matrixSums.R` go (coordinate with celda), then
     the `MappedSparseMatrix` migration (D2-01, D2-04 to D2-07, D2-10,
-    D2-11, D2-13 to D2-15, A2-02, A7-16);
+    D2-11, D2-13 to D2-15, A2-02, A7-16). Done in 1.11.25 (spec
+    `dev/plans/2026-11-09-dead-compiled-code.md`); celda keeps its own
+    copies of the matrix sums, so nothing there changes;
   - scrapper >= 1.5 and the old-API branch removed; unreachable code
     removed; explicit `decontXcounts` methods (A3-11 to A3-13);
   - small quality items (A4-11, A4-13 to A4-16).

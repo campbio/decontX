@@ -1,3 +1,9 @@
+# decontX 1.11.25
+
+* Removed compiled code that nothing used, and the help pages of internal
+functions. The results of `decontX()`, `decontPro()` and
+`simulateContamination()` are unchanged (#78).
+
 # decontX 1.11.24
 
 * decontX no longer imports plyr or reshape2. Their few uses are now done in

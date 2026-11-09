@@ -38,10 +38,12 @@ including `make site-check`.
   packages), including the exported `retrieveFeatureIndex()`.
 - `R/stan_helpers.R`: Stan model wiring (`.call_stan_vb()`,
   `.process_stan_vb_out()`).
-- `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixSums*`
-  (fast matrix operations).
+- `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixNorm.cpp`
+  (`fastNormProp()`, used by `simulateContamination()`).
 - `inst/stan/shrinkage.stan`: the DecontPro Stan model. Changing it is a
   structural change and needs an ADR first.
+- `inst/stan/include/license.stan`: the license comment rstantools puts at
+  the top of `src/stanExports_shrinkage.h` (MIT, as in DESCRIPTION).
 - Generated files, never hand-edited:
   - Rcpp: `R/RcppExports.R`, `src/RcppExports.cpp`.
   - rstantools: `R/stanmodels.R`, `src/stanExports_shrinkage.*` (from
@@ -73,7 +75,7 @@ upstream functions exist, so never describe it as transitional.
 ## Tests
 
 - `tests/testthat/`: `test-decon.R`, `test-decontPro.R`,
-  `test-matrixSums.R`, `test-simulateContamination.R`, and shared
+  `test-simulateContamination.R`, and shared
   fixtures in `helper-decontx.R` (testthat edition 3).
 - Several decontPro tests run a real Stan variational fit. They use a
   10 x 8 fixture to stay under a second each; keep decontPro fixtures
