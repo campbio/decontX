@@ -37,7 +37,8 @@
 #' @param batch Numeric or character vector. Batch labels for cells.
 #' If batch labels are supplied, DecontX is run on cells from each
 #' batch separately. Cells run in different channels or assays
-#' should be considered different batches. Default NULL.
+#' should be considered different batches. Labels must not be empty
+#' strings. Default NULL.
 #' @param background A matrix of counts or a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment} with the matrix
 #' located in the assay slot under \code{assayName}. It must be a
@@ -60,8 +61,8 @@
 #' those in \code{batch}, such that each batch of cells have their
 #' corresponding batch of empty droplets as background, pointed by this
 #' parameter: every batch needs at least one droplet, after barcodes that are
-#' also in \code{x} are removed. It needs \code{batch} and \code{background}.
-#' Default to NULL.
+#' also in \code{x} are removed. Labels must not be empty strings. It needs
+#' \code{batch} and \code{background}. Default to NULL.
 #' @param maxIter Integer. Maximum iterations of the EM algorithm. Default 500.
 #' @param convergence Numeric. The EM algorithm will be stopped if the maximum
 #' difference in the contamination estimates between the previous and
@@ -374,6 +375,7 @@ setMethod("decontX", "ANY", function(x,
   .checkCountsDecon(counts)
   .checkCellValues(z, "z", ncol(counts))
   .checkCellValues(batch, "batch", ncol(counts))
+  .checkBatchNames(batch, "batch")
   .checkEmbeddingZ(z, params$embedding)
 
   if (!is.null(background)) {
@@ -1001,6 +1003,15 @@ setMethod("decontX", "ANY", function(x,
   invisible(NULL)
 }
 
+## Each batch's estimates are read back by name, and R never matches an
+## empty name: [[""]] returns NULL
+.checkBatchNames <- function(values, arg) {
+  if ("" %in% as.character(values)) {
+    stop("'", arg, "' must not contain empty strings (\"\").")
+  }
+  invisible(NULL)
+}
+
 ## A single finite number of at least 'min'
 .isNumber <- function(x, min = -Inf) {
   is.numeric(x) && length(x) == 1 && is.finite(x) && x >= min
@@ -1385,6 +1396,7 @@ setMethod("decontX", "ANY", function(x,
     if (anyNA(bgBatch)) {
       stop("'bgBatch' must not contain NA.")
     }
+    .checkBatchNames(bgBatch, "bgBatch")
   }
   invisible(NULL)
 }
