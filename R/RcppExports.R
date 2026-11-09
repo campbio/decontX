@@ -18,53 +18,12 @@ calculateNativeCounts <- function(counts, theta, eta, phi, z, pseudocount) {
 }
 
 #' Fast normalization for numeric matrix
-#' 
+#'
 #' @param R_counts An integer matrix
 #' @param R_alpha A double value to be added to the matrix as a pseudocount
 #' @return A numeric matrix where the columns have been normalized to proportions
+#' @noRd
 fastNormProp <- function(R_counts, R_alpha) {
     .Call(`_decontX_fastNormProp`, R_counts, R_alpha)
-}
-
-#' Fast normalization for numeric matrix
-#' 
-#' @param R_counts An integer matrix
-#' @param R_alpha A double value to be added to the matrix as a pseudocount
-#' @return A numeric matrix where the columns have been normalized to proportions
-fastNormPropLog <- function(R_counts, R_alpha) {
-    .Call(`_decontX_fastNormPropLog`, R_counts, R_alpha)
-}
-
-#' Fast normalization for numeric matrix
-#' 
-#' @param R_counts An integer matrix
-#' @param R_alpha A double value to be added to the matrix as a pseudocount
-#' @return A numeric matrix where the columns have been normalized to proportions
-fastNormPropSqrt <- function(R_counts, R_alpha) {
-    .Call(`_decontX_fastNormPropSqrt`, R_counts, R_alpha)
-}
-
-#' get row and column indices of none zero elements in the matrix
-#' 
-#' @param R_counts A matrix
-#' @return An integer matrix where each row is a row, column indices pair 
-nonzero <- function(R_counts) {
-    .Call(`_decontX_nonzero`, R_counts)
-}
-
-colSumByGroupSparse <- function(counts, group, K) {
-    .Call(`_decontX_colSumByGroupSparse`, counts, group, K)
-}
-
-rowSumByGroupSparse <- function(counts, group, L) {
-    .Call(`_decontX_rowSumByGroupSparse`, counts, group, L)
-}
-
-colSumByGroupChangeSparse <- function(counts, px, group, pgroup, K) {
-    .Call(`_decontX_colSumByGroupChangeSparse`, counts, px, group, pgroup, K)
-}
-
-rowSumByGroupChangeSparse <- function(counts, px, group, pgroup, L) {
-    .Call(`_decontX_rowSumByGroupChangeSparse`, counts, px, group, pgroup, L)
 }
 

@@ -149,8 +149,9 @@ simulateContamination <- function(C = 300,
   names(markerNames) <- paste0("CellType_", seq(K), "_Markers")
 
   ## sample contamination count matrix
-  nGByK <-
-    rowSums(cellRmat) - .colSumByGroup(cellRmat, group = z, K = K)
+  ## z holds every cluster from 1 to K, so rowsum() gives one column per
+  ## cluster, in order
+  nGByK <- rowSums(cellRmat) - t(rowsum(t(cellRmat), z))
   ## Column-wise proportion normalization. This reproduces
   ## celda::normalizeCounts(normalize = "proportion") exactly (verified to
   ## the bit on the simulation path) via the package's own fastNormProp
