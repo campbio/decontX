@@ -38,10 +38,17 @@ including `make site-check`.
   packages), including the exported `retrieveFeatureIndex()`.
 - `R/stan_helpers.R`: Stan model wiring (`.call_stan_vb()`,
   `.process_stan_vb_out()`).
-- `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixSums*`
-  (fast matrix operations).
+- `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixNorm.cpp`
+  (`fastNormProp()`, used by `simulateContamination()`).
 - `inst/stan/shrinkage.stan`: the DecontPro Stan model. Changing it is a
   structural change and needs an ADR first.
+- `inst/stan/include/license.stan`: the GPL (>= 3) notice rstantools puts
+  at the top of `src/stanExports_shrinkage.h`. Keep it: decontX's own code
+  is MIT (DESCRIPTION), but the files rstantools generates and the
+  libraries the Stan model compiles against (rstan, RcppParallel, Rcpp)
+  are GPL (decided 2026-11-09, #78). A change reaches the header only when
+  `src/` is rebuilt, which runs `configure` and so
+  `rstantools::rstan_config()`.
 - Generated files, never hand-edited:
   - Rcpp: `R/RcppExports.R`, `src/RcppExports.cpp`.
   - rstantools: `R/stanmodels.R`, `src/stanExports_shrinkage.*` (from
@@ -73,7 +80,7 @@ upstream functions exist, so never describe it as transitional.
 ## Tests
 
 - `tests/testthat/`: `test-decon.R`, `test-decontPro.R`,
-  `test-matrixSums.R`, `test-simulateContamination.R`, and shared
+  `test-simulateContamination.R`, and shared
   fixtures in `helper-decontx.R` (testthat edition 3).
 - Several decontPro tests run a real Stan variational fit. They use a
   10 x 8 fixture to stay under a second each; keep decontPro fixtures
@@ -106,7 +113,7 @@ allow-listed, so each one prompts.
   checks don't relax missing Suggests.
 - The first build compiles the Stan model and the Rcpp code, which takes
   several minutes. Later `devtools::load_all()` calls reuse the objects.
-- Generated files were last refreshed in 1.11.2 with roxygen2 8.1.0
+- Generated files were last refreshed in 1.11.25 with roxygen2 8.1.1
   (`Config/roxygen2/version` in DESCRIPTION) and rstantools 2.7.1 with
   StanHeaders >= 2.34 (`stan::rng_t` in `src/stanExports_shrinkage.*`).
   Use those versions or newer so `make docs` doesn't rewrite them.

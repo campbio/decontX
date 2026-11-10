@@ -29,6 +29,17 @@ test_that(desc = "Testing simulateContamination", {
   )
 })
 
+test_that("simulateContamination builds eta from the other clusters", {
+  # eta for cluster k is the native counts of every other cluster, summed
+  # by gene and scaled to proportions
+  sim <- simulateContamination(C = 30, G = 20, K = 3, seed = 1)
+  expected <- vapply(seq_len(3), function(k) {
+    other <- rowSums(sim$nativeCounts[, sim$z != k, drop = FALSE])
+    other / sum(other)
+  }, numeric(20))
+  expect_identical(sim$eta, unname(expected))
+})
+
 test_that("simulateContamination uses NRange when its ends are equal", {
   sim <- simulateContamination(C = 20, G = 30, K = 2, NRange = c(500, 500))
   expect_equal(sim$NByC, rep(500L, 20))

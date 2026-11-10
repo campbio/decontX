@@ -4,7 +4,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
+Rcpp::List decontXEM(const Eigen::Map<Eigen::SparseMatrix<double> > &counts,
                      const NumericVector &counts_colsums,
                      const NumericVector &theta,
                      const bool &estimate_eta,
@@ -48,7 +48,7 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
   }
   if (delta.size() != 2 || sum(delta < 0) > 0)
   {
-    stop("'delta' must be a numeric vector of length 2 with positive integers.");
+    stop("'delta' must be a numeric vector of length 2 with non-negative values.");
   }
 
   // Declare variables and functions
@@ -93,7 +93,7 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
     const double theta_j = theta_p[j];
     // Same terms in the same order as adding to native_total[j] directly
     double native_j = 0;
-    for (Eigen::MappedSparseMatrix<double>::InnerIterator i_(counts, j); i_; ++i_)
+    for (Eigen::Map<Eigen::SparseMatrix<double> >::InnerIterator i_(counts, j); i_; ++i_)
     {
       i = i_.index();
       x = i_.value();
@@ -176,7 +176,7 @@ Rcpp::List decontXEM(const Eigen::MappedSparseMatrix<double> &counts,
 }
 
 // [[Rcpp::export]]
-double decontXLogLik(const Eigen::MappedSparseMatrix<double> &counts,
+double decontXLogLik(const Eigen::Map<Eigen::SparseMatrix<double> > &counts,
                      const NumericVector &theta,
                      const NumericMatrix &eta,
                      const NumericMatrix &phi,
@@ -234,7 +234,7 @@ double decontXLogLik(const Eigen::MappedSparseMatrix<double> &counts,
     const double *phi_k = phi_p + col;
     const double *eta_k = eta_p + col;
     const double theta_j = theta_p[j];
-    for (Eigen::MappedSparseMatrix<double>::InnerIterator i_(counts, j); i_; ++i_)
+    for (Eigen::Map<Eigen::SparseMatrix<double> >::InnerIterator i_(counts, j); i_; ++i_)
     {
       i = i_.index();
       x = i_.value();
@@ -247,7 +247,7 @@ double decontXLogLik(const Eigen::MappedSparseMatrix<double> &counts,
 }
 
 // [[Rcpp::export]]
-Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double> &counts,
+Rcpp::List decontXInitialize(const Eigen::Map<Eigen::SparseMatrix<double> > &counts,
                              const NumericVector &theta,
                              const IntegerVector &z,
                              const double &pseudocount)
@@ -279,7 +279,7 @@ Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double> &counts,
   double x;
   for (int j = 0; j < counts.cols(); ++j)
   {
-    for (Eigen::MappedSparseMatrix<double>::InnerIterator i_(counts, j); i_; ++i_)
+    for (Eigen::Map<Eigen::SparseMatrix<double> >::InnerIterator i_(counts, j); i_; ++i_)
     {
       i = i_.index();
       x = i_.value();
@@ -317,7 +317,7 @@ Rcpp::List decontXInitialize(const Eigen::MappedSparseMatrix<double> &counts,
 // Returns only the new values, in the order of the counts' x slot; the
 // caller puts them in a copy of the counts, which shares the i and p slots.
 // [[Rcpp::export]]
-NumericVector calculateNativeCounts(const Eigen::MappedSparseMatrix<double> &counts,
+NumericVector calculateNativeCounts(const Eigen::Map<Eigen::SparseMatrix<double> > &counts,
                                     const NumericVector &theta,
                                     const NumericMatrix &eta,
                                     const NumericMatrix &phi,
