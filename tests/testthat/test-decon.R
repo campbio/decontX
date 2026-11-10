@@ -1774,7 +1774,7 @@ test_that("the k-means fallback clusters the PCA components", {
   expect_lte(ncol(received), 50L)
   # The PCs of the default initialization (varGenes = 5000, seed = 12345);
   # decontX runs it on a dgCMatrix, so the last digits can differ
-  pcs <- .decontxInitializeZScrapper(x,
+  pcs <- .decontXInitializeZScrapper(x,
     varGenes = 5000, seed = 12345,
     numThreads = 1
   )$pcs
@@ -2163,7 +2163,7 @@ test_that("varGenes = NULL uses 5000 genes", {
     verbose = FALSE
   ))
   # The fixture has fewer genes than that, so check the number itself
-  expect_identical(.processvarGenes(NULL), 5000)
+  expect_identical(.processVarGenes(NULL), 5000)
 })
 
 test_that("retrieveFeatureIndex searches rowData and data.frame columns", {
@@ -2484,4 +2484,45 @@ test_that("the marker plots' data have one row per marker and cell", {
   expect_identical(df$markers, c(1L, 2L, 1L, 2L))
   expect_identical(df$cellType, c(1L, 1L, 2L, 2L))
   expect_identical(df$percent, c(50, 50, 100, 100))
+})
+
+test_that("the marker plots stack the assays and show a legend for several", {
+  x <- matrix(c(0, 3, 5, 1, 2, 0),
+    nrow = 2,
+    dimnames = list(c("CD3", "CD19"), c("a", "b", "c"))
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = x, decontXcounts = x / 2)
+  )
+  markers <- list(T = "CD3", B = "CD19")
+  z <- c(1, 2, 1)
+  legend <- function(p) p$theme$legend.position
+  draws <- list(
+    expression = function(x, ...) {
+      plotDecontXMarkerExpression(x, markers, z = z, ...)
+    },
+    percentage = function(x, ...) {
+      plotDecontXMarkerPercentage(x, markers, z = z, threshold = 1, ...)
+    }
+  )
+  for (draw in draws) {
+    fromMatrix <- draw(x)
+    expect_identical(legend(fromMatrix), "none")
+    expect_false("assay" %in% colnames(fromMatrix$data))
+    one <- draw(sce, assayName = "decontXcounts")
+    expect_identical(legend(one), "none")
+    expect_identical(unique(as.character(one$data$assay)), "decontXcounts")
+    two <- draw(sce, assayName = c("decontXcounts", "counts"))
+    expect_identical(legend(two), "right")
+    # The assays are stacked in the order given, each like the one-assay data
+    n <- nrow(one$data)
+    expect_identical(
+      as.character(two$data$assay),
+      rep(c("decontXcounts", "counts"), each = n)
+    )
+    cols <- setdiff(colnames(one$data), "assay")
+    expect_equal(two$data[seq_len(n), cols], one$data[, cols],
+      ignore_attr = TRUE
+    )
+  }
 })

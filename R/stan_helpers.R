@@ -5,7 +5,7 @@
 #'
 #' @return Stan output
 #' @noRd
-.call_stan_vb <- function(data, initial_condition) {
+.callStanVb <- function(data, initial_condition) {
   # decontPro only uses the mean of the variational approximation
   # (`@sim$est`), which does not depend on the posterior draws. delta and
   # background have one value per ADT x droplet, so rstan's default of 1000
@@ -45,7 +45,7 @@
 #'
 #' @return Decomposed counts based on Stan estimate.
 #' @noRd
-.process_stan_vb_out <- function(stan_vb_output, dat) {
+.processStanVbOut <- function(stan_vb_output, dat) {
   val <- stan_vb_output@sim$est
 
   r_est <- val$r
