@@ -250,7 +250,6 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
                                         labelBars = TRUE, labelSize = 3) {
   cellTypeLabels <- percent <- NULL # fix check note
 
-  legend <- "none"
   # Check that list arguments are named
   if (!is(markers, "list") || is.null(names(markers))) {
     stop("'markers' needs to be a named list.")
@@ -271,38 +270,16 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
   groupClusters <- temp$groupClusters
   xlab <- temp$xlab
 
-  if (inherits(x, "SingleCellExperiment")) {
-    # If 'x' is SingleCellExperiment, then get percentage
-    # for each matrix in 'assayName'
-    df.list <- list()
-    for (i in seq_along(assayName)) {
-      counts <- SummarizedExperiment::assay(
-        x[geneMarkerIndex, ],
-        assayName[i]
-      )
-      df <- .calculateDecontXBarplotPercent(
-        counts,
-        z,
-        geneMarkerCellTypeIndex,
-        threshold
-      )
-      df.list[[i]] <- cbind(df, assay = assayName[i])
-    }
-    df <- do.call(rbind, df.list)
-    if (length(assayName) > 1) {
-      legend <- "right"
-    }
-  } else {
-    ## If 'x' is matrix, then calculate percentages directly
-    counts <- x[geneMarkerIndex, , drop = FALSE]
-    df <- .calculateDecontXBarplotPercent(
+  temp <- .markerPlotData(x, geneMarkerIndex, assayName, function(counts) {
+    .calculateDecontXBarplotPercent(
       counts,
       z,
       geneMarkerCellTypeIndex,
       threshold
     )
-    legend <- "none"
-  }
+  })
+  df <- temp$df
+  legend <- temp$legend
 
   # Build data.frame for ggplots
   df <- cbind(df, cellTypeLabels = names(groupClusters)[df$cellType])
@@ -440,7 +417,6 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
                                         by = "rownames", log1p = FALSE,
                                         ncol = NULL,
                                         plotDots = FALSE, dotSize = 0.1) {
-  legend <- "none"
   temp <- .processPlotDecontXMarkerInput(
     x = x,
     z = z,
@@ -454,28 +430,11 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   geneMarkerIndex <- temp$geneMarkerIndex
   groupClusters <- temp$groupClusters
 
-  if (inherits(x, "SingleCellExperiment")) {
-    # If 'x' is SingleCellExperiment, then get percentage
-    # for each matrix in 'assayName'
-    df.list <- list()
-    for (i in seq_along(assayName)) {
-      counts <- SummarizedExperiment::assay(
-        x[geneMarkerIndex, ],
-        assayName[i]
-      )
-      df <- .meltMatrix(as.matrix(counts), c("Marker", "Cell"), "Expression")
-      df.list[[i]] <- cbind(df, assay = assayName[i])
-    }
-    df <- do.call(rbind, df.list)
-    if (length(assayName) > 1) {
-      legend <- "right"
-    }
-  } else {
-    ## If 'x' is matrix, then calculate percentages directly
-    counts <- x[geneMarkerIndex, , drop = FALSE]
-    df <- .meltMatrix(as.matrix(counts), c("Marker", "Cell"), "Expression")
-    legend <- "none"
-  }
+  temp <- .markerPlotData(x, geneMarkerIndex, assayName, function(counts) {
+    .meltMatrix(as.matrix(counts), c("Marker", "Cell"), "Expression")
+  })
+  df <- temp$df
+  legend <- temp$legend
 
   # Create data.frame and add cell type groups back in. .meltMatrix() lists
   # the cells in column order, one row per marker, so the clusters are added
@@ -534,6 +493,29 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   }
 
   plt
+}
+
+
+## The marker plots' data, from the marker rows of each assay in
+## 'assayName' when 'x' is a SingleCellExperiment, or of 'x' itself when it
+## is a matrix. 'build' turns the marker rows into a data frame. Assays
+## are told apart by an 'assay' column, with a legend when there are
+## several.
+.markerPlotData <- function(x, geneMarkerIndex, assayName, build) {
+  if (!inherits(x, "SingleCellExperiment")) {
+    counts <- x[geneMarkerIndex, , drop = FALSE]
+    return(list(df = build(counts), legend = "none"))
+  }
+  df.list <- list()
+  for (i in seq_along(assayName)) {
+    counts <- SummarizedExperiment::assay(
+      x[geneMarkerIndex, ],
+      assayName[i]
+    )
+    df.list[[i]] <- cbind(build(counts), assay = assayName[i])
+  }
+  legend <- if (length(assayName) > 1) "right" else "none"
+  list(df = do.call(rbind, df.list), legend = legend)
 }
 
 
