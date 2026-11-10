@@ -1280,16 +1280,11 @@ setMethod("decontX", "ANY", function(x,
     num.threads = numThreads
   )
 
-  ## scrapper >= 1.5 split runUmap's 'seed' into 'initialize.seed' and
-  ## 'optimize.seed'; support both APIs
+  ## The same seed starts and optimizes the layout
   umapArgs <- list(pca$components, num.threads = numThreads)
   if (!is.null(seed)) {
-    if ("seed" %in% names(formals(scrapper::runUmap))) {
-      umapArgs$seed <- seed
-    } else {
-      umapArgs$initialize.seed <- seed
-      umapArgs$optimize.seed <- seed
-    }
+    umapArgs$initialize.seed <- seed
+    umapArgs$optimize.seed <- seed
   }
   resUmap <- do.call(scrapper::runUmap, umapArgs)
 

@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (2026-09-21)
+Accepted (2026-09-21). The formals check for `runUmap()`'s seed
+arguments (last consequence) is superseded by ADR-0009.
 
 ## Context
 

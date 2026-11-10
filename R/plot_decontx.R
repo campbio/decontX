@@ -494,30 +494,20 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   if ("assay" %in% colnames(df)) {
     df$assay <- factor(df$assay, levels = assayName)
   }
-  if (!is.null(groupClusters)) {
-    df$Cell_Type <- factor(names(groupClusters)[df$Cluster],
-      levels = names(groupClusters)
+  # .processPlotDecontXMarkerInupt() always returns a named
+  # 'groupClusters', built from the cluster labels when the user gave none
+  df$Cell_Type <- factor(names(groupClusters)[df$Cluster],
+    levels = names(groupClusters)
+  )
+  plt <- ggplot2::ggplot(df, ggplot2::aes(
+    x = .data$Cell_Type,
+    y = .data$Expression
+  )) +
+    ggplot2::facet_wrap(~ Cell_Type + Marker,
+      scales = "free",
+      labeller = ggplot2::label_context,
+      ncol = ncol
     )
-    plt <- ggplot2::ggplot(df, ggplot2::aes(
-      x = .data$Cell_Type,
-      y = .data$Expression
-    )) +
-      ggplot2::facet_wrap(~ Cell_Type + Marker,
-        scales = "free",
-        labeller = ggplot2::label_context,
-        ncol = ncol
-      )
-  } else {
-    plt <- ggplot2::ggplot(df, ggplot2::aes(
-      x = .data$Cluster,
-      y = .data$Expression
-    )) +
-      ggplot2::facet_wrap(~ Cluster + Marker,
-        scales = "free",
-        labeller = ggplot2::label_context,
-        ncol = ncol
-      )
-  }
   ## Matrix input has no 'assay' column, so violins are only filled by
   ## assay for SingleCellExperiment input
   if ("assay" %in% colnames(df)) {

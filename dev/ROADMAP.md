@@ -72,8 +72,9 @@ pushed, one at a time.
     (>= 3) `license.stan` notice stays, since rstantools' generated files
     are GPL; decontX's own code stays MIT;
   - scrapper >= 1.5 and the old-API branch removed; unreachable code
-    removed; explicit `decontXcounts` methods (A3-11 to A3-13);
-  - small quality items (A4-11, A4-13 to A4-16).
+    removed; explicit `decontXcounts` methods (#115; A3-11 to A3-13).
+    Done in 1.11.26, with ADR-0009;
+  - small quality items (#116; A4-11, A4-13 to A4-16).
 
 ### I-e: speed and memory
 
