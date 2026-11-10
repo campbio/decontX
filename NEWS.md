@@ -1,7 +1,7 @@
 # decontX 1.11.26
 
-* decontX now needs scrapper 1.5.0 or later, the version Bioconductor has
-shipped since 3.23. Results are unchanged (#115).
+* decontX now needs scrapper 1.5.0 or later; every Bioconductor release
+since 3.23 ships one. Results are unchanged (#115).
 
 # decontX 1.11.25
 
