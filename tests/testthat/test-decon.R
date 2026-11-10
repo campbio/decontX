@@ -2485,3 +2485,43 @@ test_that("the marker plots' data have one row per marker and cell", {
   expect_identical(df$cellType, c(1L, 1L, 2L, 2L))
   expect_identical(df$percent, c(50, 50, 100, 100))
 })
+
+test_that("the marker plots stack the assays and show a legend for several", {
+  x <- matrix(c(0, 3, 5, 1, 2, 0),
+    nrow = 2,
+    dimnames = list(c("CD3", "CD19"), c("a", "b", "c"))
+  )
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = x, decontXcounts = x / 2)
+  )
+  markers <- list(T = "CD3", B = "CD19")
+  z <- c(1, 2, 1)
+  legend <- function(p) p$theme$legend.position
+  plots <- list(
+    expression = function(x, ...) {
+      plotDecontXMarkerExpression(x, markers, z = z, ...)
+    },
+    percentage = function(x, ...) {
+      plotDecontXMarkerPercentage(x, markers, z = z, threshold = 1, ...)
+    }
+  )
+  for (plot in plots) {
+    expect_identical(legend(plot(x)), "none")
+    expect_false("assay" %in% colnames(plot(x)$data))
+    one <- plot(sce, assayName = "decontXcounts")
+    expect_identical(legend(one), "none")
+    expect_identical(unique(as.character(one$data$assay)), "decontXcounts")
+    two <- plot(sce, assayName = c("decontXcounts", "counts"))
+    expect_identical(legend(two), "right")
+    # The assays are stacked in the order given, each like the one-assay data
+    n <- nrow(one$data)
+    expect_identical(
+      as.character(two$data$assay),
+      rep(c("decontXcounts", "counts"), each = n)
+    )
+    cols <- setdiff(colnames(one$data), "assay")
+    expect_equal(two$data[seq_len(n), cols], one$data[, cols],
+      ignore_attr = TRUE
+    )
+  }
+})
