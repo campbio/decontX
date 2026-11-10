@@ -6,10 +6,9 @@ Accepted (2026-11-10)
 
 ## Context
 
-decontX calls functions from three packages that ship with R but aren't
-attached by every session in the same way: `stats` (for example
-`stats::kmeans`, `stats::rbeta`, `stats::rmultinom`), `grid`
-(`grid::unit` in the marker percentage plot) and `utils`
+decontX calls functions from three packages that ship with R: `stats`
+(for example `stats::kmeans`, `stats::rbeta`, `stats::rmultinom`),
+`grid` (`grid::unit` in the marker percentage plot) and `utils`
 (`utils::type.convert` in `.meltMatrix()`). The calls already use `::`,
 but DESCRIPTION doesn't list the three packages, so the dependency is
 only implied. R CMD check doesn't flag it, so nothing caught it.
