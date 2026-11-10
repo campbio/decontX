@@ -2497,7 +2497,7 @@ test_that("the marker plots stack the assays and show a legend for several", {
   markers <- list(T = "CD3", B = "CD19")
   z <- c(1, 2, 1)
   legend <- function(p) p$theme$legend.position
-  plots <- list(
+  draws <- list(
     expression = function(x, ...) {
       plotDecontXMarkerExpression(x, markers, z = z, ...)
     },
@@ -2505,13 +2505,14 @@ test_that("the marker plots stack the assays and show a legend for several", {
       plotDecontXMarkerPercentage(x, markers, z = z, threshold = 1, ...)
     }
   )
-  for (plot in plots) {
-    expect_identical(legend(plot(x)), "none")
-    expect_false("assay" %in% colnames(plot(x)$data))
-    one <- plot(sce, assayName = "decontXcounts")
+  for (draw in draws) {
+    fromMatrix <- draw(x)
+    expect_identical(legend(fromMatrix), "none")
+    expect_false("assay" %in% colnames(fromMatrix$data))
+    one <- draw(sce, assayName = "decontXcounts")
     expect_identical(legend(one), "none")
     expect_identical(unique(as.character(one$data$assay)), "decontXcounts")
-    two <- plot(sce, assayName = c("decontXcounts", "counts"))
+    two <- draw(sce, assayName = c("decontXcounts", "counts"))
     expect_identical(legend(two), "right")
     # The assays are stacked in the order given, each like the one-assay data
     n <- nrow(one$data)

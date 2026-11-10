@@ -506,12 +506,10 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
     counts <- x[geneMarkerIndex, , drop = FALSE]
     return(list(df = build(counts), legend = "none"))
   }
+  x <- x[geneMarkerIndex, ]
   df.list <- list()
   for (i in seq_along(assayName)) {
-    counts <- SummarizedExperiment::assay(
-      x[geneMarkerIndex, ],
-      assayName[i]
-    )
+    counts <- SummarizedExperiment::assay(x, assayName[i])
     df.list[[i]] <- cbind(build(counts), assay = assayName[i])
   }
   legend <- if (length(assayName) > 1) "right" else "none"
