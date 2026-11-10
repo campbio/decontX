@@ -1774,7 +1774,7 @@ test_that("the k-means fallback clusters the PCA components", {
   expect_lte(ncol(received), 50L)
   # The PCs of the default initialization (varGenes = 5000, seed = 12345);
   # decontX runs it on a dgCMatrix, so the last digits can differ
-  pcs <- .decontxInitializeZScrapper(x,
+  pcs <- .decontXInitializeZScrapper(x,
     varGenes = 5000, seed = 12345,
     numThreads = 1
   )$pcs
@@ -2163,7 +2163,7 @@ test_that("varGenes = NULL uses 5000 genes", {
     verbose = FALSE
   ))
   # The fixture has fewer genes than that, so check the number itself
-  expect_identical(.processvarGenes(NULL), 5000)
+  expect_identical(.processVarGenes(NULL), 5000)
 })
 
 test_that("retrieveFeatureIndex searches rowData and data.frame columns", {

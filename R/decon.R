@@ -685,7 +685,7 @@ setMethod("decontX", "ANY", function(x,
 
 
 # This function updates decontamination for one batch
-# params$seed is passed on to .decontxInitializeZ()
+# params$seed is passed on to .decontXInitializeZ()
 # .decontX() checks the counts, delta and the clusters of each batch
 # before calling it
 #
@@ -736,10 +736,10 @@ setMethod("decontX", "ANY", function(x,
   }
   .logDecontX(date(), m, params = params)
 
-  varGenes <- .processvarGenes(params$varGenes)
-  dbscanEps <- .processdbscanEps(params$dbscanEps)
+  varGenes <- .processVarGenes(params$varGenes)
+  dbscanEps <- .processDbscanEps(params$dbscanEps)
 
-  celda.init <- .decontxInitializeZ(
+  celda.init <- .decontXInitializeZ(
     counts = counts,
     varGenes = varGenes,
     dbscanEps = dbscanEps,
@@ -879,8 +879,8 @@ setMethod("decontX", "ANY", function(x,
                            numThreads) {
   .checkEMArgs(maxIter, convergence, iterLogLik)
   .checkDelta(delta)
-  .processvarGenes(varGenes)
-  .processdbscanEps(dbscanEps)
+  .processVarGenes(varGenes)
+  .processDbscanEps(dbscanEps)
   .checkFlags(list(
     estimateDelta = estimateDelta,
     legacyInit = legacyInit,
@@ -1190,7 +1190,7 @@ setMethod("decontX", "ANY", function(x,
 }
 
 
-.decontxInitializeZ <- function(counts,
+.decontXInitializeZ <- function(counts,
                                 varGenes,
                                 dbscanEps,
                                 estimateCellTypes,
@@ -1198,13 +1198,13 @@ setMethod("decontX", "ANY", function(x,
                                 legacyInit,
                                 numThreads) {
   if (isTRUE(legacyInit)) {
-    init <- .decontxInitializeZLegacy(counts,
+    init <- .decontXInitializeZLegacy(counts,
       varGenes = varGenes,
       seed = seed,
       numThreads = numThreads
     )
   } else {
-    init <- .decontxInitializeZScrapper(counts,
+    init <- .decontXInitializeZScrapper(counts,
       varGenes = varGenes,
       seed = seed,
       numThreads = numThreads
@@ -1252,7 +1252,7 @@ setMethod("decontX", "ANY", function(x,
 ## UMAP via the 'scrapper' package. scrapper does not use R's RNG; the
 ## UMAP is seeded explicitly, so results are deterministic for a given
 ## seed (and with scrapper's own default seeds when seed = NULL).
-.decontxInitializeZScrapper <- function(counts, varGenes, seed, numThreads) {
+.decontXInitializeZScrapper <- function(counts, varGenes, seed, numThreads) {
   libSizes <- .checkLibSizes(counts)
   sf <- scrapper::centerSizeFactors(libSizes)
   normed <- scrapper::normalizeCounts(counts, size.factors = sf)
@@ -1297,7 +1297,7 @@ setMethod("decontX", "ANY", function(x,
 ## reproduced with legacyInit = TRUE. logNormCounts/normalizeCounts are
 ## deprecated upstream in favor of 'scrapper'; this path keeps working
 ## for as long as scater/scuttle continue to export them.
-.decontxInitializeZLegacy <- function(counts, varGenes, seed, numThreads) {
+.decontXInitializeZLegacy <- function(counts, varGenes, seed, numThreads) {
   if (!.hasScater()) {
     stop(
       "'legacyInit = TRUE' requires the 'scater' package. Install it ",
@@ -1342,7 +1342,7 @@ setMethod("decontX", "ANY", function(x,
 
 
 ## process varGenes
-.processvarGenes <- function(varGenes) {
+.processVarGenes <- function(varGenes) {
   if (is.null(varGenes)) {
     varGenes <- 5000
   } else {
@@ -1355,7 +1355,7 @@ setMethod("decontX", "ANY", function(x,
 }
 
 ## process dbscanEps for resolusion threshold using DBSCAN
-.processdbscanEps <- function(dbscanEps) {
+.processDbscanEps <- function(dbscanEps) {
   if (is.null(dbscanEps)) {
     dbscanEps <- 1
   } else {

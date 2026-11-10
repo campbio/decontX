@@ -202,12 +202,12 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 
 
   ## Call inference
-  out <- .call_stan_vb(dat, init)
+  out <- .callStanVb(dat, init)
 
 
   ## Process Stan output
   dat$cell_type_labels <- cellType$labels
-  re <- .process_stan_vb_out(out, dat)
+  re <- .processStanVbOut(out, dat)
 
 
   re

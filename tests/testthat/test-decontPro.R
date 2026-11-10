@@ -2,8 +2,8 @@ test_that("decontPro splits the counts from one compact Stan fit", {
   # One real Stan VB run on the 10 x 8 fixture (about a second)
   p <- refProData()
   fit <- NULL
-  process <- .process_stan_vb_out
-  local_mocked_bindings(.process_stan_vb_out = function(stan_vb_output, dat) {
+  process <- .processStanVbOut
+  local_mocked_bindings(.processStanVbOut = function(stan_vb_output, dat) {
     fit <<- stan_vb_output
     process(stan_vb_output, dat)
   })
@@ -48,7 +48,7 @@ test_that("decontPro splits each count by the estimated rates", {
     background_mean = 0.1
   )
   fit <- methods::new("stanfit", sim = list(est = est))
-  out <- .process_stan_vb_out(fit, dat)
+  out <- .processStanVbOut(fit, dat)
 
   # Droplet 1: ADT 1 all native; ADT 2 native 0.25 vs background 0.5.
   # Droplet 3: ambient p vs native r for cell type 2
@@ -75,8 +75,8 @@ test_that("decontPro results match a Stan fit with default output draws", {
   p <- refProData()
   out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
   # Reference: rstan's default 1000 draws. Keep seed/iter in sync with
-  # .call_stan_vb() so only the draw settings differ.
-  local_mocked_bindings(.call_stan_vb = function(data, initial_condition) {
+  # .callStanVb() so only the draw settings differ.
+  local_mocked_bindings(.callStanVb = function(data, initial_condition) {
     rstan::vb(stanmodels$shrinkage,
       init = initial_condition, data = data,
       seed = 12345, iter = 50000
@@ -168,11 +168,11 @@ test_that("decontPro takes the ambient profile from ambient_counts", {
 
   received <- NULL
   local_mocked_bindings(
-    .call_stan_vb = function(data, initial_condition) {
+    .callStanVb = function(data, initial_condition) {
       received <<- data
       NULL
     },
-    .process_stan_vb_out = function(stan_vb_output, dat) list()
+    .processStanVbOut = function(stan_vb_output, dat) list()
   )
 
   decontPro(mat, k, 1e-2, 1e-2, ambient_counts = ambient)
@@ -197,11 +197,11 @@ test_that("decontPro matches ambient_counts rows to the counts by name", {
 
   received <- NULL
   local_mocked_bindings(
-    .call_stan_vb = function(data, initial_condition) {
+    .callStanVb = function(data, initial_condition) {
       received <<- data
       NULL
     },
-    .process_stan_vb_out = function(stan_vb_output, dat) list()
+    .processStanVbOut = function(stan_vb_output, dat) list()
   )
 
   decontPro(mat, k, 1e-2, 1e-2, ambient_counts = ambient[10:1, ])
@@ -302,11 +302,11 @@ test_that("decontPro recodes cell_type labels to 1..K for Stan", {
   p <- refProData()
   received <- NULL
   local_mocked_bindings(
-    .call_stan_vb = function(data, initial_condition) {
+    .callStanVb = function(data, initial_condition) {
       received <<- data
       NULL
     },
-    .process_stan_vb_out = function(stan_vb_output, dat) list()
+    .processStanVbOut = function(stan_vb_output, dat) list()
   )
   codes <- c(1, 1, 2, 2, 3, 3, 4, 4)
   labelSets <- list(

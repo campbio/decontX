@@ -36,8 +36,8 @@ including `make site-check`.
 - `R/plot_decontx.R`, `R/plot_decontPro.R`: plotting functions.
 - `R/celda_functions.R`: helpers copied from celda (see Related
   packages), including the exported `retrieveFeatureIndex()`.
-- `R/stan_helpers.R`: Stan model wiring (`.call_stan_vb()`,
-  `.process_stan_vb_out()`).
+- `R/stan_helpers.R`: Stan model wiring (`.callStanVb()`,
+  `.processStanVbOut()`).
 - `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixNorm.cpp`
   (`fastNormProp()`, used by `simulateContamination()`).
 - `inst/stan/shrinkage.stan`: the DecontPro Stan model. Changing it is a

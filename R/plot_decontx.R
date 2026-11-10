@@ -256,7 +256,7 @@ plotDecontXMarkerPercentage <- function(x, markers, groupClusters = NULL,
     stop("'markers' needs to be a named list.")
   }
 
-  temp <- .processPlotDecontXMarkerInupt(
+  temp <- .processPlotDecontXMarkerInput(
     x = x,
     z = z,
     markers = markers,
@@ -441,7 +441,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
                                         ncol = NULL,
                                         plotDots = FALSE, dotSize = 0.1) {
   legend <- "none"
-  temp <- .processPlotDecontXMarkerInupt(
+  temp <- .processPlotDecontXMarkerInput(
     x = x,
     z = z,
     markers = markers,
@@ -494,7 +494,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
   if ("assay" %in% colnames(df)) {
     df$assay <- factor(df$assay, levels = assayName)
   }
-  # .processPlotDecontXMarkerInupt() always returns a named
+  # .processPlotDecontXMarkerInput() always returns a named
   # 'groupClusters', built from the cluster labels when the user gave none
   df$Cell_Type <- factor(names(groupClusters)[df$Cluster],
     levels = names(groupClusters)
@@ -537,7 +537,7 @@ plotDecontXMarkerExpression <- function(x, markers, groupClusters = NULL,
 }
 
 
-.processPlotDecontXMarkerInupt <- function(x, z, markers, groupClusters,
+.processPlotDecontXMarkerInput <- function(x, z, markers, groupClusters,
                                            by, exactMatch) {
   # Process z and convert to a factor
   if (is.null(z) && inherits(x, "SingleCellExperiment")) {
