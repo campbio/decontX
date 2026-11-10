@@ -7,13 +7,16 @@ Accepted (2026-11-10)
 ## Context
 
 ADR-0002 moved the default initialization to scrapper and set the floor
-at `scrapper (>= 1.2.0)`. scrapper 1.5 split `runUmap()`'s `seed`
-argument into `initialize.seed` and `optimize.seed`, so ADR-0002 kept a
-formals check that passes whichever the installed version takes, "until
-old versions age out".
+at `scrapper (>= 1.2.0)`. scrapper split `runUmap()`'s `seed` argument
+into `initialize.seed` and `optimize.seed`, so ADR-0002 kept a formals
+check that passes whichever the installed version takes, "until old
+versions age out". ADR-0002 dated the split to 1.5; it came earlier, in
+the 1.3 devel series (scrapper commit 45b279f, September 2025), so the
+first release with it is 1.4.0 in Bioconductor 3.22.
 
-They have. Bioconductor 3.23 ships scrapper 1.6.3 and Bioconductor devel
-(3.24, where this version of decontX goes) ships 1.7.9. Each decontX
+The old versions have aged out. Bioconductor 3.23 ships scrapper 1.6.3
+and Bioconductor devel (3.24, where this version of decontX goes) ships
+1.7.9. Each decontX
 release installs the scrapper of its own Bioconductor release, so no
 supported user runs decontX devel against scrapper 1.4 or older. The old
 branch can't be reached from any installed scrapper, so tests can't
@@ -26,9 +29,11 @@ only the call that passes the seed as `initialize.seed` and
 `optimize.seed`. This replaces the last consequence of ADR-0002 (the
 formals check); the rest of ADR-0002 stands.
 
-Alternative considered: keeping the check with a test that mocks the old
-formals. It would test code no supported install runs, and the floor
-would still claim that scrapper 1.2 to 1.4 work.
+Alternatives considered: keeping the check with a test that mocks the
+old formals, which would test code no supported install runs and leave
+the floor claiming that scrapper 1.2 and 1.3 work; and a floor of 1.4.0,
+the first release with the split, which would add nothing for the
+Bioconductor releases decontX devel installs on.
 
 ## Consequences
 

@@ -22,7 +22,7 @@ Numbering is sequential, zero-padded to four digits.
 | # | Title | Status | Date |
 |---|---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted | 2026-09-18 |
-| [0002](0002-migrate-initialization-to-scrapper.md) | Migrate cluster initialization from scater/scuttle to scrapper | Accepted | 2026-09-21 |
+| [0002](0002-migrate-initialization-to-scrapper.md) | Migrate cluster initialization from scater/scuttle to scrapper | Accepted; seed check superseded by 0009 | 2026-09-21 |
 | [0003](0003-remove-celda-dependency.md) | Remove the celda dependency and invert the celda/decontX relationship | Proposed | 2026-09-22 |
 | [0004](0004-container-agnostic-core.md) | Separate a container-agnostic core from the decontX and decontPro methods | Proposed | 2026-10-27 |
 | [0005](0005-multi-container-methods.md) | Add Seurat, AnnData and ExperimentSubset methods that return the same class | Proposed | 2026-10-27 |
