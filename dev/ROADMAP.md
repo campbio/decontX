@@ -75,7 +75,8 @@ pushed, one at a time.
     removed; explicit `decontXcounts` methods (#115; A3-11 to A3-13).
     Done in 1.11.26, with ADR-0009;
   - small quality items (#116; A4-11, A4-13 to A4-16). Done in 1.11.27,
-    with ADR-0010.
+    with ADR-0010, except the `plotDensity`/`plotBoxByCluster` half of
+    A4-11 (their repeated loop, scale and theme), which is still open.
 
 ### I-e: speed and memory
 
