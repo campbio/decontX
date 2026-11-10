@@ -1,6 +1,6 @@
 Package: decontX
 Title: Decontamination of single cell genomics data
-Version: 1.11.25
+Version: 1.11.26
 Authors@R: 
     c(person("Yuan", "Yin", , "yuan_yin@outlook.com", role = c("aut"),
            comment = c(ORCID = "0000-0001-9261-6061")),
@@ -47,7 +47,7 @@ Imports:
     rstan (>= 2.18.1),
     rstantools (>= 2.2.0),
     S4Vectors,
-    scrapper (>= 1.2.0),
+    scrapper (>= 1.5.0),
     SeuratObject,
     SingleCellExperiment,
     SummarizedExperiment,
