@@ -1,21 +1,3 @@
-## Copied from SingleCellExperiment Package
-
-GET_FUN <- function(exprs_values, ...) {
-  (exprs_values) # To ensure evaluation
-  function(object, ...) {
-    SummarizedExperiment::assay(object, i = exprs_values, ...)
-  }
-}
-
-SET_FUN <- function(exprs_values, ...) {
-  (exprs_values) # To ensure evaluation
-  function(object, ..., value) {
-    SummarizedExperiment::assay(object, i = exprs_values, ...) <- value
-    object
-  }
-}
-
-
 #' @title Get or set decontaminated counts matrix
 #'
 #' @description Gets or sets the decontaminated counts matrix from a
@@ -48,11 +30,16 @@ setGeneric("decontXcounts<-", function(object, ..., value) {
 
 #' @export
 #' @rdname decontXcounts
-setMethod("decontXcounts", "SingleCellExperiment", GET_FUN("decontXcounts"))
+setMethod("decontXcounts", "SingleCellExperiment", function(object, ...) {
+  SummarizedExperiment::assay(object, i = "decontXcounts", ...)
+})
 
 #' @export
 #' @rdname decontXcounts
 setMethod(
   "decontXcounts<-", c("SingleCellExperiment", "ANY"),
-  SET_FUN("decontXcounts")
+  function(object, ..., value) {
+    SummarizedExperiment::assay(object, i = "decontXcounts", ...) <- value
+    object
+  }
 )
