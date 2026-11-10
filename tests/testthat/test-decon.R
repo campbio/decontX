@@ -1291,15 +1291,21 @@ test_that("the seed reaches both of runUmap's seeds", {
   seeds <- NULL
   local_mocked_bindings(
     runUmap = function(x, ..., initialize.seed, optimize.seed) {
-      seeds <<- c(initialize.seed, optimize.seed)
+      given <- c(!missing(initialize.seed), !missing(optimize.seed))
+      seeds <<- if (all(given)) c(initialize.seed, optimize.seed) else given
       matrix(0, ncol(x), 2)
     },
     .package = "scrapper"
   )
-  res <- decontX(d$sim$observedCounts,
+  decontX(d$sim$observedCounts,
     z = d$sim$z, seed = 99, maxIter = 2, verbose = FALSE
   )
   expect_identical(seeds, c(99, 99))
+  # seed = NULL leaves both to scrapper's own defaults
+  decontX(d$sim$observedCounts,
+    z = d$sim$z, seed = NULL, maxIter = 2, verbose = FALSE
+  )
+  expect_identical(seeds, c(FALSE, FALSE))
 })
 
 test_that("numThreads reaches the legacy UMAP", {
