@@ -223,6 +223,25 @@ test_that("decontXcounts drops the names of the counts' dimnames list", {
   }
 })
 
+test_that("decontXcounts() gets and sets the decontXcounts assay", {
+  counts <- matrix(1:6, 2, dimnames = list(c("g1", "g2"), c("a", "b", "c")))
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = counts))
+  decontXcounts(sce) <- counts * 2
+  expect_identical(
+    SummarizedExperiment::assay(sce, "decontXcounts"), counts * 2
+  )
+  expect_identical(decontXcounts(sce), counts * 2)
+
+  # '...' reaches assay() and assay<-(): with withDimnames = FALSE the
+  # value keeps its own dimnames, which the default setter refuses
+  other <- counts * 3
+  dimnames(other) <- list(c("G1", "G2"), c("A", "B", "C"))
+  expect_error(decontXcounts(sce) <- other, "withDimnames=FALSE")
+  decontXcounts(sce, withDimnames = FALSE) <- other
+  expect_identical(decontXcounts(sce, withDimnames = FALSE), other)
+  expect_identical(dimnames(decontXcounts(sce)), dimnames(counts))
+})
+
 test_that(".bindBatches and .inCellOrder put the columns in cell order", {
   counts <- Matrix::sparseMatrix(
     i = c(1, 2, 1, 2, 1), j = c(1, 2, 3, 4, 5), x = c(1, 2, 3, 0, 5),
@@ -1242,8 +1261,7 @@ test_that("numThreads reaches every threaded initialization call", {
     seen[[name]] <<- value
   }
   # Each mock is the scrapper function with a first line that records
-  # num.threads, so it keeps the function's formals: decontX reads them to
-  # choose runUmap's seed arguments
+  # num.threads, so it keeps the function's formals and still runs
   recording <- function(fn, name) {
     body(fn) <- bquote({
       .(record)(.(name), num.threads)
@@ -1266,6 +1284,22 @@ test_that("numThreads reaches every threaded initialization call", {
     seen,
     list(modelGeneVariances = 3, runPca = 3, runUmap = 3)
   )
+})
+
+test_that("the seed reaches both of runUmap's seeds", {
+  d <- refData()
+  seeds <- NULL
+  local_mocked_bindings(
+    runUmap = function(x, ..., initialize.seed, optimize.seed) {
+      seeds <<- c(initialize.seed, optimize.seed)
+      matrix(0, ncol(x), 2)
+    },
+    .package = "scrapper"
+  )
+  res <- decontX(d$sim$observedCounts,
+    z = d$sim$z, seed = 99, maxIter = 2, verbose = FALSE
+  )
+  expect_identical(seeds, c(99, 99))
 })
 
 test_that("numThreads reaches the legacy UMAP", {
