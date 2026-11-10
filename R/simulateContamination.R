@@ -81,7 +81,7 @@ simulateContamination <- function(C = 300,
     )
   }
 
-  z <- sample(seq(K), size = C, replace = TRUE)
+  z <- sample.int(K, size = C, replace = TRUE)
   if (length(unique(z)) == 1) {
     stop(
       "Only 1 cell population was simulated. Increase the number of ",
@@ -102,7 +102,7 @@ simulateContamination <- function(C = 300,
   # sample() on a single value would draw from 1 to that value instead
   nValues <- seq(min(NRange), max(NRange))
   NbyC <- nValues[sample.int(length(nValues), size = C, replace = TRUE)]
-  cNbyC <- vapply(seq(C), function(i) {
+  cNbyC <- vapply(seq_len(C), function(i) {
     stats::rbinom(
       n = 1,
       size = NbyC[i],
@@ -122,31 +122,31 @@ simulateContamination <- function(C = 300,
       " genes ('G')."
     )
   }
-  markerKIndex <- rep(seq(K), each = numMarkers)
-  markerRowIndex <- sample(seq(G), numMarkers * K)
-  for (i in seq(K)) {
+  markerKIndex <- rep(seq_len(K), each = numMarkers)
+  markerRowIndex <- sample.int(G, numMarkers * K)
+  for (i in seq_len(K)) {
     ix <- markerRowIndex[markerKIndex == i]
     phi[i, ix] <- max(phi[i, ])
-    for (j in setdiff(seq(K), i)) {
+    for (j in setdiff(seq_len(K), i)) {
       phi[j, ix] <- 0
     }
   }
   phi <- prop.table(phi, margin = 1)
 
   ## sample real expressed count matrix
-  cellRmat <- vapply(seq(C), function(i) {
+  cellRmat <- vapply(seq_len(C), function(i) {
     stats::rmultinom(1, size = rNbyC[i], prob = phi[z[i], ])
   }, integer(G))
 
-  rownames(cellRmat) <- paste0("Gene_", seq(G))
-  colnames(cellRmat) <- paste0("Cell_", seq(C))
+  rownames(cellRmat) <- paste0("Gene_", seq_len(G))
+  colnames(cellRmat) <- paste0("Cell_", seq_len(C))
 
   ## Get list of marker names
   markerNames <- list()
-  for (i in seq(K)) {
+  for (i in seq_len(K)) {
     markerNames[[i]] <- rownames(cellRmat)[markerRowIndex[markerKIndex == i]]
   }
-  names(markerNames) <- paste0("CellType_", seq(K), "_Markers")
+  names(markerNames) <- paste0("CellType_", seq_len(K), "_Markers")
 
   ## sample contamination count matrix
   nGByK <- rowSums(cellRmat) - vapply(seq_len(K), function(k) {
@@ -159,14 +159,14 @@ simulateContamination <- function(C = 300,
   ## (ADR-0003 Stage 1).
   eta <- fastNormProp(nGByK, 0)
 
-  cellCmat <- vapply(seq(C), function(i) {
+  cellCmat <- vapply(seq_len(C), function(i) {
     stats::rmultinom(1, size = cNbyC[i], prob = eta[, z[i]])
   }, integer(G))
   cellOmat <- cellRmat + cellCmat
   contamination <- colSums(cellCmat) / colSums(cellOmat)
 
-  rownames(cellOmat) <- paste0("Gene_", seq(G))
-  colnames(cellOmat) <- paste0("Cell_", seq(C))
+  rownames(cellOmat) <- paste0("Gene_", seq_len(G))
+  colnames(cellOmat) <- paste0("Cell_", seq_len(C))
 
   list(
     "nativeCounts" = cellRmat,
