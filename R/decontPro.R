@@ -59,10 +59,6 @@
 #'
 #' # Decontaminated counts
 #' decontaminated_counts <- out$decontaminated_counts
-NULL
-#' NULL
-
-
 setGeneric("decontPro", function(filtered_counts,
                                  cell_type,
                                  ...) {
