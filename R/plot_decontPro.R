@@ -178,7 +178,7 @@ plotBoxByCluster <- function(counts,
         ggplot2::labs(x = "", y = "", fill = "") +
         ggplot2::ggtitle(paste0(feature, " counts by cell clusters"))
     },
-    as.factor(cell_type)
+    cellType = as.factor(cell_type)
   )
 
   .wrapFeaturePlots(p, file)
