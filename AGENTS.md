@@ -20,7 +20,7 @@ runs inside it and is refused), then restart `claude`.
 decontX implements two Bayesian decontamination methods for single-cell
 data: **DecontX** (Yang et al. 2020) estimates and removes ambient RNA
 contamination in scRNA-seq without needing empty droplets, and
-**DecontPro** (Yin et al. 2023) removes ambient and background
+**DecontPro** (Yin et al. 2024) removes ambient and background
 contamination from CITE-seq ADT (protein) counts. Distributed through
 Bioconductor since 3.18. There is no Shiny app and no pkgdown site yet
 (see `dev/ROADMAP.md`), so those parts of the standards don't apply,

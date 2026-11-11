@@ -39,6 +39,30 @@ package:
 devtools::install_github("campbio/decontX")
 ```
 
+## Usage
+
+DecontX takes a count matrix or a SingleCellExperiment with genes in
+rows and cells in columns. A minimal example on simulated data:
+
+``` r
+library(decontX)
+
+# Simulate a contaminated count matrix with 300 cells
+sim <- simulateContamination(seed = 12345)
+
+# Estimate and remove the contamination
+result <- decontX(sim$observedCounts)
+
+# The proportion of contamination in each cell, between 0 and 1
+head(result$contamination)
+
+# The decontaminated counts
+decontaminated <- result$decontXcounts
+```
+
+The vignettes show the full workflow, including a SingleCellExperiment,
+cluster labels, empty droplets, and plots of the results.
+
 ## Vignettes
 
 Vignettes are available on
@@ -58,3 +82,19 @@ Then vignettes can be accessed through:
 vignette('decontX', package = 'decontX')
 vignette('decontPro', package = 'decontX')
 ```
+
+## Citation
+
+Please cite the method you used:
+
+- DecontX, for single-cell RNA-seq: Yang S, Corbett SE, Koga Y, Wang Z,
+  Johnson WE, Yajima M, Campbell JD (2020). Decontamination of ambient
+  RNA in single-cell RNA-seq with DecontX. *Genome Biology*, 21(1), 57.
+  <https://doi.org/10.1186/s13059-020-1950-6>
+- DecontPro, for single-cell protein expression data: Yin Y, Yajima M,
+  Campbell JD (2024). Characterization and decontamination of background
+  noise in droplet-based single-cell protein expression data with
+  DecontPro. *Nucleic Acids Research*, 52(1), e4.
+  <https://doi.org/10.1093/nar/gkad1032>
+
+In R, `citation("decontX")` prints both references.
