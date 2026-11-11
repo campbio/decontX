@@ -559,6 +559,77 @@ test_that("plotBoxByCluster returns a box plot per feature", {
   expect_identical(cd3$data$cell_type, factor(c(1, 2, 1, 1, 2, 1)))
 })
 
+test_that("plotDensity and plotBoxByCluster share scales and layout", {
+  # A is concentrated, so its density peaks above the cap of 5; B and C
+  # are spread out
+  counts <- matrix(
+    c(
+      10, 10, 10, 10, 10, 12,
+      0, 5, 20, 100, 300, 1000,
+      1, 2, 3, 50, 60, 70
+    ),
+    nrow = 3, byrow = TRUE,
+    dimnames = list(c("A", "B", "C"), paste0("c", 1:6))
+  )
+  decontaminated <- counts
+  decontaminated["A", ] <- 8
+  decontaminated[c("B", "C"), ] <- counts[c("B", "C"), ] / 2
+  cellType <- c(1, 1, 2, 2, 3, 3)
+  breaks <- c(1, 5, 10, 100, 1000, 10000)
+  plots <- list(
+    density = plotDensity(counts, decontaminated, c("A", "B", "C")),
+    box = plotBoxByCluster(counts, decontaminated, cellType, c("A", "B", "C"))
+  )
+  axis <- c(density = "x", box = "y")
+  for (name in names(plots)) {
+    p <- plots[[name]]
+    # Three panels in round(sqrt(3)) = 2 columns, one legend for all
+    expect_s3_class(p, "patchwork")
+    expect_length(p, 3)
+    expect_identical(p$patches$layout$ncol, 2)
+    expect_identical(p$patches$layout$guides, "collect")
+    for (i in 1:3) {
+      expect_identical(p[[i]]$theme$legend.position, "bottom")
+      expect_identical(
+        p[[i]]$theme$plot.margin,
+        ggplot2::unit(c(3, 3, 2, 1), "pt")
+      )
+      # Pseudo-log scale on the counts axis
+      scale <- ggplot2::layer_scales(p[[i]])[[axis[[name]]]]
+      expect_identical(scale$breaks, breaks)
+      expect_equal(
+        scale$get_transformation()$transform(breaks),
+        asinh(breaks / 2)
+      )
+      # One fill colour and label for each of the two counts
+      fill <- p[[i]]$scales$get_scales("fill")
+      expect_identical(fill$labels, c("Original", "Decontaminated"))
+      built <- ggplot2::layer_data(p[[i]])
+      expect_identical(
+        unique(built$fill),
+        c("#E64B35B2", "#4DBBD5B2")
+      )
+    }
+  }
+
+  # The density's y axis stops at 5, or at the top of the curves if lower
+  density <- plots$density
+  expect_identical(density[[1]]$coordinates$limits$y[2], 5)
+  for (i in 2:3) {
+    top <- max(ggplot2::layer_data(density[[i]])$y)
+    expect_lt(top, 5)
+    expect_equal(density[[i]]$coordinates$limits$y, c(0, top))
+  }
+
+  # Box statistics for B, on the pseudo-log scale
+  box <- ggplot2::layer_data(plots$box[[2]])
+  values <- asinh(c(counts["B", ], decontaminated["B", ]) / 2)
+  type <- rep(cellType, 2)
+  variable <- rep(c("con", "decon"), each = 6)
+  expected <- vapply(split(values, list(variable, type)), stats::median, 1)
+  expect_equal(box$middle, unname(expected))
+})
+
 test_that("plotDensity and plotBoxByCluster stack both counts", {
   counts <- matrix(c(60L, 72L, 52L, 49L, 89L, 112L),
     nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
