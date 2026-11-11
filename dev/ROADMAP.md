@@ -81,6 +81,10 @@ pushed, one at a time.
 - decontPro's unclear Stan error on a single ADT or droplet (#110, from
   the #80 part 3 code review). Done in 1.11.28: decontPro needs at least
   2 ADTs and 2 droplets.
+- `plotDensity()`/`plotBoxByCluster()` input checks (#122, #123, from
+  the #119 code review). Done in 1.11.31: a factor feature is used by
+  name, and empty or unknown features or a `cell_type` of the wrong
+  length stop with a clear error.
 
 ### I-e: speed and memory
 
