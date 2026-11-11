@@ -298,6 +298,29 @@ test_that("decontPro checks the length of cell_type and NA", {
   )
 })
 
+test_that("decontPro needs at least 2 ADTs and 2 droplets", {
+  # rstan passes length-1 data to Stan as a scalar, so a single ADT or
+  # droplet used to fail inside Stan with an unclear message (#110)
+  local_mocked_bindings(.callStanVb = function(data, initial_condition) {
+    stop("reached Stan")
+  })
+  oneAdt <- matrix(20, 1, 8, dimnames = list("a1", paste0("d", 1:8)))
+  expect_error(
+    decontPro(oneAdt, rep(1:2, 4), 1e-2, 1e-2),
+    regexp = paste(
+      "'filtered_counts' has 1 ADT and 8 droplets;",
+      "decontPro needs at least 2 of each"
+    )
+  )
+  oneDroplet <- matrix(20, 10, 1, dimnames = list(paste0("a", 1:10), "d1"))
+  expect_error(
+    decontPro(oneDroplet, 1, 1e-2, 1e-2),
+    regexp = "'filtered_counts' has 10 ADTs and 1 droplet;"
+  )
+  twoByTwo <- matrix(20, 2, 2, dimnames = list(c("a1", "a2"), c("d1", "d2")))
+  expect_error(decontPro(twoByTwo, 1:2, 1e-2, 1e-2), regexp = "reached Stan")
+})
+
 test_that("decontPro recodes cell_type labels to 1..K for Stan", {
   p <- refProData()
   received <- NULL

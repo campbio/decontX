@@ -3,8 +3,9 @@
 #' @name decontPro
 #'
 #' @param filtered_counts Count matrix NxM (feature x droplet) with only
-#' filtered droplets after cell calling. The counts must be non-negative
-#' whole numbers with no NA. If this is a
+#' filtered droplets after cell calling, with at least 2 ADTs and 2
+#' droplets. The counts must be non-negative whole numbers with no NA. If
+#' this is a
 #' \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
 #' \linkS4class[SeuratObject]{Seurat} object,
 #' expect \code{counts} in the assay slot. Split \code{counts} layers of a
@@ -143,6 +144,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   .checkDecontProCounts(counts)
   N <- nrow(counts)
   M <- ncol(counts)
+  .checkDecontProDims(N, M)
   cellType <- .recodeCellType(cell_type, M)
 
   if (is.null(ambient_counts)) {
@@ -239,6 +241,19 @@ setMethod("decontPro", "ANY", function(filtered_counts,
     all(is.finite(counts) & counts == round(counts))
   if (!wholeNumbers) {
     stop("'filtered_counts' must hold whole-number counts.")
+  }
+}
+
+
+# One ADT or one droplet leaves the model nothing to estimate, and rstan
+# would pass the length-1 data to Stan as a scalar (#110)
+.checkDecontProDims <- function(N, M) {
+  if (N < 2 || M < 2) {
+    stop(
+      "'filtered_counts' has ", N, ngettext(N, " ADT", " ADTs"), " and ",
+      M, ngettext(M, " droplet", " droplets"),
+      "; decontPro needs at least 2 of each."
+    )
   }
 }
 
