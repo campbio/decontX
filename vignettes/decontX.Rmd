@@ -40,7 +40,7 @@ single cell counts can aid in downstream clustering and visualization.
 
 # Installation
 
-DecontX Package can be installed from Bioconductor:
+The decontX package can be installed from Bioconductor:
 
 ```{r install, eval= FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE)) {
@@ -209,19 +209,30 @@ plotDecontXContamination(sce)
 
 Known marker genes can also be plotted on the UMAP to identify the cell
 types for each cluster. We will use one marker for each cell type: CD3D for
-T-cells, MS4A1 for B-cells, LYZ for monocytes, and GNLY for NK-cells.
+T-cells, MS4A1 for B-cells, LYZ for monocytes, and GNLY for NK-cells. Raw
+counts depend on how many transcripts were captured in each cell, so we
+first log-normalize them: divide each cell's counts by its size factor (its
+total counts relative to the average cell) and take the log. The
+normalized values are stored in the `logcounts` assay, which the plots
+use.
 
 ```{r plot_feature, message=FALSE}
+# Matrix provides colSums() for sparse count matrices.
 # Load scrapper after scater so that normalizeCounts() below refers to
 # scrapper's function and not the deprecated scuttle version that scater
-# attaches.
+# attaches. patchwork combines several plots into one figure.
 library(Matrix)
 library(scrapper)
 library(patchwork)
 
+# The total counts of each cell (its library size)
+librarySizes <- colSums(counts(sce))
+
+# Size factors: library sizes scaled to have a mean of 1
+sizeFactors <- centerSizeFactors(librarySizes)
+
 # Log-normalize the original counts
-logcounts(sce) <- normalizeCounts(counts(sce),
-    size.factors = centerSizeFactors(colSums(counts(sce))))
+logcounts(sce) <- normalizeCounts(counts(sce), size.factors = sizeFactors)
 
 # Plot the expression of each marker on the UMAP
 tcellPlot <- plotReducedDim(sce, dimred = "decontX_UMAP", colour_by = "CD3D")
@@ -281,7 +292,8 @@ clusters <- sce$decontX_clusters
 tcellCounts <- colSums(counts(sce)[markers$Tcell_Markers, ])
 bcellCounts <- colSums(counts(sce)[markers$Bcell_Markers, ])
 monocyteCounts <- colSums(counts(sce)[markers$Monocyte_Markers, ])
-nkcellCounts <- counts(sce)["GNLY", ]
+# The NK-cell set has one marker, so its counts need no colSums()
+nkcellCounts <- counts(sce)[markers$NKcell_Markers, ]
 
 # The average of those counts in each cluster
 tcellAverage <- tapply(tcellCounts, clusters, mean)
@@ -299,13 +311,13 @@ cellTypeMappings
 ```
 
 You can also build this list by hand: look at the barplot above, decide
-which cluster corresponds to each cell type, and write it out, e.g.
-`cellTypeMappings <- list(Tcells = 2, Bcells = 5, Monocytes = 1, NKcells = 6)`
-(your cluster numbers may differ). A single cell type can also span several
-clusters: give it a vector of cluster numbers, for example
-`cellTypeMappings <- list(Tcells = c(2, 4), Bcells = 5, Monocytes = 1, NKcells = 6)`
-groups clusters 2 and 4 together as T-cells. Clusters left out of the list
-are left out of the plots.
+which cluster corresponds to each cell type, and write it out. With the
+clusters printed above, that would be
+`list(Tcells = "2", Bcells = "4", Monocytes = "1", NKcells = "5")` (your
+cluster numbers may differ). A single cell type can also span several
+clusters: give it a vector of cluster labels. For example, if T-cells had
+been split into clusters 2 and 3, `Tcells = c("2", "3")` would group them
+together. Clusters left out of the list are left out of the plots.
 
 Now the detection of marker genes in the original `counts` assay can be
 shown for each cell type:
@@ -333,7 +345,7 @@ completely removed. For example, the percentage of cells that expressed
 Monocyte marker genes was greatly reduced in T-cells, B-cells, and NK-cells.
 The original counts and decontaminated counts can be plotted side-by-side by
 listing multiple assays in the `assayName` parameter. This option is only
-available if the data is stored in `SingleCellExperiment` object.
+available if the data is stored in a `SingleCellExperiment` object.
 
 ```{r barplotBoth}
 plotDecontXMarkerPercentage(sce,
@@ -344,15 +356,13 @@ plotDecontXMarkerPercentage(sce,
 
 Some helpful hints when using `plotDecontXMarkerPercentage`:
 
-1. Cell clusters can be renamed and re-grouped using the `groupClusters`
-   parameter, which also needs to be a named list. If `groupClusters` is
-   used, cell clusters not included in the list will be excluded in the
-   barplot. For example, to group T-cells and NK-cells together, list both
-   of their clusters under one name, such as
-   `list(NK_Tcells = c(2, 6), Bcells = 5, Monocytes = 1)`, using your own
-   cluster numbers.
-2. The level a gene that needs to be expressed to be considered detected in
-   a cell can be adjusted using the `threshold` parameter.
+1. `groupClusters` renames and re-groups clusters, as described above. For
+   example, to group T-cells and NK-cells together, list both of their
+   clusters under one name, such as
+   `list(NK_Tcells = c("2", "5"), Bcells = "4", Monocytes = "1")`, using
+   your own cluster labels.
+2. The count at which a gene is considered detected in a cell can be
+   adjusted using the `threshold` parameter.
 3. If you are not using a `SingleCellExperiment`, then you will need to
    supply the original counts matrix or the decontaminated counts matrix as
    the first argument to generate the barplots.
@@ -386,10 +396,13 @@ Some helpful hints when using `plotDecontXMarkerExpression`:
    decontaminated counts. For example:
 
 ```{r plot_norm_counts, eval = TRUE}
+# Size factors from the decontaminated library sizes
+decontLibrarySizes <- colSums(decontXcounts(sce))
+decontSizeFactors <- centerSizeFactors(decontLibrarySizes)
+
 # Log-normalize the decontaminated counts
-assay(sce, "decontXlogcounts") <- normalizeCounts(
-    decontXcounts(sce),
-    size.factors = centerSizeFactors(colSums(decontXcounts(sce))))
+assay(sce, "decontXlogcounts") <- normalizeCounts(decontXcounts(sce),
+    size.factors = decontSizeFactors)
 
 plotDecontXMarkerExpression(sce,
     markers = markers[["Monocyte_Markers"]],
@@ -404,7 +417,7 @@ plotDecontXMarkerExpression(sce,
 
 The ability of DecontX to accurately identify contamination is dependent on
 the cell cluster labels. DecontX assumes that contamination for a cell
-cluster comes from combination of counts from all other clusters. The
+cluster comes from a combination of counts from all other clusters. The
 default clustering approach used by DecontX tends to select fewer clusters
 that represent broader cell types. For example, all T-cells tend to be
 clustered together rather than splitting naive and cytotoxic T-cells into
@@ -430,7 +443,8 @@ and setting a high number in the second element will force `decontX` to be
 more aggressive and estimate higher levels of contamination in each cell at
 the expense of potentially removing native expression. For example, in the
 previous PBMC example, we can see what the estimated `delta` was by looking
-in the estimates:
+in the estimates. They are stored for each batch; without `batch`, all cells
+form one batch called `all_cells`:
 
 ```{r findDelta}
 metadata(sce)$decontX$estimates$all_cells$delta
@@ -450,10 +464,13 @@ sce.delta <- decontX(sce,
     embedding = FALSE)
 
 plot(sce$decontX_contamination, sce.delta$decontX_contamination,
-     xlab = "DecontX estimated priors",
-     ylab = "Setting priors to estimate higher contamination")
+     xlab = "Contamination, delta estimated",
+     ylab = "Contamination, delta = c(9, 20)")
 abline(0, 1, col = "red", lwd = 2)
 ```
+
+Each point is a cell. Points above the red line have a higher estimated
+contamination with the fixed priors than with the estimated ones.
 
 ## Working with Seurat {#seurat}
 
@@ -476,7 +493,7 @@ sce <- decontX(sce)
 seuratObject <- CreateSeuratObject(round(decontXcounts(sce)))
 ```
 
-Optionally, the "raw" matrix can be also be imported and used as the
+Optionally, the "raw" matrix can also be imported and used as the
 background:
 
 ```{r seurat_raw, eval = FALSE}
@@ -501,8 +518,8 @@ counts <- LayerData(seuratObject, assay = "RNA", layer = "counts")
 sce <- SingleCellExperiment(list(counts = counts))
 sce <- decontX(sce)
 
-# Add the decontaminated counts to the Seurat object as a new assay
-decontCounts <- decontXcounts(sce)
+# Add the rounded decontaminated counts to the Seurat object as a new assay
+decontCounts <- round(decontXcounts(sce))
 seuratObject[["decontXcounts"]] <- CreateAssayObject(counts = decontCounts)
 ```
 
@@ -520,21 +537,23 @@ this on your own data:
 max(decontXcounts(sce) - counts(sce))
 ```
 
-If you see a positive number, the two matrices are probably in a different
-cell or gene order.
+If you compare matrices taken from different objects and see a positive
+number, the two matrices are probably in a different cell or gene order.
 
 Values can look higher after normalization. Removing contamination shrinks
-a cell's total counts, so after normalizing for library size (or taking
-logs), a cluster's own markers can rise. That is the intended gain in
-signal, not added counts.
+a cell's total counts, so after normalizing for library size (as in
+log-normalization), a cluster's own markers can rise. That is the intended
+gain in signal, not added counts.
 
 ## What does the `background` matrix need?
 
 The `background` matrix should hold only empty droplets: decontX uses them
 to estimate the ambient RNA. Barcodes that are also in the filtered counts
-(`x`) are removed from the background automatically. Genes are matched by
-name: genes in the background that are not in `x` are dropped, and genes in
-`x` that are missing from the background give an error.
+(`x`) are removed from the background automatically. When both matrices
+have gene names (row names), genes are matched by name: genes in the
+background that are not in `x` are dropped, and genes in `x` that are
+missing from the background give an error. Without gene names, the rows
+must be in the same order.
 
 ## My data has only one cell type. Can I use decontX?
 
@@ -579,8 +598,8 @@ sce <- decontX(sce,
     embedding = FALSE)
 ```
 
-A label in `z` that appears in more than one sample comes back with the
-sample in front of it in `sce$decontX_clusters` (for example
+If any label in `z` appears in more than one sample, all labels come back
+with their sample in front of them in `sce$decontX_clusters` (for example
 `"sample1-Tcells"`), since the same label may describe different clusters in
 different samples. If you use `background`, give the sample of each empty
 droplet with `bgBatch`.

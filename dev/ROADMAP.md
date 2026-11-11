@@ -40,6 +40,12 @@ pushed, one at a time.
   (ADR-0003 Stage 1), the numeric-`batch` fix, the defunct Seurat call,
   the #46 memory fix (1.11.1), metadata and CITATION, lint backlog
   cleared.
+- **III-a part 1 (#83), 1.11.32:** the decontX vignette (mapping code in
+  view, one clustering run, "proportion", simpler code) and its FAQ (#40,
+  #43, #44, #45); citations in the vignette, the package help page and the
+  README; roxygen and examples (A7-10, A7-15, A7-18); README usage;
+  DESCRIPTION Title and `<doi:>` links; DecontPro 2024 in `AGENTS.md`.
+  Spec `dev/plans/2026-11-11-decontx-docs.md`.
 
 ## Phase I: fixes, coverage, quality, speed
 
@@ -143,31 +149,21 @@ carries the whole API change.
 
 ## Phase III: docs and site
 
-### III-a: clarity and completeness (alongside Phase I), #83
+### III-a: clarity and completeness, #83 (part 2, after #81)
 
-In two parts (spec `dev/plans/2026-11-11-decontx-docs.md`). Part 1, done
-in 1.11.32: the decontX vignette and its FAQ, citations, roxygen and
-examples, README, DESCRIPTION and `AGENTS.md`. Part 2, after #81 so the
-decontPro vignette is written against the final arguments: the decontPro
-vignette rewrite and FAQ, the rest of A7-11, and A7-23.
+Part 1 is done (see Done). Part 2 waits for #81, so the decontPro
+vignette is written once, against the final arguments:
 
 - **decontPro vignette rewrite** (A7-03 to A7-05, A7-11): the model;
   cord_blood loaded with only the needed modes; its bundled cell-type
   labels (no Seurat, no dplyr, which leaves Suggests); 500 cells;
   what every output means; tuning the priors with before/after plots; a
   short `background` example like decontX's; runtime and
-  reproducibility; FAQ. No empty-droplet demo.
-- **decontX vignette:** show the cell-type mapping code (A7-01);
-  "proportion", not "percentage" (A7-08); simpler code (A7-09); one EM
-  run (A7-06); FAQ with #40, #43, #44 (decontX and doublet detectors on
-  the same original counts), #45 (A7-07, A8-03).
-- Citations in both vignettes and the package help page; 2024 for
-  DecontPro everywhere, including `AGENTS.md` (A7-12, A7-14).
-- Roxygen and examples (A7-10, A7-15, A7-18, A7-23); README (A7-20);
-  DESCRIPTION Title and Description (A7-21); chunk labels, long lines,
-  typos (A7-19, #57).
-- Every edited vignette is rendered locally and gets a novice-reader
-  pass.
+  reproducibility; FAQ (including the decontPro half of #40); citation;
+  chunk labels and the `IndexEntry` (A7-19). No empty-droplet demo.
+- decontPro roxygen not covered by #81 (A7-11) and a 10 x 8 example with
+  a seed (A7-23).
+- The edited vignette is rendered locally and gets a novice-reader pass.
 
 ### III-b: multi-container docs (after Phase II)
 
