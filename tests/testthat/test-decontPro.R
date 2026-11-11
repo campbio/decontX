@@ -711,6 +711,11 @@ test_that("plotDensity and plotBoxByCluster stop for empty or unknown names", {
       )
     )
   }
+  # Features are matched by name, so row numbers aren't accepted
+  expect_error(
+    plotDensity(counts, decontaminated, 2),
+    regexp = "'decontaminated_counts': 2$"
+  )
   # A feature missing from only one of the two matrices is reported too
   expect_error(
     plotDensity(counts, decontaminated[1, , drop = FALSE], "CD4"),
