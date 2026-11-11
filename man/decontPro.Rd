@@ -38,9 +38,9 @@ decontPro(filtered_counts, cell_type, ...)
 }
 \arguments{
 \item{filtered_counts}{Count matrix NxM (feature x droplet) with only
-filtered droplets after cell calling. The counts must be non-negative
-whole numbers with no NA. If this is a
-\linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
+filtered droplets after cell calling, with at least 2 ADTs and 2
+droplets. The counts must be non-negative whole numbers with no NA.
+If this is a \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
 \linkS4class[SeuratObject]{Seurat} object,
 expect \code{counts} in the assay slot. Split \code{counts} layers of a
 Seurat v5 assay are joined first, so the droplets follow

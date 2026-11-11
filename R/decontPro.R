@@ -3,9 +3,9 @@
 #' @name decontPro
 #'
 #' @param filtered_counts Count matrix NxM (feature x droplet) with only
-#' filtered droplets after cell calling. The counts must be non-negative
-#' whole numbers with no NA. If this is a
-#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
+#' filtered droplets after cell calling, with at least 2 ADTs and 2
+#' droplets. The counts must be non-negative whole numbers with no NA.
+#' If this is a \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
 #' \linkS4class[SeuratObject]{Seurat} object,
 #' expect \code{counts} in the assay slot. Split \code{counts} layers of a
 #' Seurat v5 assay are joined first, so the droplets follow
@@ -143,6 +143,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   .checkDecontProCounts(counts)
   N <- nrow(counts)
   M <- ncol(counts)
+  .checkDecontProDims(N, M)
   cellType <- .recodeCellType(cell_type, M)
 
   if (is.null(ambient_counts)) {
@@ -239,6 +240,19 @@ setMethod("decontPro", "ANY", function(filtered_counts,
     all(is.finite(counts) & counts == round(counts))
   if (!wholeNumbers) {
     stop("'filtered_counts' must hold whole-number counts.")
+  }
+}
+
+
+# rstan passes length-1 data to Stan as a scalar, so one ADT or one
+# droplet would fail inside Stan with an unclear message (#110)
+.checkDecontProDims <- function(N, M) {
+  if (N < 2 || M < 2) {
+    stop(
+      "'filtered_counts' has ", N, ngettext(N, " ADT", " ADTs"), " and ",
+      M, ngettext(M, " droplet", " droplets"),
+      "; decontPro needs at least 2 of each."
+    )
   }
 }
 
