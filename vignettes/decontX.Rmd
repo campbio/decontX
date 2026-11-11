@@ -311,11 +311,12 @@ cellTypeMappings
 ```
 
 You can also build this list by hand: look at the barplot above, decide
-which cluster corresponds to each cell type, and write it out. With the
-clusters printed above, that would be
-`list(Tcells = "2", Bcells = "4", Monocytes = "1", NKcells = "5")` (your
-cluster numbers may differ). A single cell type can also span several
-clusters: give it a vector of cluster labels. For example, if T-cells had
+which cluster corresponds to each cell type, and write it out. For
+example, if T-cells were cluster 2, B-cells cluster 4, monocytes cluster 1
+and NK-cells cluster 5, the list would be
+`list(Tcells = "2", Bcells = "4", Monocytes = "1", NKcells = "5")`.
+A single cell type can also span several clusters: give it a vector of
+cluster labels. For example, if T-cells had
 been split into clusters 2 and 3, `Tcells = c("2", "3")` would group them
 together. Clusters left out of the list are left out of the plots.
 
@@ -552,8 +553,11 @@ to estimate the ambient RNA. Barcodes that are also in the filtered counts
 (`x`) are removed from the background automatically. When both matrices
 have gene names (row names), genes are matched by name: genes in the
 background that are not in `x` are dropped, and genes in `x` that are
-missing from the background give an error. Without gene names, the rows
-must be in the same order.
+missing from the background give an error. Matching by name needs unique
+names: if the two matrices have different row names and either has a
+duplicated name, decontX stops with an error. Gene symbols are sometimes
+duplicated, so use gene IDs, or `make.unique()` on both. Without gene
+names, the rows must be in the same order.
 
 ## My data has only one cell type. Can I use decontX?
 
@@ -561,10 +565,14 @@ Without `background`, decontX learns the contamination by comparing
 clusters, so it needs at least two of them; with one cell type, it will
 split that cell type into clusters that aren't real. With `background`, the
 contamination profile comes from the empty droplets instead, so a single
-cluster is allowed. Give every cell the same label with `z`:
+cluster is allowed. Give every cell the same label with `z`, and skip the
+UMAP with `embedding = FALSE`, since the clusters are already given:
 
 ```{r faq_one_type, eval = FALSE}
-sce <- decontX(sce, background = sce.raw, z = rep(1, ncol(sce)))
+sce <- decontX(sce,
+    background = sce.raw,
+    z = rep(1, ncol(sce)),
+    embedding = FALSE)
 ```
 
 ## Should I run doublet detection before or after decontX?
@@ -606,7 +614,10 @@ droplet with `bgBatch`.
 
 If the combined data are too large to hold in memory, you can instead run
 decontX on each sample separately and combine the decontaminated counts
-afterwards. This gives the same results as one run with `batch`.
+afterwards. This gives the same contamination estimates and decontaminated
+counts as one run with `batch`; the cluster labels just come back without
+the sample in front. With `background`, give each run only the empty
+droplets of its own sample.
 
 # Citing decontX
 
