@@ -76,8 +76,8 @@ pushed, one at a time.
     Done in 1.11.26, with ADR-0009;
   - small quality items (#116; A4-11, A4-13 to A4-16). Done in 1.11.27,
     with ADR-0010, except the `plotDensity`/`plotBoxByCluster` half of
-    A4-11 (their repeated loop, scale and theme), which is still open
-    as #119 (it may fold into the Phase II plot work, A4-18).
+    A4-11 (their repeated loop, scales and patchwork assembly), done
+    separately in 1.11.30 (#119) with the same built plots.
 - decontPro's unclear Stan error on a single ADT or droplet (#110, from
   the #80 part 3 code review). Done in 1.11.28: decontPro needs at least
   2 ADTs and 2 droplets.
