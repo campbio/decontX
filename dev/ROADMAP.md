@@ -145,6 +145,12 @@ carries the whole API change.
 
 ### III-a: clarity and completeness (alongside Phase I), #83
 
+In two parts (spec `dev/plans/2026-11-11-decontx-docs.md`). Part 1, done
+in 1.11.32: the decontX vignette and its FAQ, citations, roxygen and
+examples, README, DESCRIPTION and `AGENTS.md`. Part 2, after #81 so the
+decontPro vignette is written against the final arguments: the decontPro
+vignette rewrite and FAQ, the rest of A7-11, and A7-23.
+
 - **decontPro vignette rewrite** (A7-03 to A7-05, A7-11): the model;
   cord_blood loaded with only the needed modes; its bundled cell-type
   labels (no Seurat, no dplyr, which leaves Suggests); 500 cells;
