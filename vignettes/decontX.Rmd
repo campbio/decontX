@@ -72,7 +72,7 @@ To import datasets directly into an SCE object, the
 package has several importing functions for different preprocessing tools
 including CellRanger, STARsolo, BUStools, Optimus, DropEST, SEQC, and
 Alevin/Salmon. For example, the following code can be used as a template to
-read in the filtered and raw matrices for multiple samples processed with
+read in the filtered matrices for multiple samples processed with
 CellRanger:
 
 ```{r sce_import, eval = FALSE}
@@ -86,17 +86,9 @@ files called `matrix.mtx.gz`, `features.tsv.gz` and `barcodes.tsv.gz`. If
 these files are in different subdirectories, the `importCellRangerV3Sample`
 function can be used to import data from a different directory instead.
 
-Optionally, the "raw" or "droplet" matrix can also be easily imported by
-setting the `dataType` argument to "raw":
-
-```{r sce_import_raw, eval = FALSE}
-sce.raw <- importCellRanger(
-    sampleDirs = c("path/to/sample1/", "path/to/sample2/"),
-    dataType = "raw")
-```
-
-The raw matrix can be passed to the `background` parameter in `decontX` as
-described below. If using Seurat, go to the
+The "raw" or "droplet" matrix, which also holds the empty droplets, can be
+imported the same way and passed to the `background` parameter, as shown in
+[With the background matrix](#background). If using Seurat, go to the
 [Working with Seurat](#seurat) section for details on how to convert between
 SCE and Seurat objects.
 
@@ -122,7 +114,10 @@ A SingleCellExperiment (SCE) object or a sparse matrix containing the counts
 for filtered cells can be passed to decontX via the `x` parameter. The matrix
 to use in an SCE object can be specified with the `assayName` parameter,
 which is set to `"counts"` by default. There are two major ways to run
-decontX: with and without the raw/droplet matrix containing empty droplets.
+decontX: without and with the raw/droplet matrix containing empty droplets.
+
+## Without the background matrix
+
 Here is an example of running decontX without supplying the background:
 
 ```{r decontX, eval=TRUE, message=FALSE}
@@ -138,19 +133,21 @@ clustering to quickly define major cell clusters. However if you have your
 own cell cluster labels, they can be specified with the `z` parameter. These
 results will be used throughout the rest of the vignette.
 
-**Note on reproducing results from older versions:** As of decontX 1.11.1,
-the heuristic clustering used when `z` is not supplied (log-normalization,
-variable gene selection, PCA, and UMAP) is performed with the
-[scrapper](https://bioconductor.org/packages/scrapper/) package instead of
-scater/scuttle, whose normalization functions were deprecated in
-Bioconductor 3.24. The workflow and parameters are unchanged, but
-contamination estimates may differ slightly from versions 1.11.0 and earlier
-because the UMAP embedding used for the initial clustering differs. To
-reproduce results from older versions, set `legacyInit = TRUE`. This option
-requires the scater package and is kept for backwards compatibility; it will
-remain available as long as the underlying functions are still provided by
-scater/scuttle. Results are identical between versions when cluster labels
-are supplied with `z`.
+> **Note on reproducing results from older versions:** As of decontX 1.11.1,
+> the heuristic clustering used when `z` is not supplied (log-normalization,
+> variable gene selection, PCA, and UMAP) is performed with the
+> [scrapper](https://bioconductor.org/packages/scrapper/) package instead of
+> scater/scuttle, whose normalization functions were deprecated in
+> Bioconductor 3.24. The workflow and parameters are unchanged, but
+> contamination estimates may differ slightly from versions 1.11.0 and
+> earlier because the UMAP embedding used for the initial clustering
+> differs. To reproduce results from older versions, set
+> `legacyInit = TRUE`. This option requires the scater package and is kept
+> for backwards compatibility; it will remain available as long as the
+> underlying functions are still provided by scater/scuttle. Results are
+> identical between versions when cluster labels are supplied with `z`.
+
+## With the background matrix {#background}
 
 The raw/droplet matrix can be used to empirically estimate the distribution
 of ambient RNA, which is especially useful when cells that contributed to the
@@ -158,10 +155,26 @@ ambient RNA are not accurately represented in the filtered count matrix
 containing the cells. For example, cells that were removed via flow
 cytometry or that were more sensitive to lysis during dissociation may have
 contributed to the ambient RNA but were not measured in the filtered/cell
-matrix. The raw/droplet matrix can be input as an SCE object or a sparse
-matrix using the `background` parameter:
+matrix.
+
+The raw matrix holds every droplet barcode, including the empty droplets.
+For data processed with CellRanger, it is in the
+`"outs/raw_feature_bc_matrix/"` subfolder of each sample directory, and
+singleCellTK imports it when the `dataType` argument is set to "raw". The
+PBMC4k data used in this vignette don't include the raw matrix, so this
+code is a template: replace the paths with your own sample directories,
+the same ones used to import the filtered matrix. The raw matrix can then be
+passed to decontX as an SCE object or a sparse matrix with the `background`
+parameter:
 
 ```{r decontX_background, eval=FALSE, message=FALSE}
+# Import the raw matrix, which includes the empty droplets
+library(singleCellTK)
+sce.raw <- importCellRanger(
+    sampleDirs = c("path/to/sample1/", "path/to/sample2/"),
+    dataType = "raw")
+
+# Estimate the ambient RNA from the empty droplets
 sce <- decontX(sce, background = sce.raw)
 ```
 
@@ -170,8 +183,17 @@ ambient RNA. If any cell ids (i.e. `colnames`) in the raw/droplet matrix
 supplied to the `background` parameter are also found in the filtered counts
 matrix (`x`), decontX will automatically remove them from the raw matrix.
 However, if the cell ids are not available for the input matrices, decontX
-will treat the entire `background` input as empty droplets. All of the
-outputs are the same as when running decontX without setting the
+will treat the entire `background` input as empty droplets.
+
+When both matrices have gene names (row names), genes are matched by name:
+genes in the background that are not in `x` are dropped, and genes in `x`
+that are missing from the background give an error. Matching by name needs
+unique names: if the two matrices have different row names and either has a
+duplicated name, decontX stops with an error. Gene symbols are sometimes
+duplicated, so use gene IDs, or `make.unique()` on both. Without gene names,
+the rows must be in the same order.
+
+All of the outputs are the same as when running decontX without setting the
 `background` parameter.
 
 > Note: If the input object is just a matrix and not an SCE object, make sure
@@ -414,6 +436,86 @@ plotDecontXMarkerExpression(sce,
 
 # Other important notes
 
+## Working with Seurat {#seurat}
+
+If you are using the
+[Seurat](https://cran.r-project.org/web/packages/Seurat/index.html) package
+for downstream analysis, the following code can be used to read in a matrix
+and convert between Seurat and SCE objects:
+
+```{r seurat_create, eval = FALSE}
+# Read counts from CellRanger output
+library(Seurat)
+library(SingleCellExperiment)
+counts <- Read10X("sample/outs/filtered_feature_bc_matrix/")
+
+# Create a SingleCellExperiment object and run decontX
+sce <- SingleCellExperiment(list(counts = counts))
+sce <- decontX(sce)
+
+# Create a Seurat object from a SCE with decontX results
+seuratObject <- CreateSeuratObject(round(decontXcounts(sce)))
+```
+
+Optionally, the "raw" matrix can also be imported and used as the
+background:
+
+```{r seurat_raw, eval = FALSE}
+counts.raw <- Read10X("sample/outs/raw_feature_bc_matrix/")
+sce.raw <- SingleCellExperiment(list(counts = counts.raw))
+sce <- decontX(sce, background = sce.raw)
+```
+
+Note that the decontaminated matrix of decontX consists of floating point
+numbers and must be rounded to integers before adding it to a Seurat object.
+If you already have a Seurat object containing the counts matrix and would
+like to run decontX, you can retrieve the count matrix, create a SCE object,
+and run decontX, and then add it back to the Seurat object:
+
+```{r seurat_create2, eval = FALSE}
+# Retrieve the counts matrix from the Seurat object
+library(Seurat)
+library(SingleCellExperiment)
+counts <- LayerData(seuratObject, assay = "RNA", layer = "counts")
+
+# Create a SingleCellExperiment object and run decontX
+sce <- SingleCellExperiment(list(counts = counts))
+sce <- decontX(sce)
+
+# Add the rounded decontaminated counts to the Seurat object as a new assay
+decontCounts <- round(decontXcounts(sce))
+seuratObject[["decontXcounts"]] <- CreateAssayObject(counts = decontCounts)
+```
+
+## Running decontX on multiple samples {#batch}
+
+Give decontX the sample of each cell with the `batch` parameter. Each sample
+is then decontaminated on its own, which is what you want: the ambient RNA
+differs between samples. If you have already annotated your cells, give
+those labels with `z`; then `embedding = FALSE` skips the UMAP, which saves
+most of the run time on large data sets. Here `sample` and `cellType` stand
+for columns in your own `colData`:
+
+```{r multiple_samples, eval = FALSE}
+sce <- decontX(sce,
+    batch = sce$sample,
+    z = sce$cellType,
+    embedding = FALSE)
+```
+
+If any label in `z` appears in more than one sample, all labels come back
+with their sample in front of them in `sce$decontX_clusters` (for example
+`"sample1-Tcells"`), since the same label may describe different clusters in
+different samples. If you use `background`, give the sample of each empty
+droplet with `bgBatch`.
+
+If the combined data are too large to hold in memory, you can instead run
+decontX on each sample separately and combine the decontaminated counts
+afterwards. This gives the same contamination estimates and decontaminated
+counts as one run with `batch`; the cluster labels just come back without
+the sample in front. With `background`, give each run only the empty
+droplets of its own sample.
+
 ## Choosing appropriate cell clusters
 
 The ability of DecontX to accurately identify contamination is dependent on
@@ -473,100 +575,17 @@ abline(0, 1, col = "red", lwd = 2)
 Each point is a cell. Points above the red line have a higher estimated
 contamination with the fixed priors than with the estimated ones.
 
-## Working with Seurat {#seurat}
-
-If you are using the
-[Seurat](https://cran.r-project.org/web/packages/Seurat/index.html) package
-for downstream analysis, the following code can be used to read in a matrix
-and convert between Seurat and SCE objects:
-
-```{r seurat_create, eval = FALSE}
-# Read counts from CellRanger output
-library(Seurat)
-library(SingleCellExperiment)
-counts <- Read10X("sample/outs/filtered_feature_bc_matrix/")
-
-# Create a SingleCellExperiment object and run decontX
-sce <- SingleCellExperiment(list(counts = counts))
-sce <- decontX(sce)
-
-# Create a Seurat object from a SCE with decontX results
-seuratObject <- CreateSeuratObject(round(decontXcounts(sce)))
-```
-
-Optionally, the "raw" matrix can also be imported and used as the
-background:
-
-```{r seurat_raw, eval = FALSE}
-counts.raw <- Read10X("sample/outs/raw_feature_bc_matrix/")
-sce.raw <- SingleCellExperiment(list(counts = counts.raw))
-sce <- decontX(sce, background = sce.raw)
-```
-
-Note that the decontaminated matrix of decontX consists of floating point
-numbers and must be rounded to integers before adding it to a Seurat object.
-If you already have a Seurat object containing the counts matrix and would
-like to run decontX, you can retrieve the count matrix, create a SCE object,
-and run decontX, and then add it back to the Seurat object:
-
-```{r seurat_create2, eval = FALSE}
-# Retrieve the counts matrix from the Seurat object
-library(Seurat)
-library(SingleCellExperiment)
-counts <- LayerData(seuratObject, assay = "RNA", layer = "counts")
-
-# Create a SingleCellExperiment object and run decontX
-sce <- SingleCellExperiment(list(counts = counts))
-sce <- decontX(sce)
-
-# Add the rounded decontaminated counts to the Seurat object as a new assay
-decontCounts <- round(decontXcounts(sce))
-seuratObject[["decontXcounts"]] <- CreateAssayObject(counts = decontCounts)
-```
-
 # Frequently asked questions
-
-## Why do my decontaminated counts look higher than the original counts?
-
-They can't be higher. decontX multiplies each count by the estimated
-probability that it is native to the cell, a number between 0 and 1, so a
-decontaminated count is never larger than the original count. You can check
-this on your own data:
-
-```{r faq_higher}
-# The largest increase from decontamination: 0 or less
-max(decontXcounts(sce) - counts(sce))
-```
-
-If you compare matrices taken from different objects and see a positive
-number, the two matrices are probably in a different cell or gene order.
-
-Values can look higher after normalization. Removing contamination shrinks
-a cell's total counts, so after normalizing for library size (as in
-log-normalization), a cluster's own markers can rise. That is the intended
-gain in signal, not added counts.
-
-## What does the `background` matrix need?
-
-The `background` matrix should hold only empty droplets: decontX uses them
-to estimate the ambient RNA. Barcodes that are also in the filtered counts
-(`x`) are removed from the background automatically. When both matrices
-have gene names (row names), genes are matched by name: genes in the
-background that are not in `x` are dropped, and genes in `x` that are
-missing from the background give an error. Matching by name needs unique
-names: if the two matrices have different row names and either has a
-duplicated name, decontX stops with an error. Gene symbols are sometimes
-duplicated, so use gene IDs, or `make.unique()` on both. Without gene
-names, the rows must be in the same order.
 
 ## My data has only one cell type. Can I use decontX?
 
 Without `background`, decontX learns the contamination by comparing
 clusters, so it needs at least two of them; with one cell type, it will
-split that cell type into clusters that aren't real. With `background`, the
-contamination profile comes from the empty droplets instead, so a single
-cluster is allowed. Give every cell the same label with `z`, and skip the
-UMAP with `embedding = FALSE`, since the clusters are already given:
+split that cell type into clusters that aren't real. With
+[`background`](#background), the contamination profile comes from the empty
+droplets instead, so a single cluster is allowed. Give every cell the same
+label with `z`, and skip the UMAP with `embedding = FALSE`, since the
+clusters are already given:
 
 ```{r faq_one_type, eval = FALSE}
 sce <- decontX(sce,
@@ -589,35 +608,6 @@ High decontX contamination can itself indicate a doublet: in Yang et al.
 (2020), every cell with more than 70% estimated contamination was also called
 a doublet by Scrublet. Use both results together when you decide which cells
 to remove.
-
-## How do I run decontX on many samples?
-
-Give decontX the sample of each cell with the `batch` parameter. Each sample
-is then decontaminated on its own, which is what you want: the ambient RNA
-differs between samples. If you have already annotated your cells, give
-those labels with `z`; then `embedding = FALSE` skips the UMAP, which saves
-most of the run time on large data sets. Here `sample` and `cellType` stand
-for columns in your own `colData`:
-
-```{r faq_batch, eval = FALSE}
-sce <- decontX(sce,
-    batch = sce$sample,
-    z = sce$cellType,
-    embedding = FALSE)
-```
-
-If any label in `z` appears in more than one sample, all labels come back
-with their sample in front of them in `sce$decontX_clusters` (for example
-`"sample1-Tcells"`), since the same label may describe different clusters in
-different samples. If you use `background`, give the sample of each empty
-droplet with `bgBatch`.
-
-If the combined data are too large to hold in memory, you can instead run
-decontX on each sample separately and combine the decontaminated counts
-afterwards. This gives the same contamination estimates and decontaminated
-counts as one run with `batch`; the cluster labels just come back without
-the sample in front. With `background`, give each run only the empty
-droplets of its own sample.
 
 # Citing decontX
 

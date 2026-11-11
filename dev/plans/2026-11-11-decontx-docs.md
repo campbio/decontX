@@ -126,6 +126,21 @@ No package code changes, so results are unchanged.
 18. **ROADMAP:** record part 1 of #83 under Done; part 2 stays in III-a,
     after #81.
 
+### Maintainer changes at review (2026-11-11)
+
+19. No FAQ entry on decontaminated counts that look higher (#40): one
+    report only.
+20. The `background` requirements (empty droplets, barcodes, matching
+    genes by name, duplicated names) move from the FAQ into a new
+    "With the background matrix" section. "Running decontX" splits into
+    "Without the background matrix" and "With the background matrix",
+    and the latter shows how to import the raw matrix (the template
+    moves there from "Importing data").
+21. Multiple samples (#45) becomes its own section under "Other important
+    notes", after "Working with Seurat", which now comes first there.
+22. The "Note on reproducing results from older versions" is a block
+    quote, like the note on matrix input.
+
 ## Out of scope
 
 - The decontPro vignette, A7-03 to A7-05, A7-11 and A7-23: part 2, after

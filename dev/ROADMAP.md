@@ -41,8 +41,9 @@ pushed, one at a time.
   the #46 memory fix (1.11.1), metadata and CITATION, lint backlog
   cleared.
 - **III-a part 1 (#83), 1.11.32:** the decontX vignette (mapping code in
-  view, one clustering run, "proportion", simpler code) and its FAQ (#40,
-  #43, #44, #45); citations in the vignette, the package help page and the
+  view, one clustering run, "proportion", simpler code, runs without and
+  with background, a multiple-samples section for #45) and its FAQ (#43,
+  #44); citations in the vignette, the package help page and the
   README; roxygen and examples (A7-10, A7-15, A7-18); README usage;
   DESCRIPTION Title and `<doi:>` links; DecontPro 2024 in `AGENTS.md`.
   Spec `dev/plans/2026-11-11-decontx-docs.md`.
