@@ -1,3 +1,10 @@
+# decontX 1.11.29
+
+* `decontPro()` splits the counts after the Stan fit with about half the
+memory and in less time. The split results can differ from before in the
+last digits (about 1e-16, relative); the estimated parameters are
+unchanged (#111).
+
 # decontX 1.11.28
 
 * `decontPro()` now stops with a clear error when the counts have a single

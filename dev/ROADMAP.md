@@ -100,7 +100,8 @@ tolerance.
   `dev/plans/2026-11-08-native-matrix-direct.md`); the tidy-up in 1.11.22
   (spec `dev/plans/2026-11-08-stan-process-tidy.md`).
 - Less memory for decontPro's split of the counts (#111, from the #80
-  part 3 code review).
+  part 3 code review). Done in 1.11.29, about 1e-16 relative (spec
+  `dev/plans/2026-11-10-decontpro-split-memory.md`).
 - The real-PBMC benchmark once at the end, recorded in the audit.
 
 ## Phase II: multi-container support (spike results, then ADR-0005)
