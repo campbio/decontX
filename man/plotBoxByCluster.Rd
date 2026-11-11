@@ -17,9 +17,11 @@ plotBoxByCluster(
 
 \item{decontaminated_counts}{decontaminated count matrix.}
 
-\item{cell_type}{1xnDroplet vector of cell_type.}
+\item{cell_type}{1xnDroplet vector of cell_type, one entry per droplet
+(column of \code{counts}).}
 
-\item{features}{names of ADT to plot}
+\item{features}{names of ADT to plot. Each must be a rowname of both
+\code{counts} and \code{decontaminated_counts}.}
 
 \item{file}{file name to save the plot into as a pdf. ".pdf" is added
 unless \code{file} already ends in ".pdf". If omitted, return the plot.}

@@ -650,3 +650,70 @@ test_that("plotDensity and plotBoxByCluster stack both counts", {
     value = c(60, 52, 89, 59.5, 51.5, 88.5)
   ))
 })
+
+test_that("plotDensity and plotBoxByCluster plot a factor feature by name", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  decontaminated <- counts - 1
+  # factor("CD4") has the integer code 1, which is the row of CD3
+  feature <- factor("CD4")
+  expected <- unname(c(counts["CD4", ], decontaminated["CD4", ]))
+  p <- plotDensity(counts, decontaminated, feature)
+  expect_equal(p[[1]]$data$value, expected)
+  expect_identical(p[[1]]$labels$title, "CD4")
+  p <- plotBoxByCluster(counts, decontaminated, c(1, 2, 1), feature)
+  expect_equal(p[[1]]$data$value, expected)
+  expect_identical(p[[1]]$labels$title, "CD4 counts by cell clusters")
+})
+
+test_that("plotBoxByCluster stops when cell_type isn't one per droplet", {
+  counts <- matrix(seq_len(12),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:6))
+  )
+  decontaminated <- counts - 1
+  # Length 3 divides the 12 stacked rows, so it used to be recycled
+  # silently; length 4 doesn't
+  for (cellType in list(c(1, 2, 3), c(1, 2, 3, 4))) {
+    expect_error(
+      plotBoxByCluster(counts, decontaminated, cellType, "CD3"),
+      regexp = paste0(
+        "'cell_type' must have one entry per droplet \\(6\\), ",
+        "not ", length(cellType)
+      )
+    )
+  }
+})
+
+test_that("plotDensity and plotBoxByCluster stop for empty or unknown names", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  decontaminated <- counts - 1
+  plots <- list(
+    density = function(features) {
+      plotDensity(counts, decontaminated, features)
+    },
+    box = function(features) {
+      plotBoxByCluster(counts, decontaminated, c(1, 2, 1), features)
+    }
+  )
+  for (plot in plots) {
+    expect_error(
+      plot(character(0)),
+      regexp = "'features' must name at least one feature"
+    )
+    expect_error(
+      plot(c("CD3", "typo", "CD8")),
+      regexp = paste0(
+        "'features' not found in the rownames of 'counts' or ",
+        "'decontaminated_counts': typo, CD8"
+      )
+    )
+  }
+  # A feature missing from only one of the two matrices is reported too
+  expect_error(
+    plotDensity(counts, decontaminated[1, , drop = FALSE], "CD4"),
+    regexp = "'decontaminated_counts': CD4"
+  )
+})

@@ -6,7 +6,8 @@
 #'
 #' @param counts original count matrix of nADT x nDroplet.
 #' @param decontaminated_counts decontaminated count matrix.
-#' @param features names of ADT to plot
+#' @param features names of ADT to plot. Each must be a rowname of both
+#' \code{counts} and \code{decontaminated_counts}.
 #' @param file file name to save the plot into as a pdf. ".pdf" is added
 #' unless \code{file} already ends in ".pdf". If omitted, return the plot.
 #'
@@ -97,8 +98,10 @@ plotDensity <- function(counts,
 #'
 #' @param counts original count matrix of nADT x nDroplet.
 #' @param decontaminated_counts decontaminated count matrix.
-#' @param cell_type 1xnDroplet vector of cell_type.
-#' @param features names of ADT to plot
+#' @param cell_type 1xnDroplet vector of cell_type, one entry per droplet
+#' (column of \code{counts}).
+#' @param features names of ADT to plot. Each must be a rowname of both
+#' \code{counts} and \code{decontaminated_counts}.
 #' @param file file name to save the plot into as a pdf. ".pdf" is added
 #' unless \code{file} already ends in ".pdf". If omitted, return the plot.
 #'
@@ -143,6 +146,12 @@ plotBoxByCluster <- function(counts,
                              cell_type,
                              features,
                              file = NULL) {
+  if (length(cell_type) != ncol(counts)) {
+    stop(
+      "'cell_type' must have one entry per droplet (", ncol(counts),
+      "), not ", length(cell_type)
+    )
+  }
   p <- .plotEachFeature(
     counts,
     decontaminated_counts,
@@ -187,12 +196,25 @@ plotBoxByCluster <- function(counts,
 
 ## One plot per feature: the feature's counts before and after
 ## decontamination are stacked by .meltConDecon(), with the cell types when
-## given, and passed to 'plotOne' with the feature name
+## given, and passed to 'plotOne' with the feature name. 'features' are
+## matched by name, so a factor is used by its labels, not its codes
 .plotEachFeature <- function(counts,
                              decontaminated_counts,
                              features,
                              plotOne,
                              cellType = NULL) {
+  features <- as.character(features)
+  if (length(features) == 0) {
+    stop("'features' must name at least one feature")
+  }
+  known <- intersect(rownames(counts), rownames(decontaminated_counts))
+  missing <- setdiff(features, known)
+  if (length(missing) > 0) {
+    stop(
+      "'features' not found in the rownames of 'counts' or ",
+      "'decontaminated_counts': ", paste(missing, collapse = ", ")
+    )
+  }
   lapply(features, function(feature) {
     df.m <- .meltConDecon(
       counts[feature, ],
