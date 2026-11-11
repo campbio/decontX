@@ -160,7 +160,7 @@ vignette is written once, against the final arguments:
   labels (no Seurat, no dplyr, which leaves Suggests); 500 cells;
   what every output means; tuning the priors with before/after plots; a
   short `background` example like decontX's; runtime and
-  reproducibility; FAQ (including the decontPro half of #40); citation;
+  reproducibility; FAQ; citation;
   chunk labels and the `IndexEntry` (A7-19). No empty-droplet demo.
 - decontPro roxygen not covered by #81 (A7-11) and a 10 x 8 example with
   a seed (A7-23).

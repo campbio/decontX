@@ -129,7 +129,8 @@ No package code changes, so results are unchanged.
 ### Maintainer changes at review (2026-11-11)
 
 19. No FAQ entry on decontaminated counts that look higher (#40): one
-    report only.
+    report only. This applies to part 2 as well: the decontPro vignette
+    gets no #40 entry either.
 20. The `background` requirements (empty droplets, barcodes, matching
     genes by name, duplicated names) move from the FAQ into a new
     "With the background matrix" section. "Running decontX" splits into
