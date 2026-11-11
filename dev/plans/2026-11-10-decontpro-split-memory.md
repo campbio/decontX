@@ -71,9 +71,10 @@ MB (about 945 MB above baseline); branch 1,133 to 1,146 MB (about 510 MB
 above baseline). The split's own peak drops by about 46%, from about 11
 to about 6 of the 86 MB matrices.
 
-`dev/compare-commits.R campbio/devel HEAD` at 33b84c9: all 13 decontX
-paths identical; `decontPro` and `decontProAmbient` differ only in the
-three splits, with mean relative differences of 1.6e-16 to 2.1e-16.
+`dev/compare-commits.R campbio/devel HEAD`, run with the split commit
+at HEAD: all 13 decontX paths identical; `decontPro` and
+`decontProAmbient` differ only in the three splits, with mean relative
+differences of 1.6e-16 to 2.1e-16.
 
 ## Other
 
