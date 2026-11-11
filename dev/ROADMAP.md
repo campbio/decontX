@@ -76,7 +76,11 @@ pushed, one at a time.
     Done in 1.11.26, with ADR-0009;
   - small quality items (#116; A4-11, A4-13 to A4-16). Done in 1.11.27,
     with ADR-0010, except the `plotDensity`/`plotBoxByCluster` half of
-    A4-11 (their repeated loop, scale and theme), which is still open.
+    A4-11 (their repeated loop, scale and theme), which is still open
+    as #119 (it may fold into the Phase II plot work, A4-18).
+- decontPro's unclear Stan error on a single ADT or droplet (#110, from
+  the #80 part 3 code review). Done in 1.11.28: decontPro needs at least
+  2 ADTs and 2 droplets.
 
 ### I-e: speed and memory
 
@@ -95,6 +99,8 @@ tolerance.
   direct native counts in 1.11.21 (`calculateNativeCounts()`; spec
   `dev/plans/2026-11-08-native-matrix-direct.md`); the tidy-up in 1.11.22
   (spec `dev/plans/2026-11-08-stan-process-tidy.md`).
+- Less memory for decontPro's split of the counts (#111, from the #80
+  part 3 code review).
 - The real-PBMC benchmark once at the end, recorded in the audit.
 
 ## Phase II: multi-container support (spike results, then ADR-0005)
