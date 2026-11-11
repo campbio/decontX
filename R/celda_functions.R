@@ -62,9 +62,10 @@
 #' \linkS4class[SummarizedExperiment]{SummarizedExperiment}, then \code{by}
 #' can be one of the
 #' fields in the row annotation data.frame (i.e. one of
-#' \code{colnames(rowData(x))}).
+#' \code{colnames(rowData(x))}). Default \code{"rownames"}.
 #' @param exactMatch Boolean. Whether to only identify exact matches
-#' or to identify partial matches using \code{\link{grep}}.
+#' or to identify partial matches using \code{\link{grep}}. Default
+#' \code{TRUE}.
 #' @param removeNA Boolean. If set to \code{FALSE}, features not found in
 #' \code{x} will be given \code{NA} and the returned vector will be the same
 #' length as \code{features}. If set to \code{TRUE}, then the \code{NA}
@@ -72,15 +73,19 @@
 #' @return A vector of row indices for the matching features in \code{x}.
 #' @author Yusuke Koga, Joshua Campbell
 #' @seealso '\link[scater]{retrieveFeatureInfo}' from package \code{'scater'}
-#' and \code{link{regex}} for how to use regular expressions when
+#' and \code{\link{regex}} for how to use regular expressions when
 #' \code{exactMatch = FALSE}.
 #' @examples
-#' counts <- matrix(sample(1:10, 20*10, replace = TRUE),
-#'                  nrow = 20, ncol = 10,
-#'                  dimnames = list(paste0("Gene_",1:20),
+#' # A small count matrix with 20 genes and 10 cells
+#' counts <- matrix(seq_len(200), nrow = 20, ncol = 10,
+#'                  dimnames = list(paste0("Gene_", 1:20),
 #'                                  paste0("Cell_", 1:10)))
+#'
+#' # Find genes by their exact names
 #' retrieveFeatureIndex(c("Gene_1", "Gene_5"), counts)
-#' retrieveFeatureIndex(c("Gene_1", "Gene_5"), counts, exactMatch = FALSE)
+#'
+#' # Find genes by part of their names
+#' retrieveFeatureIndex(c("ne_5", "ne_7"), counts, exactMatch = FALSE)
 #' @export
 retrieveFeatureIndex <- function(features,
                                  x,

@@ -35,7 +35,7 @@ and upper bounds of the number of counts generated for each cell. Default
 If input as a single numeric value, symmetric values for beta
 distribution are specified; if input as a vector of length 2, the two
 values will be the shape1 and shape2 parameters of the beta distribution
-respectively. Default \code{c(1, 5)}.}
+respectively. Default \code{c(1, 10)}.}
 
 \item{numMarkers}{Integer. Number of markers for each cell population.
 Default \code{3}.}
@@ -45,9 +45,26 @@ For reproducibility, a default value of 12345 is used. If NULL, no calls to
 \code{\link[withr]{with_seed}} are made.}
 }
 \value{
-A list containing the \code{nativeCounts} (real expression),
-\code{observedCounts} (real expression + contamination), as well as other
-parameters used in the simulation.
+A list with the following items:
+\describe{
+\item{\code{nativeCounts}:}{Matrix of the native (real) counts, genes
+by cells.}
+\item{\code{observedCounts}:}{Matrix of the observed counts: the native
+counts plus the contamination. Both count matrices have gene and cell
+names.}
+\item{\code{NByC}:}{Integer vector. The total observed counts of each
+cell.}
+\item{\code{z}:}{Integer vector. The cell population of each cell.}
+\item{\code{eta}:}{Matrix of the contamination distribution of each
+population, genes by populations.}
+\item{\code{phi}:}{Matrix of the native expression distribution of each
+population, genes by populations.}
+\item{\code{markers}:}{List of the marker gene names of each
+population.}
+\item{\code{numMarkers}:}{The number of markers for each population.}
+\item{\code{contamination}:}{Numeric vector. The true proportion of
+contamination in each cell.}
+}
 }
 \description{
 This function generates a list containing two count matrices --
