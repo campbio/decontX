@@ -74,43 +74,28 @@
   processed_stan[["parameters"]] <- parameters
 
 
-  ## Decontaminated matrix
-  scaling_factor <- matrix(dat$OC,
-    nrow = dat$N,
-    ncol = dat$M,
-    byrow = TRUE
-  )
+  ## Split each count by its share of the total rate. The three rates of
+  ## a droplet all carry its total count OC as a factor, which cancels in
+  ## the shares, so it is left out (#111). Intermediates are freed as soon
+  ## as they are used, since each is a full ADT x droplet matrix.
+  not_background <- 1 - background_est
 
-  #  Ambient
-  ambient_profile <- matrix(dat$p,
-    nrow = dat$N,
-    ncol = dat$M
-  )
-
-  ambient_rate_est <- scaling_factor *
-    ambient_profile *
-    delta_est *
-    (1 - background_est)
+  #  Ambient: dat$p recycles down each droplet's column
+  ambient_rate_est <- dat$p * delta_est * not_background
 
   #  Native
-  native_profile <- t(r_est[dat$cell_type, ])
+  native_profile <- t(r_est[dat$cell_type, , drop = FALSE])
+  cell_rate_est <- native_profile * (1 - delta_est) * not_background
+  rm(native_profile, not_background)
 
-  cell_rate_est <- scaling_factor *
-    native_profile *
-    (1 - delta_est) *
-    (1 - background_est)
-
-  #  Background
-  background_rate_est <- scaling_factor *
-    background_est
-
-
-  # Split each count by its share of the total rate
-  counts <- dat$counts
-  total_rate_est <- ambient_rate_est + cell_rate_est + background_rate_est
-  decontaminated_counts <- counts * cell_rate_est / total_rate_est
-  ambient_counts <- counts * ambient_rate_est / total_rate_est
-  background_counts <- counts * background_rate_est / total_rate_est
+  #  Background: its rate is background_est itself
+  counts_per_rate <- dat$counts /
+    (ambient_rate_est + cell_rate_est + background_est)
+  decontaminated_counts <- cell_rate_est * counts_per_rate
+  rm(cell_rate_est)
+  ambient_counts <- ambient_rate_est * counts_per_rate
+  rm(ambient_rate_est)
+  background_counts <- background_est * counts_per_rate
 
 
   processed_stan[["decontaminated_counts"]] <- decontaminated_counts
