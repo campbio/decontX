@@ -21,8 +21,12 @@ No package code changes, so results are unchanged.
    First plot `plotDecontXMarkerPercentage()` by cluster, without
    `groupClusters`, so the reader sees which cluster expresses which
    markers. Then show the code that builds `cellTypeMappings`: one cell
-   type at a time, picking the cluster where that type's markers are
-   detected most often. No `lapply()` or closures. Cluster numbers can
+   type at a time, picking the cluster where that type's markers have the
+   highest average count. No `lapply()` or closures. (Changed during
+   implementation from "detected most often": in PBMC4k, two clusters
+   tie at 100% detection of the monocyte markers, which are a large part
+   of the ambient RNA, while the average count separates every cell type
+   by at least 5-fold.) Cluster numbers can
    change between versions, so the mapping stays computed rather than
    typed in. The paragraph on writing the list by hand stays.
 2. **Simpler code (A7-09).** The marker UMAP panel loses its

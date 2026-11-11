@@ -256,39 +256,45 @@ plotDecontXMarkerPercentage(sce,
     assayName = "counts")
 ```
 
-Each cell type's markers are detected most often in one cluster, which tells
-us which cluster that cell type is. To label the plots by cell type instead
-of by cluster number, the barplot functions take a `groupClusters` argument:
-a named list that maps each cell type to the cluster label(s) it corresponds
-to.
+Most cell types stand out in this plot: the T-cell markers, for example,
+are detected in almost every cell of one cluster and in far fewer cells of
+the others. The monocyte markers, though, are detected in most cells of
+every cluster. They are highly expressed in monocytes, which makes them a
+large part of the ambient RNA: this is the contamination that decontX
+removes.
+
+To label the plots by cell type instead of by cluster number, the barplot
+functions take a `groupClusters` argument: a named list that maps each cell
+type to the cluster label(s) it corresponds to.
 
 The cluster numbers assigned by the heuristic clustering can differ between
 decontX versions and platforms, so rather than typing them in, the code
-below finds, for each cell type, the cluster where its markers are detected
-in the largest proportion of cells:
+below finds, for each cell type, the cluster where its markers have the
+highest average count. The average count works better than detection here,
+since contaminating markers are often detected but at low counts:
 
 ```{r deriveMapping}
 # The cluster label of each cell
 clusters <- sce$decontX_clusters
 
-# Whether each cell has a count for at least one marker of each cell type
-tcellDetected <- colSums(counts(sce)[markers$Tcell_Markers, ]) > 0
-bcellDetected <- colSums(counts(sce)[markers$Bcell_Markers, ]) > 0
-monocyteDetected <- colSums(counts(sce)[markers$Monocyte_Markers, ]) > 0
-nkcellDetected <- counts(sce)["GNLY", ] > 0
+# The total count of each cell type's markers in each cell
+tcellCounts <- colSums(counts(sce)[markers$Tcell_Markers, ])
+bcellCounts <- colSums(counts(sce)[markers$Bcell_Markers, ])
+monocyteCounts <- colSums(counts(sce)[markers$Monocyte_Markers, ])
+nkcellCounts <- counts(sce)["GNLY", ]
 
-# The proportion of cells in each cluster with those markers detected
-tcellRate <- tapply(tcellDetected, clusters, mean)
-bcellRate <- tapply(bcellDetected, clusters, mean)
-monocyteRate <- tapply(monocyteDetected, clusters, mean)
-nkcellRate <- tapply(nkcellDetected, clusters, mean)
+# The average of those counts in each cluster
+tcellAverage <- tapply(tcellCounts, clusters, mean)
+bcellAverage <- tapply(bcellCounts, clusters, mean)
+monocyteAverage <- tapply(monocyteCounts, clusters, mean)
+nkcellAverage <- tapply(nkcellCounts, clusters, mean)
 
-# For each cell type, the cluster with the highest proportion
+# For each cell type, the cluster with the highest average
 cellTypeMappings <- list(
-    Tcells = names(which.max(tcellRate)),
-    Bcells = names(which.max(bcellRate)),
-    Monocytes = names(which.max(monocyteRate)),
-    NKcells = names(which.max(nkcellRate)))
+    Tcells = names(which.max(tcellAverage)),
+    Bcells = names(which.max(bcellAverage)),
+    Monocytes = names(which.max(monocyteAverage)),
+    NKcells = names(which.max(nkcellAverage)))
 cellTypeMappings
 ```
 
