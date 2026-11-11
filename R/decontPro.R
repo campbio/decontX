@@ -4,9 +4,8 @@
 #'
 #' @param filtered_counts Count matrix NxM (feature x droplet) with only
 #' filtered droplets after cell calling, with at least 2 ADTs and 2
-#' droplets. The counts must be non-negative whole numbers with no NA. If
-#' this is a
-#' \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
+#' droplets. The counts must be non-negative whole numbers with no NA.
+#' If this is a \linkS4class[SingleCellExperiment]{SingleCellExperiment} or a
 #' \linkS4class[SeuratObject]{Seurat} object,
 #' expect \code{counts} in the assay slot. Split \code{counts} layers of a
 #' Seurat v5 assay are joined first, so the droplets follow
@@ -245,8 +244,8 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 }
 
 
-# One ADT or one droplet leaves the model nothing to estimate, and rstan
-# would pass the length-1 data to Stan as a scalar (#110)
+# rstan passes length-1 data to Stan as a scalar, so one ADT or one
+# droplet would fail inside Stan with an unclear message (#110)
 .checkDecontProDims <- function(N, M) {
   if (N < 2 || M < 2) {
     stop(
