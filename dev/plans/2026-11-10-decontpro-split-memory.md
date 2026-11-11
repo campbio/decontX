@@ -23,8 +23,8 @@ function's peak sets decontPro's memory after the Stan fit.
 - `1 - background_est` is computed once; the background rate is
   `background_est` itself.
 - One `counts / total` matrix is shared by the three splits
-  (`rate * counts_per_rate`), and intermediates are removed with `rm()`
-  once used.
+  (`counts_per_rate * rate`, so the counts' dimnames lead), and the
+  profile and rate matrices are removed with `rm()` once used.
 - `drop = FALSE` on `r_est[dat$cell_type, ]` keeps the native profile a
   matrix for any shape (the second bug noted in #110; unreachable once
   #110 requires 2 droplets).

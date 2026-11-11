@@ -76,26 +76,27 @@
 
   ## Split each count by its share of the total rate. The three rates of
   ## a droplet all carry its total count OC as a factor, which cancels in
-  ## the shares, so it is left out (#111). Intermediates are freed as soon
-  ## as they are used, since each is a full ADT x droplet matrix.
+  ## the shares, so it is left out (#111). The profile and rate matrices,
+  ## each a full ADT x droplet matrix, are removed once they are used.
   not_background <- 1 - background_est
 
-  #  Ambient: dat$p recycles down each droplet's column
-  ambient_rate_est <- dat$p * delta_est * not_background
+  #  Ambient: p_est recycles down each droplet's column
+  ambient_rate_est <- p_est * delta_est * not_background
 
   #  Native
   native_profile <- t(r_est[dat$cell_type, , drop = FALSE])
   cell_rate_est <- native_profile * (1 - delta_est) * not_background
   rm(native_profile, not_background)
 
-  #  Background: its rate is background_est itself
+  #  Background: its rate is background_est itself. counts_per_rate comes
+  #  first in each split so the results keep the counts' dimnames.
   counts_per_rate <- dat$counts /
     (ambient_rate_est + cell_rate_est + background_est)
-  decontaminated_counts <- cell_rate_est * counts_per_rate
+  decontaminated_counts <- counts_per_rate * cell_rate_est
   rm(cell_rate_est)
-  ambient_counts <- ambient_rate_est * counts_per_rate
+  ambient_counts <- counts_per_rate * ambient_rate_est
   rm(ambient_rate_est)
-  background_counts <- background_est * counts_per_rate
+  background_counts <- counts_per_rate * background_est
 
 
   processed_stan[["decontaminated_counts"]] <- decontaminated_counts
