@@ -1,3 +1,9 @@
+# decontX 1.11.28
+
+* `decontPro()` now stops with a clear error when the counts have a single
+ADT or a single droplet. Before, Stan failed with an unclear message about
+mismatched dimensions (#110).
+
 # decontX 1.11.26
 
 * decontX now needs scrapper 1.5.0 or later; every Bioconductor release
