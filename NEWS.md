@@ -1,3 +1,13 @@
+# decontX 1.11.31
+
+* `plotDensity()` and `plotBoxByCluster()` now use a factor in `features`
+by its labels; before, they plotted the row at the factor's integer code
+under the label's title (#122). Empty `features`, features that aren't
+rownames of both count matrices, and (in `plotBoxByCluster()`) a
+`cell_type` without one entry per droplet now stop with an error that
+names the argument. Before, a `cell_type` of the wrong length could be
+recycled silently, giving droplets the wrong cell types (#122, #123).
+
 # decontX 1.11.29
 
 * `decontPro()` splits the counts after the Stan fit with about half the
