@@ -1,3 +1,17 @@
+# decontX 1.11.32
+
+* The decontX vignette shows the code that maps clusters to cell types,
+reuses the clusters for its second run, and splits "Running decontX" into
+runs without and with the background matrix, showing how to import the raw
+matrix and what decontX needs from it (#43). New sections cover multiple
+samples (#45) and a FAQ on data with one cell type (#43) and doublet
+detection (#44). It also says how to cite DecontX.
+* The package help page, the README and DESCRIPTION cite both papers.
+* Documentation fixes: contamination is a proportion between 0 and 1, not a
+percentage; `simulateContamination()` gives its real `delta` default
+(`c(1, 10)`) and lists everything it returns; `decontXcounts()` has an
+example (#83).
+
 # decontX 1.11.31
 
 * `plotDensity()` and `plotBoxByCluster()` now use a factor in `features`

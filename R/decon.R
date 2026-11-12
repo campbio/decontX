@@ -149,7 +149,8 @@
 #' obtained from the variational inference procedure may be non-integer.
 #' However, integer counts can be obtained by rounding,
 #' e.g. \code{round(decontXcounts)}.}
-#' \item{\code{contamination}:}{Percentage of contamination in each cell.}
+#' \item{\code{contamination}:}{The proportion of each cell's counts
+#' estimated to be contamination, between 0 and 1.}
 #' \item{\code{estimates}:}{List of estimated parameters for each batch,
 #' including the UMAP coordinates (\code{UMAP}), which are used to generate
 #' the cell cluster labels when z is not supplied. \code{UMAP} is

@@ -14,6 +14,21 @@
 #' \code{decontXcounts} listed in the \code{assay} slot.
 #' @seealso \code{\link[SummarizedExperiment]{assay}} and
 #' \code{\link[SummarizedExperiment]{assay<-}}
+#' @examples
+#' # Simulate contaminated counts and store them in a SingleCellExperiment
+#' library(SingleCellExperiment)
+#' sim <- simulateContamination(seed = 12345)
+#' sce <- SingleCellExperiment(list(counts = sim$observedCounts))
+#'
+#' # Run decontX with the known cell populations, skipping the UMAP
+#' sce <- decontX(sce, z = sim$z, embedding = FALSE)
+#'
+#' # Get the decontaminated counts
+#' decontaminated <- decontXcounts(sce)
+#' decontaminated[1:5, 1:5]
+#'
+#' # Replace them, here with the counts rounded to whole numbers
+#' decontXcounts(sce) <- round(decontaminated)
 NULL
 
 #' @export
