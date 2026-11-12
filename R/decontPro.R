@@ -43,8 +43,8 @@
 #' iteration takes longer on larger data. Default 50000.
 #' @param seed Seed for Stan's random number generator, a whole number
 #' from 0 to \code{.Machine$integer.max}. Default 12345.
-#' @param verbose Whether to print Stan's progress. With \code{FALSE},
-#' Stan's output is shown only if the fit fails. Default TRUE.
+#' @param verbose Whether to print messages and Stan's progress. With
+#' \code{FALSE}, Stan's output is shown only if the fit fails. Default TRUE.
 #'
 #' @return A list containing decontaminated counts, and estimated parameters.
 #' The row names of \code{parameters$r_est}, the native ADT profile of each
@@ -98,8 +98,10 @@ setMethod("decontPro", "SingleCellExperiment", function(filtered_counts,
                                                         verbose = TRUE) {
   args <- .decontProArgs(environment(), ...)
   counts <- SummarizedExperiment::assay(filtered_counts, "counts")
-  if (!is.null(args$background)) {
-    args$background <- SummarizedExperiment::assay(args$background, "counts")
+  if (!is.null(args[["background"]])) {
+    args[["background"]] <- SummarizedExperiment::assay(
+      args[["background"]], "counts"
+    )
   }
   .decontPro(counts, args)
 })
@@ -119,8 +121,8 @@ setMethod("decontPro", "Seurat", function(filtered_counts,
                                           verbose = TRUE) {
   args <- .decontProArgs(environment(), ...)
   counts <- .seuratCounts(filtered_counts)
-  if (!is.null(args$background)) {
-    args$background <- .seuratCounts(args$background)
+  if (!is.null(args[["background"]])) {
+    args[["background"]] <- .seuratCounts(args[["background"]])
   }
   .decontPro(counts, args)
 })
@@ -171,7 +173,10 @@ setMethod("decontPro", "ANY", function(filtered_counts,
       stop("'", alias, "' is given more than once.")
     }
     if (given && aliasCount == 1) {
-      stop("Give '", arg, "' or its alias '", alias, "', not both.")
+      stop(
+        "Give '", arg, "' or its alias '", alias, "', not both. A value ",
+        "given by position fills '", arg, "'."
+      )
     }
     if (aliasCount == 1) {
       args[arg] <- list(...elt(which(dotNames == alias)))
@@ -190,6 +195,19 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   )
   args$argNames <- argNames
   args
+}
+
+
+# `background = <number>` used to be a partial match for background_sd, so
+# a single number most likely means the prior
+.checkBackgroundNotSd <- function(background, arg) {
+  if (is.numeric(background) && length(background) == 1) {
+    stop(
+      "'", arg, "' must be a matrix of empty-droplet counts. To set the ",
+      "prior of the background component, use 'backgroundSd' (or its ",
+      "alias 'background_sd')."
+    )
+  }
 }
 
 
@@ -225,16 +243,18 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   .checkDecontProDims(N, M)
   cellType <- .recodeCellType(args$cellType, M, args$argNames[["cellType"]])
 
-  if (is.null(args$background)) {
+  if (is.null(args[["background"]])) {
     temp <- counts
   } else {
     bgArg <- args$argNames[["background"]]
+    .checkBackgroundNotSd(args[["background"]], bgArg)
     temp <- .matchBackgroundRows(
       counts = counts,
-      background = args$background,
+      background = args[["background"]],
       countsArg = "filtered_counts",
       bgArg = bgArg,
-      feature = "ADTs"
+      feature = "ADTs",
+      verbose = args$verbose
     )
     .checkCountsDecon(temp, bgArg)
   }

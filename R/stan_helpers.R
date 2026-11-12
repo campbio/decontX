@@ -61,10 +61,7 @@
   # On failure rstan prints the reason and returns a list or an empty
   # stanfit (mode 2). rstan exports no accessor for the mode.
   if (failed) {
-    stop(
-      "Stan's variational inference failed; Stan printed the reason ",
-      if (verbose) "above." else "in the message above."
-    )
+    stop("Stan's variational inference failed; see Stan's output above.")
   }
   fit
 }

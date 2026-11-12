@@ -553,6 +553,30 @@ test_that("decontPro names the argument the user gave in its errors", {
     decontPro(p$counts, p$k, background = rowSums(p$ambient)),
     regexp = "'background' must be a matrix"
   )
+  # background = <number> used to partially match background_sd
+  expect_error(
+    decontPro(p$counts, p$k, background = 2e-6),
+    regexp = paste0(
+      "'background' must be a matrix of empty-droplet counts.*",
+      "'backgroundSd'"
+    )
+  )
+})
+
+test_that("decontPro verbose = FALSE also silences its own log", {
+  p <- refProData()
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, ...) NULL,
+    .processStanVbOut = function(stan_vb_output, dat) list()
+  )
+  extra <- rbind(p$ambient, extra_ADT = 50L)
+  expect_message(
+    decontPro(p$counts, p$k, background = extra),
+    regexp = "Dropped ADTs in 'background'"
+  )
+  expect_silent(
+    decontPro(p$counts, p$k, background = extra, verbose = FALSE)
+  )
 })
 
 test_that("decontPro passes iter and seed to rstan and checks them", {
@@ -649,7 +673,7 @@ test_that("decontPro verbose = FALSE shows Stan's output when it fails", {
     expect_message(
       expect_error(
         decontPro(p$counts, p$k, verbose = FALSE),
-        regexp = "failed; Stan printed the reason in the message above"
+        regexp = "failed; see Stan's output above"
       ),
       regexp = "Stan explains the failure"
     ),

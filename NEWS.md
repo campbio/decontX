@@ -5,12 +5,14 @@
 The old names `cell_type`, `delta_sd`, `background_sd` and `ambient_counts`
 keep working as permanent aliases; giving both names of an argument is an
 error. Positional calls are unchanged. Two kinds of call that used to work
-now stop with an error: an abbreviated old name (such as `ambient =`), and
-a positional value after an alias (such as `cell_type = k, 1e-2`) (#81).
+now stop with an error: an abbreviated old name (such as `ambient =`, or
+`background =` for `background_sd`, since `background` now names the
+empty-droplet counts), and a positional value after an alias (such as
+`cell_type = k, 1e-2`) (#81).
 * New `decontPro()` arguments `iter` (default 50000) and `seed` (default
 12345) control Stan's fit; the defaults are the values used before, so
-results don't change. `verbose = FALSE` hides Stan's console output and
-shows it only if the fit fails (#81).
+results don't change. `verbose = FALSE` hides decontPro's messages and
+Stan's console output, which is shown only if the fit fails (#81).
 * `decontPro()` deletes the temporary CSV that rstan writes, about 100
 bytes per ADT x droplet, as soon as the fit ends; before, it stayed until R
 exited (#46, #81).

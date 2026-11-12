@@ -95,8 +95,8 @@ iteration takes longer on larger data. Default 50000.}
 \item{seed}{Seed for Stan's random number generator, a whole number
 from 0 to \code{.Machine$integer.max}. Default 12345.}
 
-\item{verbose}{Whether to print Stan's progress. With \code{FALSE},
-Stan's output is shown only if the fit fails. Default TRUE.}
+\item{verbose}{Whether to print messages and Stan's progress. With
+\code{FALSE}, Stan's output is shown only if the fit fails. Default TRUE.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.
