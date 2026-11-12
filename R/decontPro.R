@@ -39,7 +39,8 @@
 #' \code{background}. Giving both names of an argument, or any other
 #' argument, stops with an error.
 #' @param iter Maximum number of iterations of Stan's variational
-#' inference. Default 50000.
+#' inference. The fit usually stops earlier, when it converges; each
+#' iteration takes longer on larger data. Default 50000.
 #' @param seed Seed for Stan's random number generator, a whole number
 #' from 0 to \code{.Machine$integer.max}. Default 12345.
 #' @param verbose Whether to print Stan's progress. With \code{FALSE},
@@ -63,7 +64,7 @@
 #' k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
 #'
 #' # Simulated ambient count matrix (optional input)
-#' ambient_counts <- matrix(
+#' background <- matrix(
 #'   sample(1:2,
 #'     1000,
 #'     replace = TRUE
@@ -72,7 +73,7 @@
 #' )
 #'
 #' # Decontamination
-#' out <- decontPro(counts, k, 1e-2, 1e-2, ambient_counts)
+#' out <- decontPro(counts, k, 1e-2, 1e-2, background)
 #'
 #' # Decontaminated counts
 #' decontaminated_counts <- out$decontaminated_counts
@@ -154,10 +155,10 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 # the aliases in `...`. `argNames` records the name the user gave for each
 # argument, so error messages use it.
 .decontProArgs <- function(env, ...) {
-  dots <- list(...)
-  dotNames <- names(dots)
+  # Unknown arguments are reported before anything in `...` is evaluated
+  dotNames <- ...names()
   if (is.null(dotNames)) {
-    dotNames <- rep("", length(dots))
+    dotNames <- rep("", ...length())
   }
   .checkDecontProDots(dotNames[!dotNames %in% .decontProAliases])
   args <- list()
@@ -173,7 +174,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
       stop("Give '", arg, "' or its alias '", alias, "', not both.")
     }
     if (aliasCount == 1) {
-      args[arg] <- list(dots[[alias]])
+      args[arg] <- list(...elt(which(dotNames == alias)))
       argNames[[arg]] <- alias
     } else if (given || arg != "cellType") {
       args[arg] <- list(get(arg, envir = env))
@@ -194,8 +195,12 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 
 # iter, seed and verbose are passed on to rstan
 .checkDecontProFitArgs <- function(args) {
-  if (!.isWholeNumber(args$iter, min = 1)) {
-    stop("'iter' must be a single whole number of at least 1.")
+  if (!(.isWholeNumber(args$iter, min = 1) &&
+          args$iter <= .Machine$integer.max)) {
+    stop(
+      "'iter' must be a single whole number from 1 to ",
+      ".Machine$integer.max."
+    )
   }
   if (!(.isWholeNumber(args$seed, min = 0) &&
           args$seed <= .Machine$integer.max)) {

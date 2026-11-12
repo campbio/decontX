@@ -97,7 +97,8 @@ Settled with the maintainer on 2026-11-11.
   need a `"missing"` method; most calls pass it by position.
 - **Quiet option.** `verbose = TRUE`, as in decontX, so the default
   prints what it prints today. With `verbose = FALSE`, Stan's output is
-  captured, and it goes into the error message if the fit fails.
+  captured, and shown with `message()` before the error if the fit fails
+  (an error message is cut at 1000 characters).
 - **Spelling and defaults.** `iter = 50000` and `seed = 12345`, today's
   hard-coded values, so default results are unchanged. They and
   `verbose` come after `...`, so they must be named and a stray

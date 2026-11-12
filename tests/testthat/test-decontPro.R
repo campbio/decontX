@@ -424,6 +424,12 @@ test_that("decontPro rejects unknown arguments", {
     regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
   )
 
+  # Unknown arguments are reported without being evaluated
+  expect_error(
+    decontPro(p$counts, p$k, assay = undefinedObject),
+    regexp = "Unknown arguments to decontPro\\(\\): 'assay'"
+  )
+
   sce <- SingleCellExperiment::SingleCellExperiment(list(counts = p$counts))
   expect_error(
     decontPro(sce, p$k, altExpName = "ADT"),
@@ -565,6 +571,9 @@ test_that("decontPro passes iter and seed to rstan and checks them", {
   )
   expect_identical(received$iter, 100)
   expect_identical(received$seed, 7)
+  # Issue #46: two draws, kept for one scalar parameter only
+  expect_identical(received$output_samples, 2)
+  expect_identical(received$pars, "tau_a")
   expect_error(
     decontPro(p$counts, p$k),
     regexp = "Stan's variational inference failed"
@@ -575,10 +584,13 @@ test_that("decontPro passes iter and seed to rstan and checks them", {
   # Checked before any fit
   received <- NULL
   expect_error(decontPro(p$counts, p$k, iter = 0),
-    regexp = "'iter' must be a single whole number of at least 1"
+    regexp = "'iter' must be a single whole number from 1 to"
   )
   expect_error(decontPro(p$counts, p$k, iter = 1.5),
-    regexp = "'iter' must be a single whole number of at least 1"
+    regexp = "'iter' must be a single whole number from 1 to"
+  )
+  expect_error(decontPro(p$counts, p$k, iter = 2^31),
+    regexp = "'iter' must be a single whole number from 1 to"
   )
   expect_error(decontPro(p$counts, p$k, seed = -1),
     regexp = "'seed' must be a single whole number from 0 to"
@@ -599,11 +611,14 @@ test_that("decontPro verbose = FALSE prints nothing and removes the CSV", {
   # One real Stan VB run on the 10 x 8 fixture
   p <- refProData()
   sampleFile <- NULL
+  written <- NULL
   vb <- rstan::vb
   local_mocked_bindings(
     vb = function(...) {
       sampleFile <<- list(...)$sample_file
-      vb(...)
+      fit <- vb(...)
+      written <<- file.exists(sampleFile)
+      fit
     },
     .package = "rstan"
   )
@@ -612,6 +627,7 @@ test_that("decontPro verbose = FALSE prints nothing and removes the CSV", {
   )
   # rstan writes its draws to this CSV; it is deleted when the fit ends
   expect_type(sampleFile, "character")
+  expect_true(written)
   expect_false(file.exists(sampleFile))
   expect_equal(
     out$decontaminated_counts + out$ambient_counts + out$background_counts,

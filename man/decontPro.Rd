@@ -89,7 +89,8 @@ by position. The ADTs used must have no NA or negative counts.
 Default NULL. Alias: \code{ambient_counts}.}
 
 \item{iter}{Maximum number of iterations of Stan's variational
-inference. Default 50000.}
+inference. The fit usually stops earlier, when it converges; each
+iteration takes longer on larger data. Default 50000.}
 
 \item{seed}{Seed for Stan's random number generator, a whole number
 from 0 to \code{.Machine$integer.max}. Default 12345.}
@@ -119,7 +120,7 @@ counts <- matrix(
 k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
 
 # Simulated ambient count matrix (optional input)
-ambient_counts <- matrix(
+background <- matrix(
   sample(1:2,
     1000,
     replace = TRUE
@@ -128,7 +129,7 @@ ambient_counts <- matrix(
 )
 
 # Decontamination
-out <- decontPro(counts, k, 1e-2, 1e-2, ambient_counts)
+out <- decontPro(counts, k, 1e-2, 1e-2, background)
 
 # Decontaminated counts
 decontaminated_counts <- out$decontaminated_counts

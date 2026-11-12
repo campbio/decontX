@@ -16,8 +16,11 @@ dropped `output_samples` from the API.
   still errors. The defaults are today's hard-coded values, so results
   don't change. `iter` is a whole number of at least 1, `seed` a whole
   number from 0 to `.Machine$integer.max`, `verbose` TRUE or FALSE.
+  `iter` is at most `.Machine$integer.max` too. Unknown arguments are
+  reported before anything in `...` is evaluated.
 - **Quiet option.** `verbose = FALSE` captures Stan's console output.
-  When the fit fails, the captured output goes into the error message.
+  When the fit fails, the captured output is shown with `message()`
+  before the error (an error message is cut at 1000 characters).
 - **Generic.** `setGeneric("decontPro", function(filtered_counts,
   cellType, ...), signature = "filtered_counts")`.
 - **Temporary file.** `.callStanVb()` passes its own `sample_file` to

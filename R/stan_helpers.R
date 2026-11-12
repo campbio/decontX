@@ -52,7 +52,7 @@
     !methods::is(fit, "stanfit") || fit@mode != 0L
   # Stan's output holds the reason for a failure. It goes to message()
   # because an error message is cut at 1000 characters.
-  if (failed && !verbose) {
+  if (failed && !verbose && length(stanOutput) > 0) {
     message(paste(stanOutput, collapse = "\n"))
   }
   if (inherits(fit, "error")) {
