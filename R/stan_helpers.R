@@ -2,10 +2,50 @@
 #'
 #' @param data A list of input data for Stan.
 #' @param initial_condition Initial values for Stan params.
+#' @param iter Maximum number of iterations.
+#' @param seed Seed for Stan's random number generator.
+#' @param verbose Whether to print Stan's output. If FALSE, it is captured
+#' and shown with message() only when the fit fails.
 #'
 #' @return Stan output
 #' @noRd
-.callStanVb <- function(data, initial_condition) {
+.callStanVb <- function(data, initial_condition, iter, seed, verbose) {
+  # rstan writes the draws of every parameter to this CSV, about 100 bytes
+  # per ADT x droplet, and would keep it until R exits (A5-08)
+  sampleFile <- tempfile(fileext = ".csv")
+  on.exit(unlink(sampleFile), add = TRUE)
+  if (verbose) {
+    fit <- .runStanVb(data, initial_condition, iter, seed, sampleFile)
+  } else {
+    stanOutput <- utils::capture.output(
+      fit <- tryCatch(
+        .runStanVb(data, initial_condition, iter, seed, sampleFile),
+        error = function(e) e
+      )
+    )
+  }
+  failed <- inherits(fit, "error") ||
+    !methods::is(fit, "stanfit") || fit@mode != 0L
+  # Stan's output holds the reason for a failure. It goes to message()
+  # because an error message is cut at 1000 characters.
+  if (failed && !verbose && length(stanOutput) > 0) {
+    message(paste(stanOutput, collapse = "\n"))
+  }
+  if (inherits(fit, "error")) {
+    stop(fit)
+  }
+  # On failure rstan prints the reason and returns a list or an empty
+  # stanfit (mode 2). rstan exports no accessor for the mode.
+  if (failed) {
+    stop("Stan's variational inference failed; see Stan's output above.")
+  }
+  fit
+}
+
+
+# One rstan::vb() fit of the decontPro model, writing its draws to
+# `sampleFile`
+.runStanVb <- function(data, initial_condition, iter, seed, sampleFile) {
   # decontPro only uses the mean of the variational approximation
   # (`@sim$est`), which does not depend on the posterior draws. delta and
   # background have one value per ADT x droplet, so rstan's default of 1000
@@ -13,15 +53,16 @@
   # rstan allows (2) and retain draws for a single scalar parameter only.
   # rstan's Pareto k diagnostic is estimated from the draws; with 2 draws it
   # is always Inf and carries no information, so its warning is dropped.
-  fit <- withCallingHandlers(
+  withCallingHandlers(
     rstan::vb(
       object = stanmodels$shrinkage,
       init = initial_condition,
       data = data,
-      seed = 12345,
-      iter = 50000,
+      seed = seed,
+      iter = iter,
       output_samples = 2,
-      pars = "tau_a"
+      pars = "tau_a",
+      sample_file = sampleFile
     ),
     warning = function(w) {
       if (startsWith(conditionMessage(w), "Pareto k diagnostic value")) {
@@ -29,12 +70,6 @@
       }
     }
   )
-  # On failure rstan prints the reason and returns a list or an empty
-  # stanfit (mode 2). rstan exports no accessor for the mode.
-  if (!methods::is(fit, "stanfit") || fit@mode != 0L) {
-    stop("Stan's variational inference failed; Stan printed the reason above.")
-  }
-  fit
 }
 
 

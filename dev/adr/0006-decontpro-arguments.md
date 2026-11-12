@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed (2026-10-27). A stub for maintainer review: the decisions below
-were made during the Phase 0 review (2026-10-18 to 2026-10-27); the open
-points at the end are not yet decided.
+Accepted (2026-11-11). Drafted as a stub on 2026-10-27 from decisions
+made during the Phase 0 review (2026-10-18 to 2026-10-27); the open
+points were settled on 2026-11-11 (see "Resolved points").
 
 ## Context
 
@@ -16,7 +16,8 @@ use camelCase. The review found more:
   `batch` are silently ignored (A1-13). `altExpName` is swallowed the
   same way (A4-12).
 - The fit's seed, iteration count and number of posterior draws are
-  hard-coded and not exposed (D7-01).
+  hard-coded and not exposed (D7-01). The draw count was the workaround
+  asked for in #46; #52 then set it to 2 and kept draws for `tau_a` only.
 - Stan prints about 45 lines to the console, including "EXPERIMENTAL
   ALGORITHM" and "MAY BE DIVERGING" (A7-03). There is no quiet option.
 - rstan writes a CSV to `tempdir()`, about 90 bytes per ADT x cell, which
@@ -50,9 +51,14 @@ because they clash with the output elements `background_counts` and
 `background` (counts from empty droplets) from the model's background
 component, whose prior is set by `backgroundSd`.
 
-**Fit controls.** `iter`, `seed` and `output_samples` are exposed
-(decided 2026-10-19). A quiet option hides Stan's console output
-(decided 2026-10-18; tests silence Stan on their own until then).
+**Fit controls.** `iter` and `seed` are exposed (decided 2026-10-19).
+A quiet option hides Stan's console output (decided 2026-10-18).
+`output_samples` is not exposed (decided 2026-11-11, reversing the
+2026-10-19 decision): decontPro reads only the mean of the variational
+approximation, so the number of draws never changes its results, and it
+keeps no draws to return. More draws would only bring back the memory and
+disk use of #46, and fewer than 2 crash rstan. Returning posterior draws
+would be a separate feature with its own design.
 
 **Unknown arguments.** An unknown argument in `...` is an error, not
 silently ignored (A1-13).
@@ -74,29 +80,37 @@ are. Runtime and the iteration cap are documented instead.
   the aliases.
 - Typos and unsupported arguments fail loudly. Scripts that passed
   ignored arguments now error; NEWS says so.
-- Users can reproduce a fit with `seed` and bound its runtime with
-  `iter`.
+- Users can choose the seed of a fit with `seed` and bound its runtime
+  with `iter`.
 - Temporary disk use no longer grows across fits in one session.
 - The help pages document two names for each renamed argument.
 - The vignette (Phase III-a) uses the camelCase names, a short
   `background` example (`eval = FALSE`), and the quiet option once it
   exists.
 
-## Open points
+## Resolved points
 
-- Whether the first argument, `filtered_counts`, also gets a camelCase
-  name. It is the dispatch argument, so S4 can't treat it as an alias:
-  if it is renamed, `decontPro(filtered_counts = x)` reaches the
-  generic only through `...`, and needs a `"missing"` method that
-  redirects. Keeping `filtered_counts` as the one snake_case name
-  avoids that; most calls pass it by position anyway.
-- The name of the quiet option (for example `verbose` or `quiet`) and
-  its default.
-- The camelCase spelling of `iter`, `seed` and `output_samples` (for
-  example `outputSamples`), and their defaults, which must keep today's
-  results.
-- How the aliases are implemented (argument handling in each method or a
-  shared helper), including whether a `"missing"` method is needed for
-  the dispatch argument.
-- Whether `ambient_counts` keeps its current row-sum semantics under the
-  new name, and how its rows are matched (A1-12, fixed in Phase I-b).
+Settled with the maintainer on 2026-11-11.
+
+- **First argument.** `filtered_counts` keeps its name, the one
+  snake_case argument. It is the dispatch argument, so an alias would
+  need a `"missing"` method; most calls pass it by position.
+- **Quiet option.** `verbose = TRUE`, as in decontX, so the default
+  prints what it prints today. With `verbose = FALSE`, Stan's output is
+  captured, and shown with `message()` before the error if the fit fails
+  (an error message is cut at 1000 characters).
+- **Spelling and defaults.** `iter = 50000` and `seed = 12345`, today's
+  hard-coded values, so default results are unchanged. They and
+  `verbose` come after `...`, so they must be named and a stray
+  positional value still errors.
+- **Aliases.** The generic is `function(filtered_counts, cellType, ...)`
+  with `signature = "filtered_counts"`. The methods keep today's
+  positional order (`cellType`, `deltaSd`, `backgroundSd`, `background`),
+  and one shared helper reads the aliases from `...`. No `"missing"`
+  method is needed.
+- **`background` semantics.** Unchanged: its row sums, normalized, give
+  the ambient profile, and its rows are matched to the counts as since
+  #89 (A1-12).
+- **Out of scope.** The output list keeps its names
+  (`parameters$delta_sd` and the others); ADR-0005 (#82) reworks the
+  return value.
