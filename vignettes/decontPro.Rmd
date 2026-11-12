@@ -7,36 +7,45 @@ author:
   affiliation: *id
   email: camp@bu.edu
 date: "`r Sys.Date()`"
-output: 
+output:
   BiocStyle::html_document:
     toc: true
 vignette: >
-  %\VignetteIndexEntry{decontPro}
+  %\VignetteIndexEntry{Estimate and remove ambient and background contamination from single-cell protein (ADT) data with DecontPro}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  dev = "png"
 )
 ```
 
-
 # Introduction
 
-DecontPro assess and decontaminate single-cell protein expression data, such as 
-those generated from CITE-seq or Total-seq. The count matrix is decomposed into 
-three matrices, the native, the ambient and the background that represent the 
-contribution from the true protein expression on cells, the ambient material and
-other non-specific background contamination.
+CITE-seq and similar assays measure proteins on single cells with
+antibody-derived tags (ADTs). Not every ADT count in a droplet comes from
+the cell's own proteins. DecontPro (Yin et al. 2024) splits each count into
+three parts:
+
+- **Native:** ADTs bound to the cell's own proteins. Cells of the same type
+  share a native profile.
+- **Ambient:** ADTs floating in the cell suspension that were captured
+  along with the cell. One ambient profile is shared by the whole dataset.
+- **Background:** other non-specific signal in the droplet.
+
+DecontPro estimates the three parts with a Bayesian model fitted by Stan,
+and returns the native part as the decontaminated counts.
 
 # Installation
 
-DecontX Package can be installed from Bioconductor:
+The decontX package, which contains DecontPro, can be installed from
+Bioconductor:
 
-```{r install, eval= FALSE}
+```{r install, eval=FALSE}
 if (!requireNamespace("BiocManager", quietly = TRUE)) {
     install.packages("BiocManager")
 }
@@ -49,110 +58,283 @@ Then the package can be loaded in R using the following command:
 library(decontX)
 ```
 
-To see the latest updates and releases or to post a bug, see our GitHub page at https://github.com/campbio/decontX.
+To see the latest updates and releases or to post a bug, see our GitHub page
+at https://github.com/campbio/decontX.
 
 # Importing data
 
-Here we use an example dataset from `SingleCellMultiModal` package.
+We use the cord blood CITE-seq data from the SingleCellMultiModal package.
+Only the ADT counts and the cell annotations are downloaded (about 0.3 MB).
 
-```{r message=FALSE}
+```{r import_data, message=FALSE, warning=FALSE}
 library(SingleCellMultiModal)
-dat <- CITEseq("cord_blood", dry.run = FALSE)
-counts <- experiments(dat)$scADT
+
+# Download the ADT counts and the cell annotations
+cordBlood <- CITEseq(
+  "cord_blood",
+  modes = c("scADT_Counts", "coldata_scRNAseq"),
+  dry.run = FALSE
+)
+
+# The ADT count matrix: one row per ADT, one column per droplet
+allCounts <- experiments(cordBlood)$scADT
+dim(allCounts)
 ```
 
-For this tutorial, we sample only 1000 droplets from the dataset to demonstrate the use of functions. When analyzing your dataset, sub-sampling should be done with caution, as `decontPro` approximates contamination profile using the dataset. A biased sampling may introduce bias to the contamination profile approximation.
+The matrix holds 13 ADTs and 7858 droplets. Every droplet is a called cell:
+DecontPro takes the filtered matrix, after cell calling, not the empty
+droplets.
 
-```{r}
+# Cell types
+
+DecontPro needs the cell type of each droplet. It learns one native profile
+per cell type, so the labels should group cells whose proteins look alike.
+The cord blood data come with cell-type labels:
+
+```{r cell_types}
+# The cell type of each droplet, in the order of the matrix columns
+allCellTypes <- colData(cordBlood)[colnames(allCounts), "celltype"]
+table(allCellTypes, useNA = "ifany")
+```
+
+DecontPro needs a label for every droplet, so we keep only the labelled
+ones:
+
+```{r keep_labelled}
+# Keep the droplets that have a cell type
+hasLabel <- !is.na(allCellTypes)
+allCounts <- allCounts[, hasLabel]
+allCellTypes <- allCellTypes[hasLabel]
+```
+
+To keep this vignette fast, we sample 500 droplets. Don't subsample your
+own data: DecontPro estimates the ambient profile from all the droplets it
+is given, so a subsample, especially a biased one, can bias that estimate.
+
+```{r subsample}
+# Sample 500 droplets at random
 set.seed(42)
-sample_id <- sample(dim(counts)[2], 1000, replace = FALSE)
-counts_sample <- counts[, sample_id]
+sampled <- sample(ncol(allCounts), 500)
+
+# The counts and cell types of the sampled droplets
+counts <- allCounts[, sampled]
+cellTypes <- allCellTypes[sampled]
 ```
 
-# Generate cell clusters
+The labels can be character strings, as here, integers or a factor. With
+your own data, cluster labels work too: for example, Seurat's cluster
+identities can be passed as they are, with `Idents(seuratObject)`. Very fine
+clusters split a cell type into small groups, each with its own native
+profile; broader cell types are often more useful.
 
-`decontPro` requires a vector indicating the cell types of each droplet. Here we use `Seurat` for clustering.
+# Running DecontPro
 
-```{r message=FALSE}
-library(Seurat)
-library(dplyr)
-adt_seurat <- CreateSeuratObject(counts_sample, assay = "ADT")
-adt_seurat <- NormalizeData(adt_seurat, normalization.method = "CLR", margin = 2) %>%
-  ScaleData(assay = "ADT") %>%
-  RunPCA(assay = "ADT", features = rownames(adt_seurat), npcs = 10,
-  reduction.name = "pca_adt") %>%
-  FindNeighbors(dims = 1:10, assay = "ADT", reduction = "pca_adt") %>%
-  FindClusters(resolution = 0.5)
+DecontPro takes the count matrix and the cell types:
+
+```{r decontPro}
+out <- decontPro(counts, cellTypes, verbose = FALSE)
 ```
 
-```{r message=FALSE}
-adt_seurat <- RunUMAP(adt_seurat,
-                      dims = 1:10,
-                      assay = "ADT",
-                      reduction = "pca_adt",
-                      reduction.name = "adtUMAP",
-                      verbose = FALSE)
-DimPlot(adt_seurat, reduction = "adtUMAP", label = TRUE)
-FeaturePlot(adt_seurat, 
-            features = c("CD3", "CD4", "CD8", "CD19", "CD14", "CD16", "CD56"))
+`verbose = FALSE` hides DecontPro's messages and Stan's progress, which is
+long. If the fit fails, Stan's output is shown anyway.
+
+# The output
+
+The result is a list:
+
+```{r output_names}
+names(out)
 ```
 
-`decontPro` accepts any cluster labels, so we pass Seurat's cluster
-identities as they are. The cluster numbers in the plots below then match
-the Seurat plots above.
+- `decontaminated_counts`: the native part, the counts that come from the
+  cell's own proteins.
+- `ambient_counts`: the ambient part.
+- `background_counts`: the background part.
+- `parameters`: the model's estimates, described below.
 
-```{r}
-clusters <- Idents(adt_seurat)
+The three count matrices have one row per ADT and one column per droplet,
+with the row and column names of the input. Each count is split into the
+three parts, so they add up to the original counts:
+
+```{r output_check}
+# Add the three parts together
+summedParts <- out$decontaminated_counts +
+  out$ambient_counts +
+  out$background_counts
+
+# Compare the sum with the original counts
+all.equal(summedParts, counts)
 ```
 
-# Run DecontPro
+The share of all counts that DecontPro called ambient or background:
 
-You can run `DecontPro` by simply:
-
-``` {r eval=FALSE}
-counts <- as.matrix(counts_sample)
-out <- decontPro(counts,
-                clusters)
+```{r output_share}
+sum(out$ambient_counts) / sum(counts)
+sum(out$background_counts) / sum(counts)
 ```
 
-Priors (`delta_sd` and `background_sd`) may need tuning with the help of plotting the decontaminated results. The two priors encode belief if a more spread-out count should be considered contamination vs. native. We tested the default values on datasets ranging 5k to 10k droplets and 10 to 30 ADTs and the results are reasonable. A more contaminated or a smaller dataset may need larger priors. In this tutorial, since we sampled only 1k droplets from the original 10k droplets, we use slightly larger priors:
+`out$parameters` holds:
 
-```{r message=FALSE}
-counts <- as.matrix(counts_sample)
-out <- decontPro(counts,
-                 clusters,
-                 delta_sd = 2e-4,
-                 background_sd = 2e-5)
+| Element | What it is |
+|---|---|
+| `delta_sd`, `background_sd` | The values of the two priors used in the fit. |
+| `r_est` | The native profile of each cell type: one row per cell type, named by its label, and one column per ADT. Each row sums to 1. |
+| `p_est` | The ambient profile: the share of each ADT among ambient counts. It sums to 1. |
+| `delta_est` | For each ADT (row) in each droplet (column), the proportion of the non-background counts that is ambient. |
+| `delta_mean_est` | For each droplet, the mean level of `delta_est`. |
+| `background_est` | For each ADT (row) in each droplet (column), the background as a proportion of the droplet's total count. |
+| `background_mean_est` | For each ADT, the mean level of `background_est`. |
+
+Apart from `p_est` and the rows of `r_est`, these estimates don't carry
+names yet. Their ADTs follow the rows of the counts, and their droplets the
+columns.
+
+# Tuning the priors
+
+The density of each ADT before and after decontamination shows whether the
+results are reasonable. Many ADTs have two peaks: a low one from cells that
+don't express the protein, whose counts are mostly contamination, and a
+high one from cells that do. Decontamination should move the low peak
+toward zero and leave the high peak in place.
+
+```{r density_default, fig.width=8, fig.height=6}
+plotDensity(
+  counts,
+  out$decontaminated_counts,
+  c("CD3", "CD4", "CD8", "CD14", "CD16", "CD19")
+)
 ```
 
-The output contains three matrices, and model parameters after inference. 
-`decontaminated_counts` represent the true protein expression on cells.
+With the default priors, the low peaks of CD3, CD8 and CD19 barely move.
+Two priors control how much DecontPro removes:
 
-```{r}
-decontaminated_counts <- out$decontaminated_counts
+- `deltaSd`: how much the ambient level can vary from one ADT to another
+  within a droplet.
+- `backgroundSd`: how much the background level of an ADT can vary from one
+  droplet to another.
+
+Larger values let DecontPro call more of a count contamination; smaller
+values remove less. We tested the defaults on datasets of 5,000 to 10,000
+droplets and 10 to 30 ADTs, and the results were reasonable. A more
+contaminated or a smaller dataset may need larger priors. Our 500 droplets
+are a small dataset, so we try priors 10 times the defaults:
+
+```{r decontPro_tuned}
+outTuned <- decontPro(
+  counts,
+  cellTypes,
+  deltaSd = 2e-4,
+  backgroundSd = 2e-5,
+  verbose = FALSE
+)
 ```
 
-
-# Plot Results
-
-Plot ADT density before and after decontamination. For bimodal ADTs, the background peak should be removed. Note CD4 is tri-modal with the intermediate mode corresponding to monocytes. This can be used as a QC metric for decontamination as only the lowest mode should be removed. 
-
-```{r}
-plotDensity(counts,
-            decontaminated_counts,
-            c("CD3", "CD4", "CD8", "CD14", "CD16", "CD19"))
+```{r density_tuned, fig.width=8, fig.height=6}
+plotDensity(
+  counts,
+  outTuned$decontaminated_counts,
+  c("CD3", "CD4", "CD8", "CD14", "CD16", "CD19")
+)
 ```
 
-We can also visualize the decontamination by each cell cluster.
-```{r}
-plotBoxByCluster(counts,
-                 decontaminated_counts,
-                 clusters,
-                 c("CD3", "CD4", "CD8", "CD16"))
+Now the low peaks of CD3, CD8 and CD19 move to near zero, while the high
+peaks stay. CD4 is a useful check: it has three peaks, and the middle one
+comes from monocytes, which express some CD4. Only the lowest peak should
+move to zero; the middle peak should stay apart from it. Priors that are too
+large remove real signal too: at 100 times the defaults, part of the high
+CD14 peak of the monocytes moves down.
+
+The decontaminated counts can also be compared within each cell type:
+
+```{r box_by_cell_type, fig.width=8, fig.height=6}
+plotBoxByCluster(
+  counts,
+  outTuned$decontaminated_counts,
+  cellTypes,
+  c("CD3", "CD4", "CD8", "CD16")
+)
 ```
 
-# Session Information
+# With empty droplets {#background}
 
-```{r}
+By default, DecontPro estimates the ambient profile from the filtered
+matrix. If you have the raw matrix, which holds every droplet barcode, you
+can estimate it from the empty droplets instead, with the `background`
+argument. Only the total of each ADT across those droplets is used, so
+`background` sets the ambient profile and nothing else.
+
+The cord blood data don't include the raw matrix, so this code is a
+template. For data processed with CellRanger, the raw matrix is in the
+`"outs/raw_feature_bc_matrix/"` subfolder of each sample directory, and
+singleCellTK imports it when the `dataType` argument is set to "raw".
+Replace the path with your own sample directory and `cellTypes` with your
+own labels:
+
+```{r background_template, eval=FALSE}
+library(singleCellTK)
+
+# Import the filtered matrix (the called cells) and the raw matrix
+sceFiltered <- importCellRanger(
+  sampleDirs = "path/to/sample1/",
+  dataType = "filtered"
+)
+sceRaw <- importCellRanger(
+  sampleDirs = "path/to/sample1/",
+  dataType = "raw"
+)
+
+# Keep the ADT rows of each matrix
+isAdtFiltered <- rowData(sceFiltered)$feature_type == "Antibody Capture"
+adtFiltered <- counts(sceFiltered)[isAdtFiltered, ]
+isAdtRaw <- rowData(sceRaw)$feature_type == "Antibody Capture"
+adtRaw <- counts(sceRaw)[isAdtRaw, ]
+
+# Keep the empty droplets: remove the barcodes of the called cells
+isEmpty <- !colnames(adtRaw) %in% colnames(adtFiltered)
+adtEmpty <- adtRaw[, isEmpty]
+
+# Estimate the ambient profile from the empty droplets
+out <- decontPro(adtFiltered, cellTypes, background = adtEmpty)
+```
+
+Unlike decontX, DecontPro doesn't remove the called cells from
+`background` itself, so remove them first, as above. When both matrices
+have row names, the ADTs are matched by name: ADTs in `background` that
+aren't in the counts are dropped, and every ADT of the counts must be in
+`background`. Without row names, the rows must be in the same order.
+
+# Runtime and reproducibility
+
+The run time grows with the number of ADTs times the number of droplets.
+Each fit in this vignette, 13 ADTs in 500 droplets, takes a few seconds.
+
+Stan's fit is random. DecontPro sets Stan's seed with the `seed` argument
+(default 12345), so the same counts, cell types, priors and seed give the
+same results. `iter` (default 50000) is the maximum number of iterations;
+the fit usually stops earlier, when it converges.
+
+# Frequently asked questions
+
+## Can I give DecontPro the raw matrix with every droplet?
+
+No. DecontPro models each droplet as a cell of a given type, so the counts
+must be the filtered matrix, with the called cells only. The empty droplets
+can still help, through the `background` argument (see
+[With empty droplets](#background)).
+
+# Citing DecontPro
+
+If you use DecontPro in your work, please cite:
+
+Yin Y, Yajima M, Campbell JD (2024). Characterization and decontamination of
+background noise in droplet-based single-cell protein expression data with
+DecontPro. *Nucleic Acids Research*, 52(1), e4.
+[doi:10.1093/nar/gkad1032](https://doi.org/10.1093/nar/gkad1032)
+
+`citation("decontX")` prints this reference and the one for DecontX.
+
+# Session information
+
+```{r session_info}
 sessionInfo()
 ```
