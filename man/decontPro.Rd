@@ -7,33 +7,42 @@
 \alias{decontPro,ANY-method}
 \title{Decontaminate using decontPro}
 \usage{
-decontPro(filtered_counts, cell_type, ...)
+decontPro(filtered_counts, cellType, ...)
 
 \S4method{decontPro}{SingleCellExperiment}(
   filtered_counts,
-  cell_type,
-  delta_sd = 2e-05,
-  background_sd = 2e-06,
-  ambient_counts = NULL,
-  ...
+  cellType,
+  deltaSd = 2e-05,
+  backgroundSd = 2e-06,
+  background = NULL,
+  ...,
+  iter = 50000,
+  seed = 12345,
+  verbose = TRUE
 )
 
 \S4method{decontPro}{Seurat}(
   filtered_counts,
-  cell_type,
-  delta_sd = 2e-05,
-  background_sd = 2e-06,
-  ambient_counts = NULL,
-  ...
+  cellType,
+  deltaSd = 2e-05,
+  backgroundSd = 2e-06,
+  background = NULL,
+  ...,
+  iter = 50000,
+  seed = 12345,
+  verbose = TRUE
 )
 
 \S4method{decontPro}{ANY}(
   filtered_counts,
-  cell_type,
-  delta_sd = 2e-05,
-  background_sd = 2e-06,
-  ambient_counts = NULL,
-  ...
+  cellType,
+  deltaSd = 2e-05,
+  backgroundSd = 2e-06,
+  background = NULL,
+  ...,
+  iter = 50000,
+  seed = 12345,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -46,32 +55,52 @@ expect \code{counts} in the assay slot. Split \code{counts} layers of a
 Seurat v5 assay are joined first, so the droplets follow
 \code{Cells()}.}
 
-\item{cell_type}{Vector of length M giving the cell type of each droplet,
+\item{cellType}{Vector of length M giving the cell type of each droplet,
 with no NA. Any labels can be used, such as integers, character strings
 or a factor. The rows of \code{r_est} in the returned parameters follow
-the sorted labels, or a factor's levels with unused levels dropped.}
+the sorted labels, or a factor's levels with unused levels dropped.
+Alias: \code{cell_type}.}
 
-\item{...}{Not used. Any other argument stops with an error.}
+\item{...}{Only the aliases \code{cell_type}, \code{delta_sd},
+\code{background_sd} and \code{ambient_counts}, which can be used in
+place of \code{cellType}, \code{deltaSd}, \code{backgroundSd} and
+\code{background}. Giving both names of an argument, or any other
+argument, stops with an error.}
 
-\item{delta_sd}{Prior variance for ambient contamination level.
-Default to 2e-5.}
+\item{deltaSd}{Standard deviation of the half-normal prior on how much
+the ambient contamination levels vary around each droplet's mean level.
+Smaller values keep the levels of a droplet closer together. Default
+2e-5. Alias: \code{delta_sd}.}
 
-\item{background_sd}{Prior variance for background contamination level.
-Default to 2e-6.}
+\item{backgroundSd}{Standard deviation of the half-normal prior on how
+much the levels of the model's background component vary around each
+ADT's mean level. This background is part of the model, not the
+\code{background} counts. Default 2e-6. Alias: \code{background_sd}.}
 
-\item{ambient_counts}{Count matrix NxM (feature x droplet) with only ambient
-droplets. Similar to \code{filtered_counts} param, if it is a wrapper object,
-expect \code{counts} in the assay slot. When both have row names, its
-rows are matched to the ADTs of \code{filtered_counts} by name: ADTs
-that aren't in \code{filtered_counts} are dropped, and every ADT of
+\item{background}{Count matrix NxM (feature x droplet) of empty droplets,
+used to estimate the ambient ADT profile; without it, the profile comes
+from \code{filtered_counts}. Similar to \code{filtered_counts}, if it is
+a wrapper object, expect \code{counts} in the assay slot. When both
+have row names, its rows are matched to the ADTs of
+\code{filtered_counts} by name: ADTs that aren't in
+\code{filtered_counts} are dropped, and every ADT of
 \code{filtered_counts} must be present. Otherwise the rows are matched
 by position. The ADTs used must have no NA or negative counts.
-Default to NULL.}
+Default NULL. Alias: \code{ambient_counts}.}
+
+\item{iter}{Maximum number of iterations of Stan's variational
+inference. Default 50000.}
+
+\item{seed}{Seed for Stan's random number generator, a whole number
+from 0 to \code{.Machine$integer.max}. Default 12345.}
+
+\item{verbose}{Whether to print Stan's progress. With \code{FALSE},
+Stan's output is shown only if the fit fails. Default TRUE.}
 }
 \value{
 A list containing decontaminated counts, and estimated parameters.
 The row names of \code{parameters$r_est}, the native ADT profile of each
-cell type, are the \code{cell_type} labels.
+cell type, are the \code{cellType} labels.
 }
 \description{
 Decontaminate using decontPro

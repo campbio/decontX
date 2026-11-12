@@ -74,14 +74,16 @@ test_that("decontPro splits each count by the estimated rates", {
 test_that("decontPro results match a Stan fit with default output draws", {
   p <- refProData()
   out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
-  # Reference: rstan's default 1000 draws. Keep seed/iter in sync with
-  # .callStanVb() so only the draw settings differ.
-  local_mocked_bindings(.callStanVb = function(data, initial_condition) {
-    rstan::vb(stanmodels$shrinkage,
-      init = initial_condition, data = data,
-      seed = 12345, iter = 50000
-    )
-  })
+  # Reference: rstan's default 1000 draws, with decontPro's seed and iter,
+  # so only the draw settings differ
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, iter, seed, verbose) {
+      rstan::vb(stanmodels$shrinkage,
+        init = initial_condition, data = data,
+        seed = seed, iter = iter
+      )
+    }
+  )
   reference <- suppressWarnings(
     quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
   )
@@ -168,7 +170,7 @@ test_that("decontPro takes the ambient profile from ambient_counts", {
 
   received <- NULL
   local_mocked_bindings(
-    .callStanVb = function(data, initial_condition) {
+    .callStanVb = function(data, initial_condition, ...) {
       received <<- data
       NULL
     },
@@ -197,7 +199,7 @@ test_that("decontPro matches ambient_counts rows to the counts by name", {
 
   received <- NULL
   local_mocked_bindings(
-    .callStanVb = function(data, initial_condition) {
+    .callStanVb = function(data, initial_condition, ...) {
       received <<- data
       NULL
     },
@@ -247,9 +249,8 @@ test_that("decontPro joins split Seurat layers in Cells() order", {
 
   received <- NULL
   local_mocked_bindings(
-    .decontPro = function(counts, cell_type, delta_sd, background_sd,
-                          ambient_counts) {
-      received <<- list(counts = counts, ambient = ambient_counts)
+    .decontPro = function(counts, args) {
+      received <<- list(counts = counts, ambient = args$background)
       list()
     }
   )
@@ -286,22 +287,22 @@ test_that("decontPro checks the length of cell_type and NA", {
   p <- refProData()
   expect_error(
     decontPro(p$counts, p$k[-1], 1e-2, 1e-2),
-    regexp = "'cell_type' has 7 entries but 'filtered_counts' has 8 droplets"
+    regexp = "'cellType' has 7 entries but 'filtered_counts' has 8 droplets"
   )
   expect_error(
     decontPro(p$counts, c(p$k, 1), 1e-2, 1e-2),
-    regexp = "'cell_type' has 9 entries but 'filtered_counts' has 8 droplets"
+    regexp = "'cellType' has 9 entries but 'filtered_counts' has 8 droplets"
   )
   expect_error(
     decontPro(p$counts, c(p$k[-8], NA), 1e-2, 1e-2),
-    regexp = "'cell_type' has NA values"
+    regexp = "'cellType' has NA values"
   )
 })
 
 test_that("decontPro needs at least 2 ADTs and 2 droplets", {
   # rstan passes length-1 data to Stan as a scalar, so a single ADT or
   # droplet used to fail inside Stan with an unclear message (#110)
-  local_mocked_bindings(.callStanVb = function(data, initial_condition) {
+  local_mocked_bindings(.callStanVb = function(data, initial_condition, ...) {
     stop("reached Stan")
   })
   oneAdt <- matrix(20, 1, 8, dimnames = list("a1", paste0("d", 1:8)))
@@ -325,7 +326,7 @@ test_that("decontPro recodes cell_type labels to 1..K for Stan", {
   p <- refProData()
   received <- NULL
   local_mocked_bindings(
-    .callStanVb = function(data, initial_condition) {
+    .callStanVb = function(data, initial_condition, ...) {
       received <<- data
       NULL
     },
@@ -411,8 +412,8 @@ test_that("decontPro reports a failed Stan fit", {
 test_that("decontPro rejects unknown arguments", {
   p <- refProData()
   expect_error(
-    decontPro(p$counts, p$k, seed = 1),
-    regexp = "Unknown arguments to decontPro\\(\\): 'seed'"
+    decontPro(p$counts, p$k, output_samples = 10),
+    regexp = "Unknown arguments to decontPro\\(\\): 'output_samples'"
   )
   expect_error(
     decontPro(p$counts, p$k, delta_SD = 1e-2, batch = 1),
@@ -443,6 +444,217 @@ test_that("decontPro rejects unknown arguments", {
   expect_error(
     decontPro(obj, p$k, 1e-2, 1e-2, NULL, 5),
     regexp = "Unknown arguments to decontPro\\(\\): an unnamed value"
+  )
+})
+
+test_that("decontPro reads the snake_case aliases", {
+  # The core is mocked: this pins what each method passes to it
+  p <- refProData()
+  received <- NULL
+  local_mocked_bindings(.decontPro = function(counts, args) {
+    received <<- args[setdiff(names(args), "argNames")]
+    list()
+  })
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = p$counts))
+  ambientSce <- SingleCellExperiment::SingleCellExperiment(
+    list(counts = p$ambient)
+  )
+  obj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$counts, "CsparseMatrix")
+  )
+  ambientObj <- SeuratObject::CreateSeuratObject(
+    counts = as(p$ambient, "CsparseMatrix")
+  )
+  inputs <- list(
+    matrix = list(p$counts, p$ambient),
+    sce = list(sce, ambientSce),
+    seurat = list(obj, ambientObj)
+  )
+  for (input in inputs) {
+    decontPro(input[[1]],
+      cellType = p$k, deltaSd = 0.1, backgroundSd = 0.2,
+      background = input[[2]]
+    )
+    camel <- received
+    decontPro(input[[1]],
+      cell_type = p$k, delta_sd = 0.1, background_sd = 0.2,
+      ambient_counts = input[[2]]
+    )
+    expect_identical(received, camel)
+    expect_identical(camel$cellType, p$k)
+    expect_identical(camel$deltaSd, 0.1)
+    expect_identical(camel$backgroundSd, 0.2)
+    expect_equal(as.matrix(camel$background), p$ambient)
+  }
+
+  # Positional calls fill the camelCase names, and the fit controls keep
+  # today's values by default
+  decontPro(p$counts,
+    cellType = p$k, deltaSd = 0.1, backgroundSd = 0.2,
+    background = p$ambient
+  )
+  camel <- received
+  decontPro(p$counts, p$k, 0.1, 0.2, p$ambient)
+  expect_identical(received, camel)
+  expect_identical(received$iter, 50000)
+  expect_identical(received$seed, 12345)
+  expect_true(received$verbose)
+  decontPro(p$counts, p$k)
+  expect_identical(received$deltaSd, 2e-5)
+  expect_identical(received$backgroundSd, 2e-6)
+  expect_null(received$background)
+})
+
+test_that("decontPro errors when an argument is given twice", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts, p$k, cell_type = p$k),
+    regexp = "Give 'cellType' or its alias 'cell_type', not both"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, 1e-2, delta_sd = 1e-2),
+    regexp = "Give 'deltaSd' or its alias 'delta_sd', not both"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, backgroundSd = 1, background_sd = 1),
+    regexp = "Give 'backgroundSd' or its alias 'background_sd', not both"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, background = p$ambient, ambient_counts = NULL),
+    regexp = "Give 'background' or its alias 'ambient_counts', not both"
+  )
+  expect_error(
+    decontPro(p$counts, cell_type = p$k, cell_type = p$k),
+    regexp = "'cell_type' is given more than once"
+  )
+  expect_error(
+    decontPro(p$counts),
+    regexp = "'cellType' is missing"
+  )
+})
+
+test_that("decontPro names the argument the user gave in its errors", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts, cell_type = p$k[-1]),
+    regexp = "'cell_type' has 7 entries"
+  )
+  expect_error(
+    decontPro(p$counts, cellType = p$k[-1]),
+    regexp = "'cellType' has 7 entries"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, background = rowSums(p$ambient)),
+    regexp = "'background' must be a matrix"
+  )
+})
+
+test_that("decontPro passes iter and seed to rstan and checks them", {
+  p <- refProData()
+  received <- NULL
+  local_mocked_bindings(
+    vb = function(...) {
+      received <<- list(...)
+      list()
+    },
+    .package = "rstan"
+  )
+  expect_error(
+    decontPro(p$counts, p$k, iter = 100, seed = 7),
+    regexp = "Stan's variational inference failed"
+  )
+  expect_identical(received$iter, 100)
+  expect_identical(received$seed, 7)
+  expect_error(
+    decontPro(p$counts, p$k),
+    regexp = "Stan's variational inference failed"
+  )
+  expect_identical(received$iter, 50000)
+  expect_identical(received$seed, 12345)
+
+  # Checked before any fit
+  received <- NULL
+  expect_error(decontPro(p$counts, p$k, iter = 0),
+    regexp = "'iter' must be a single whole number of at least 1"
+  )
+  expect_error(decontPro(p$counts, p$k, iter = 1.5),
+    regexp = "'iter' must be a single whole number of at least 1"
+  )
+  expect_error(decontPro(p$counts, p$k, seed = -1),
+    regexp = "'seed' must be a single whole number from 0 to"
+  )
+  expect_error(decontPro(p$counts, p$k, seed = "a"),
+    regexp = "'seed' must be a single whole number from 0 to"
+  )
+  expect_error(decontPro(p$counts, p$k, seed = 2^31),
+    regexp = "'seed' must be a single whole number from 0 to"
+  )
+  expect_error(decontPro(p$counts, p$k, verbose = NA),
+    regexp = "'verbose' must be TRUE or FALSE"
+  )
+  expect_null(received)
+})
+
+test_that("decontPro verbose = FALSE prints nothing and removes the CSV", {
+  # One real Stan VB run on the 10 x 8 fixture
+  p <- refProData()
+  sampleFile <- NULL
+  vb <- rstan::vb
+  local_mocked_bindings(
+    vb = function(...) {
+      sampleFile <<- list(...)$sample_file
+      vb(...)
+    },
+    .package = "rstan"
+  )
+  expect_silent(
+    out <- decontPro(p$counts, p$k, 1e-2, 1e-2, verbose = FALSE)
+  )
+  # rstan writes its draws to this CSV; it is deleted when the fit ends
+  expect_type(sampleFile, "character")
+  expect_false(file.exists(sampleFile))
+  expect_equal(
+    out$decontaminated_counts + out$ambient_counts + out$background_counts,
+    p$counts
+  )
+})
+
+test_that("decontPro verbose = FALSE shows Stan's output when it fails", {
+  # Shown with message(), since an error message is cut at 1000 characters
+  p <- refProData()
+  local_mocked_bindings(
+    vb = function(...) {
+      cat("Stan explains the failure\n")
+      list()
+    },
+    .package = "rstan"
+  )
+  expect_output(
+    expect_message(
+      expect_error(
+        decontPro(p$counts, p$k, verbose = FALSE),
+        regexp = "failed; Stan printed the reason in the message above"
+      ),
+      regexp = "Stan explains the failure"
+    ),
+    regexp = NA
+  )
+  local_mocked_bindings(
+    vb = function(...) {
+      cat("Stan explains the error\n")
+      stop("rstan stopped")
+    },
+    .package = "rstan"
+  )
+  expect_output(
+    expect_message(
+      expect_error(
+        decontPro(p$counts, p$k, verbose = FALSE),
+        regexp = "rstan stopped"
+      ),
+      regexp = "Stan explains the error"
+    ),
+    regexp = NA
   )
 })
 
