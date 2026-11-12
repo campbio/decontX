@@ -47,6 +47,15 @@ pushed, one at a time.
   README; roxygen and examples (A7-10, A7-15, A7-18); README usage;
   DESCRIPTION Title and `<doi:>` links; DecontPro 2024 in `AGENTS.md`.
   Spec `dev/plans/2026-11-11-decontx-docs.md`.
+- **III-a part 2 (#83), 1.11.34:** the decontPro vignette rewritten
+  (cord_blood's bundled cell types on 500 droplets, every output
+  explained, tuning the priors with before/after plots, an unrun
+  `background` template, runtime and reproducibility, FAQ, citation);
+  `?decontPro` documents every output and what `background` is used
+  for, with a 10 x 8 seeded example (A7-03 to A7-05, A7-11, A7-19,
+  A7-23); dplyr left Suggests. Spec
+  `dev/plans/2026-11-12-decontpro-docs.md`. Follow-up: #129 (names on
+  decontPro's parameter estimates).
 
 ## Phase I: fixes, coverage, quality, speed
 
@@ -150,21 +159,9 @@ carries the whole API change.
 
 ## Phase III: docs and site
 
-### III-a: clarity and completeness, #83 (part 2, after #81)
+### III-a: clarity and completeness, #83
 
-Part 1 is done (see Done). Part 2 waits for #81, so the decontPro
-vignette is written once, against the final arguments:
-
-- **decontPro vignette rewrite** (A7-03 to A7-05, A7-11): the model;
-  cord_blood loaded with only the needed modes; its bundled cell-type
-  labels (no Seurat, no dplyr, which leaves Suggests); 500 cells;
-  what every output means; tuning the priors with before/after plots; a
-  short `background` example like decontX's; runtime and
-  reproducibility; FAQ; citation;
-  chunk labels and the `IndexEntry` (A7-19). No empty-droplet demo.
-- decontPro roxygen not covered by #81 (A7-11) and a 10 x 8 example with
-  a seed (A7-23).
-- The edited vignette is rendered locally and gets a novice-reader pass.
+Done in two parts (see Done).
 
 ### III-b: multi-container docs (after Phase II)
 

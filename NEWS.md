@@ -1,3 +1,16 @@
+# decontX 1.11.34
+
+* The decontPro vignette is rewritten. It uses the cord blood data's own
+cell-type labels (no Seurat clustering), explains every output, shows how to
+tune the priors with before/after density plots, has a template for
+estimating the ambient profile from empty droplets with `background`, and
+covers run time, reproducibility, a FAQ and how to cite DecontPro. Stan's
+progress no longer fills the page (#83).
+* `decontPro()` help describes every element it returns and says that only
+the ADT totals of `background` are used, so it must hold empty droplets
+only. Its example is smaller, seeded and runs in about a second (#83).
+* dplyr is no longer suggested (#83).
+
 # decontX 1.11.33
 
 * `decontPro()` arguments are now camelCase, like decontX's: `cellType`,
