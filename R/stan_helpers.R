@@ -14,38 +14,14 @@
   # per ADT x droplet, and would keep it until R exits (A5-08)
   sampleFile <- tempfile(fileext = ".csv")
   on.exit(unlink(sampleFile), add = TRUE)
-  fitStan <- function() {
-    # decontPro only uses the mean of the variational approximation
-    # (`@sim$est`), which does not depend on the posterior draws. delta and
-    # background have one value per ADT x droplet, so rstan's default of
-    # 1000 draws can take hundreds of GB on large data (issue #46). Keep
-    # the minimum rstan allows (2) and retain draws for a single scalar
-    # parameter only. rstan's Pareto k diagnostic is estimated from the
-    # draws; with 2 draws it is always Inf and carries no information, so
-    # its warning is dropped.
-    withCallingHandlers(
-      rstan::vb(
-        object = stanmodels$shrinkage,
-        init = initial_condition,
-        data = data,
-        seed = seed,
-        iter = iter,
-        output_samples = 2,
-        pars = "tau_a",
-        sample_file = sampleFile
-      ),
-      warning = function(w) {
-        if (startsWith(conditionMessage(w), "Pareto k diagnostic value")) {
-          invokeRestart("muffleWarning")
-        }
-      }
-    )
-  }
   if (verbose) {
-    fit <- fitStan()
+    fit <- .runStanVb(data, initial_condition, iter, seed, sampleFile)
   } else {
     stanOutput <- utils::capture.output(
-      fit <- tryCatch(fitStan(), error = function(e) e)
+      fit <- tryCatch(
+        .runStanVb(data, initial_condition, iter, seed, sampleFile),
+        error = function(e) e
+      )
     )
   }
   failed <- inherits(fit, "error") ||
@@ -64,6 +40,36 @@
     stop("Stan's variational inference failed; see Stan's output above.")
   }
   fit
+}
+
+
+# One rstan::vb() fit of the decontPro model, writing its draws to
+# `sampleFile`
+.runStanVb <- function(data, initial_condition, iter, seed, sampleFile) {
+  # decontPro only uses the mean of the variational approximation
+  # (`@sim$est`), which does not depend on the posterior draws. delta and
+  # background have one value per ADT x droplet, so rstan's default of 1000
+  # draws can take hundreds of GB on large data (issue #46). Keep the minimum
+  # rstan allows (2) and retain draws for a single scalar parameter only.
+  # rstan's Pareto k diagnostic is estimated from the draws; with 2 draws it
+  # is always Inf and carries no information, so its warning is dropped.
+  withCallingHandlers(
+    rstan::vb(
+      object = stanmodels$shrinkage,
+      init = initial_condition,
+      data = data,
+      seed = seed,
+      iter = iter,
+      output_samples = 2,
+      pars = "tau_a",
+      sample_file = sampleFile
+    ),
+    warning = function(w) {
+      if (startsWith(conditionMessage(w), "Pareto k diagnostic value")) {
+        invokeRestart("muffleWarning")
+      }
+    }
+  )
 }
 
 
