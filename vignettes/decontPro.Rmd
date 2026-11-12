@@ -175,15 +175,18 @@ sum(out$background_counts) / sum(counts)
 
 `out$parameters` holds:
 
-| Element | What it is |
-|---|---|
-| `delta_sd`, `background_sd` | The values of the two priors used in the fit. |
-| `r_est` | The native profile of each cell type: one row per cell type, named by its label, and one column per ADT. Each row sums to 1. |
-| `p_est` | The ambient profile: the share of each ADT among ambient counts. It sums to 1. |
-| `delta_est` | For each ADT (row) in each droplet (column), the proportion of the non-background counts that is ambient. |
-| `delta_mean_est` | For each droplet, the mean level of `delta_est`. |
-| `background_est` | For each ADT (row) in each droplet (column), the background as a proportion of the droplet's total count. |
-| `background_mean_est` | For each ADT, the mean level of `background_est`. |
+- `delta_sd`, `background_sd`: the values of the two priors used in the
+  fit.
+- `r_est`: the native profile of each cell type, with one row per cell
+  type, named by its label, and one column per ADT. Each row sums to 1.
+- `p_est`: the ambient profile, the share of each ADT among ambient counts.
+  It sums to 1.
+- `delta_est`: for each ADT (row) in each droplet (column), the proportion
+  of the non-background counts that is ambient.
+- `delta_mean_est`: for each droplet, the mean level of `delta_est`.
+- `background_est`: for each ADT (row) in each droplet (column), the
+  background as a proportion of the droplet's total count.
+- `background_mean_est`: for each ADT, the mean level of `background_est`.
 
 Apart from `p_est` and the rows of `r_est`, these estimates don't carry
 names yet. Their ADTs follow the rows of the counts, and their droplets the
