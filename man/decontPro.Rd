@@ -77,11 +77,14 @@ much the levels of the model's background component vary around each
 ADT's mean level. This background is part of the model, not the
 \code{background} counts. Default 2e-6. Alias: \code{background_sd}.}
 
-\item{background}{Count matrix NxM (feature x droplet) of empty droplets,
+\item{background}{Count matrix (feature x droplet) of empty droplets,
 used to estimate the ambient ADT profile; without it, the profile comes
-from \code{filtered_counts}. Similar to \code{filtered_counts}, if it is
-a wrapper object, expect \code{counts} in the assay slot. When both
-have row names, its rows are matched to the ADTs of
+from \code{filtered_counts}. Only each ADT's total across these droplets
+(the row sums) is used, pooled into one ambient profile, so the droplets
+must be empty: remove the called cells of \code{filtered_counts} first.
+Similar to \code{filtered_counts}, if it is a wrapper object, expect
+\code{counts} in the assay slot. When both have row names, its rows are
+matched to the ADTs of
 \code{filtered_counts} by name: ADTs that aren't in
 \code{filtered_counts} are dropped, and every ADT of
 \code{filtered_counts} must be present. Otherwise the rows are matched
@@ -99,38 +102,51 @@ from 0 to \code{.Machine$integer.max}. Default 12345.}
 \code{FALSE}, Stan's output is shown only if the fit fails. Default TRUE.}
 }
 \value{
-A list containing decontaminated counts, and estimated parameters.
-The row names of \code{parameters$r_est}, the native ADT profile of each
-cell type, are the \code{cellType} labels.
+A list. Each count of \code{filtered_counts} is split into three
+parts, which add up to it:
+\describe{
+\item{decontaminated_counts}{The native part: the counts from the
+cell's own proteins. An ADT x droplet matrix with the row and column
+names of \code{filtered_counts}.}
+\item{ambient_counts}{The ambient part, a matrix like
+\code{decontaminated_counts}.}
+\item{background_counts}{The part from the model's background
+component, a matrix like \code{decontaminated_counts}.}
+\item{parameters}{A list of the model's estimates:
+\code{delta_sd} and \code{background_sd}, the values of
+\code{deltaSd} and \code{backgroundSd} used;
+\code{r_est}, the native ADT profile of each cell type (cell type x
+ADT, rows named by the \code{cellType} labels, each row summing to 1);
+\code{p_est}, the ambient ADT profile (one value per ADT, summing to
+1, named by the row names of the matrix it comes from, if any);
+\code{delta_est}, the weight of the ambient profile in the
+non-background part of each ADT in each droplet, the native profile
+getting the rest (ADT x droplet); \code{delta_mean_est}, its mean
+level in each droplet; \code{background_est}, the background as a
+proportion of the droplet's total count (ADT x droplet); and
+\code{background_mean_est}, its mean level for each ADT. Except for
+\code{p_est} and the rows of \code{r_est}, these have no names: their
+ADTs and droplets follow the rows and columns of
+\code{filtered_counts}.}
+}
 }
 \description{
 Decontaminate using decontPro
 }
 \examples{
-# Simulated count matrix with 100 features x 10 droplets
-counts <- matrix(
-  sample(1:10,
-    1000,
-    replace = TRUE
-  ),
-  ncol = 10
-)
+# Simulated counts of 10 ADTs (rows) in 8 droplets (columns)
+set.seed(1)
+counts <- matrix(rpois(80, lambda = 20), nrow = 10)
 
-# Cell type indicator
-k <- c(1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
+# The cell type of each droplet
+cellTypes <- c("A", "A", "A", "A", "B", "B", "B", "B")
 
-# Simulated ambient count matrix (optional input)
-background <- matrix(
-  sample(1:2,
-    1000,
-    replace = TRUE
-  ),
-  ncol = 10
-)
+# Simulated counts of the same 10 ADTs in 8 empty droplets (optional)
+emptyDroplets <- matrix(rpois(80, lambda = 2), nrow = 10)
 
-# Decontamination
-out <- decontPro(counts, k, 1e-2, 1e-2, background)
+# Decontaminate the counts
+out <- decontPro(counts, cellTypes, background = emptyDroplets)
 
-# Decontaminated counts
-decontaminated_counts <- out$decontaminated_counts
+# The decontaminated counts
+decontaminatedCounts <- out$decontaminated_counts
 }
