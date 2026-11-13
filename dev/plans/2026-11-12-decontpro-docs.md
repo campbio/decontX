@@ -150,6 +150,21 @@ the CD14 high peak. Approved changes:
     example's run time.
 22. The full-data run belongs in the III-c article.
 
+Decided while writing, and recorded at the spec review:
+
+23. The `parameters` elements are a bullet list, not a table: a pipe
+    table can't wrap at 80 columns.
+24. FAQ: the candidates were answered in the sections themselves (own
+    clusters and label granularity under "Cell types", run time under
+    "Runtime and reproducibility"), so the FAQ holds one new question,
+    "Can I give DecontPro the raw matrix with every droplet?". Memory use
+    on large data isn't covered: there is no measured figure for the fit
+    itself yet.
+25. The spec review found the first draft described `delta_est` as the
+    ambient share of the non-background counts. In the model it is the
+    weight of the ambient profile against the native profile; the roxygen
+    and the vignette now say so.
+
 ## Out of scope
 
 - `delta_est` and `background_est` have no dimnames. Adding them changes
