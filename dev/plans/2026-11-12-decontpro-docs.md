@@ -56,7 +56,7 @@ installed build.
    `background_mean_est`). A one-line check that the three parts add up
    to the original counts.
 6. **Tuning the priors (A7-04).** `plotDensity()` after the default fit;
-   a second fit with `deltaSd = 2e-4` and `backgroundSd = 2e-5`; its
+   a second fit with larger priors (3x, see Changes at review); its
    `plotDensity()`. The text says which way the priors push (larger
    values let more of a spread-out count be called contamination), uses
    the CD4 three-mode pattern as the QC (only the lowest mode should go),
@@ -118,6 +118,37 @@ installed build.
     is used for, and has a small, seeded example; dplyr is no longer
     suggested.
 18. **ROADMAP:** III-a part 2 moves to Done.
+
+## Changes at review (2026-11-12 and 2026-11-13)
+
+Rendering on the installed build showed decontPro running far slower
+than the audit measured (134 s per 500-droplet fit, 16 s for the
+example; filed as #130). The maintainer then asked whether 500 droplets
+change the results. A fit on all 7,700 labelled droplets (about 24
+minutes per fit) showed that they do, and that the 10x priors
+over-correct:
+
+| 500-droplet fit vs full-data defaults, same droplets | log1p correlation | mean gap in share kept (ADT x cell type, types >= 20 droplets) |
+|---|---|---|
+| defaults | 0.948 | 0.19 |
+| 3x (6e-5, 6e-6) | 0.994 | 0.035 |
+| 10x (2e-4, 2e-5) | 0.859 | 0.25 |
+
+On the full data, 10x priors remove the CD4 monocyte peak and shrink
+the CD14 high peak. Approved changes:
+
+19. The tuned fit uses 3x priors (`deltaSd = 6e-5`,
+    `backgroundSd = 6e-6`), and the text says the result is close to the
+    defaults on all droplets (correlation 0.99), with 10x as the
+    over-correction example (CD4 middle peak, CD14 high peak).
+20. One sentence after the box plot: cell types with few droplets in the
+    sample (T-cells 2, Precursors 8) are estimated poorly, another reason
+    not to subsample.
+21. The runtime section gives the measured times on the current build
+    (one to two minutes per 500-droplet fit, about 25 minutes for all
+    droplets) until #130 is resolved. NEWS makes no claim about the
+    example's run time.
+22. The full-data run belongs in the III-c article.
 
 ## Out of scope
 

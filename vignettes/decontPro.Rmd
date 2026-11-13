@@ -208,8 +208,9 @@ plotDensity(
 )
 ```
 
-With the default priors, the low peaks of CD3, CD8 and CD19 barely move.
-Two priors control how much DecontPro removes:
+With the default priors, little is removed here: most of the low CD8 peak
+stays where it was, and only part of the low CD3 and CD4 peaks moves toward
+zero. Two priors control how much DecontPro removes:
 
 - `deltaSd`: how much the ambient level can vary from one ADT to another
   within a droplet.
@@ -218,16 +219,16 @@ Two priors control how much DecontPro removes:
 
 Larger values let DecontPro call more of a count contamination; smaller
 values remove less. We tested the defaults on datasets of 5,000 to 10,000
-droplets and 10 to 30 ADTs, and the results were reasonable. A more
-contaminated or a smaller dataset may need larger priors. Our 500 droplets
-are a small dataset, so we try priors 10 times the defaults:
+droplets and 10 to 30 ADTs, and the results were reasonable. A smaller or a
+more contaminated dataset may need larger priors. Our 500 droplets are a
+small dataset, so we try priors 3 times the defaults:
 
 ```{r decontPro_tuned}
 outTuned <- decontPro(
   counts,
   cellTypes,
-  deltaSd = 2e-4,
-  backgroundSd = 2e-5,
+  deltaSd = 6e-5,
+  backgroundSd = 6e-6,
   verbose = FALSE
 )
 ```
@@ -240,12 +241,16 @@ plotDensity(
 )
 ```
 
-Now the low peaks of CD3, CD8 and CD19 move to near zero, while the high
-peaks stay. CD4 is a useful check: it has three peaks, and the middle one
-comes from monocytes, which express some CD4. Only the lowest peak should
-move to zero; the middle peak should stay apart from it. Priors that are too
-large remove real signal too: at 100 times the defaults, part of the high
-CD14 peak of the monocytes moves down.
+Now more of the low peaks of CD3, CD4 and CD8 moves toward zero, while the
+high peaks stay. These results are close to what the default priors give on
+all 7,700 labelled droplets: for these 500 droplets, the two sets of
+decontaminated counts have a correlation of 0.99 on a log scale.
+
+CD4 is a useful check: it has three peaks, and the middle one comes from
+monocytes, which express some CD4. Only the lowest peak should move toward
+zero; the middle peak should stay. Priors that are too large remove real
+signal: at 10 times the defaults, the middle CD4 peak is pushed down toward
+zero, and the high CD14 peak of the monocytes shrinks.
 
 The decontaminated counts can also be compared within each cell type:
 
@@ -257,6 +262,11 @@ plotBoxByCluster(
   c("CD3", "CD4", "CD8", "CD16")
 )
 ```
+
+Cell types with only a few droplets in this sample, such as T-cells (2
+droplets) and Precursors (8), are estimated poorly: their results differ
+the most from those on all the droplets. This is another reason to run
+DecontPro on all of your droplets.
 
 # With empty droplets {#background}
 
@@ -309,7 +319,8 @@ aren't in the counts are dropped, and every ADT of the counts must be in
 # Runtime and reproducibility
 
 The run time grows with the number of ADTs times the number of droplets.
-Each fit in this vignette, 13 ADTs in 500 droplets, takes a few seconds.
+Each fit in this vignette, 13 ADTs in 500 droplets, takes one to two minutes
+on a laptop; all 7,700 labelled droplets take about 25 minutes per fit.
 
 Stan's fit is random. DecontPro sets Stan's seed with the `seed` argument
 (default 12345), so the same counts, cell types, priors and seed give the

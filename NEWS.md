@@ -8,7 +8,7 @@ covers run time, reproducibility, a FAQ and how to cite DecontPro. Stan's
 progress no longer fills the page (#83).
 * `decontPro()` help describes every element it returns and says that only
 the ADT totals of `background` are used, so it must hold empty droplets
-only. Its example is smaller, seeded and runs in about a second (#83).
+only. Its example is smaller and seeded (#83).
 * dplyr is no longer suggested (#83).
 
 # decontX 1.11.33
