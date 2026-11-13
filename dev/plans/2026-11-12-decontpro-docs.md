@@ -171,6 +171,17 @@ Decided while writing, and recorded at the spec review:
     ambient share of the non-background counts. In the model it is the
     weight of the ambient profile against the native profile; the roxygen
     and the vignette now say so.
+26. At hand-off (2026-11-13) the maintainer found 3x too weak and asked
+    for 5x priors (`deltaSd = 1e-4`, `backgroundSd = 1e-5`). On the same
+    500 droplets they call 19.6% of counts ambient (3x: 13.9%), move most
+    of the low CD8 peak to about 1, keep the CD4 monocyte peak (about
+    80), and still agree with the full-data defaults (log1p correlation
+    0.989). The vignette uses 5x; the 0.99 statement still holds.
+27. The maintainer asked for a fuller introduction, like decontX's: where
+    ambient and background contamination come from (following Yin et al.
+    2024: ambient material in the suspension; a non-specific background
+    peak consistent across cell types and resembling "spongelets", of
+    unknown source) and how the model splits each count.
 
 ## Out of scope
 

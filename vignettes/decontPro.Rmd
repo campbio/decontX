@@ -27,18 +27,37 @@ knitr::opts_chunk$set(
 # Introduction
 
 CITE-seq and similar assays measure proteins on single cells with
-antibody-derived tags (ADTs). Not every ADT count in a droplet comes from
-the cell's own proteins. DecontPro (Yin et al. 2024) splits each count into
-three parts:
+antibody-derived tags (ADTs): antibodies carrying a DNA barcode that is
+sequenced along with the cell's RNA. Not every ADT count in a droplet comes
+from the proteins on its cell. Two kinds of contamination add counts:
 
-- **Native:** ADTs bound to the cell's own proteins. Cells of the same type
-  share a native profile.
-- **Ambient:** ADTs floating in the cell suspension that were captured
-  along with the cell. One ambient profile is shared by the whole dataset.
-- **Background:** other non-specific signal in the droplet.
+- **Ambient contamination.** The cell suspension holds ambient material,
+  including ADTs, that is captured in droplets along with the cells. These
+  ADTs follow the profile of the whole suspension, so they show up in cells
+  that don't express the protein.
+- **Background.** Many ADTs show a low, non-specific peak, even in cell
+  types that lack the protein. Yin et al. (2024) found this background
+  peak to be consistent across cell types, and similar in profile to
+  "spongelets": droplets that cell-calling software calls empty but that
+  hold a medium level of ADTs. Its source isn't known; debris from
+  dissociation or dying cells are possible causes.
 
-DecontPro estimates the three parts with a Bayesian model fitted by Stan,
-and returns the native part as the decontaminated counts.
+Left in, contamination blurs the difference between cells that express a
+protein and cells that don't. DecontPro (Yin et al. 2024) is a Bayesian
+method that estimates and removes both kinds. It models each ADT count of
+a droplet as a mixture of three parts:
+
+- **Native:** ADTs bound to the proteins of the droplet's cell. Cells of
+  the same type share a native profile.
+- **Ambient:** one ambient profile, shared by all droplets, estimated from
+  the ADT totals of the data or of empty droplets. How much of each
+  droplet's counts comes from it is estimated for each droplet.
+- **Background:** a background level for each ADT, which can vary a little
+  from droplet to droplet.
+
+DecontPro fits the model with Stan's variational inference, splits each
+count into the three parts in proportion to their estimated rates, and
+returns the native part as the decontaminated counts.
 
 # Installation
 
@@ -238,15 +257,15 @@ Larger values let DecontPro assign more of each count to contamination;
 smaller values remove less. We tested the defaults on datasets of 5,000 to
 10,000 droplets and 10 to 30 ADTs, and the results were reasonable. A
 smaller or a more contaminated dataset may need larger priors. Our 500
-droplets are a small dataset, so we try priors 3 times the defaults:
+droplets are a small dataset, so we try priors 5 times the defaults:
 
 ```{r decontPro_tuned}
-# Decontaminate again with priors 3 times the defaults
+# Decontaminate again with priors 5 times the defaults
 tunedResult <- decontPro(
   adtCounts,
   cellTypes,
-  deltaSd = 6e-5,
-  backgroundSd = 6e-6,
+  deltaSd = 1e-4,
+  backgroundSd = 1e-5,
   verbose = FALSE
 )
 ```
@@ -260,9 +279,9 @@ plotDensity(
 )
 ```
 
-Now more of the low peaks of CD3, CD4 and CD8 moves toward zero, while the
-high peaks stay. These results are close to what the default priors give on
-all 7,700 labelled droplets. We fitted those once, outside this vignette:
+Now most of the low CD8 peak, and more of the low CD3 and CD4 peaks, move
+toward zero, while the high peaks stay. These results are close to what
+the default priors give on all 7,700 labelled droplets. We fitted those once, outside this vignette:
 for these 500 droplets, the counts decontaminated here and those from the
 fit on all droplets have a correlation of 0.99 on a log scale.
 
