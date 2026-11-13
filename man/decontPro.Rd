@@ -82,10 +82,9 @@ used to estimate the ambient ADT profile; without it, the profile comes
 from \code{filtered_counts}. Only each ADT's total across these droplets
 (the row sums) is used, pooled into one ambient profile, so the droplets
 must be empty: remove the called cells of \code{filtered_counts} first.
-It can have any number of droplets. Similar to \code{filtered_counts}, if
-it is
-a wrapper object, expect \code{counts} in the assay slot. When both
-have row names, its rows are matched to the ADTs of
+It can have any number of droplets. Similar to \code{filtered_counts},
+if it is a wrapper object, expect \code{counts} in the assay slot. When
+both have row names, its rows are matched to the ADTs of
 \code{filtered_counts} by name: ADTs that aren't in
 \code{filtered_counts} are dropped, and every ADT of
 \code{filtered_counts} must be present. Otherwise the rows are matched
@@ -119,10 +118,12 @@ component, a matrix like \code{decontaminated_counts}.}
 \code{r_est}, the native ADT profile of each cell type (cell type x
 ADT, rows named by the \code{cellType} labels, each row summing to 1);
 \code{p_est}, the ambient ADT profile (one value per ADT, summing to
-1); \code{delta_est}, the proportion of the non-background counts that
-is ambient (ADT x droplet); \code{delta_mean_est}, its mean level in
-each droplet; \code{background_est}, the background as a proportion of
-the droplet's total count (ADT x droplet); and
+1, named when \code{filtered_counts} has row names);
+\code{delta_est}, the weight of the ambient profile in the
+non-background part of each ADT in each droplet, the native profile
+getting the rest (ADT x droplet); \code{delta_mean_est}, its mean
+level in each droplet; \code{background_est}, the background as a
+proportion of the droplet's total count (ADT x droplet); and
 \code{background_mean_est}, its mean level for each ADT. Except for
 \code{p_est} and the rows of \code{r_est}, these have no names: their
 ADTs and droplets follow the rows and columns of
