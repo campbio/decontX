@@ -286,7 +286,7 @@ plotBoxByCluster(
 ```
 
 Each protein should stay high in the cell types that express it and fall in
-the others. Here CD3 stays high in the T cells and falls to 1 or 2 in B
+the others. Here CD3 stays high in the T cells and falls close to zero in B
 cells and natural killer cells; CD8 stays high in CD8 T cells and natural
 killer cells and falls in B cells and CD4 T cells.
 
@@ -314,7 +314,8 @@ own labels:
 ```{r background_template, eval=FALSE}
 library(singleCellTK)
 
-# Import the filtered matrix (the called cells) and the raw matrix
+# Import the filtered matrix (the called cells) and the raw matrix.
+# Use the same sample directory for both, so the barcodes match.
 sceFiltered <- importCellRanger(
   sampleDirs = "path/to/sample1/",
   dataType = "filtered"
