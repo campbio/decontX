@@ -153,7 +153,7 @@ had been built from the `-O0 -g` objects that `load_all()` leaves in
 a 500-droplet fit takes 5.6 to 8.9 s, the full data 111 s, and the
 example 0.9 s; check-full rebuilt both vignettes in 41 s. Results are
 identical between the two builds, so the comparison above stands. The
-runtime section says 5 to 10 seconds and about 2 minutes; #130 is to be
+runtime section says 5 to 10 seconds and about 2 minutes; #130 was
 closed as a false alarm.
 22. The full-data run belongs in the III-c article.
 
@@ -186,7 +186,10 @@ Decided while writing, and recorded at the spec review:
 ## Out of scope
 
 - `delta_est` and `background_est` have no dimnames. Adding them changes
-  the output, so it goes in a follow-up issue if the maintainer agrees.
+  the output, so it went to a follow-up issue (#129).
+- decontPro doesn't drop called cells from `background`, and an empty
+  or all-zero `background` fails inside Stan (found by the code review):
+  a code change, filed as #131.
 - Container returns and Seurat or SCE input in the vignette: III-b.
 - A decontPro run on real empty droplets: the III-c article (or not at
   all, per the 2026-10-26 decision).

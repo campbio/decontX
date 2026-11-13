@@ -54,8 +54,9 @@ pushed, one at a time.
   `?decontPro` documents every output and what `background` is used
   for, with a 10 x 8 seeded example (A7-03 to A7-05, A7-07, A7-11,
   A7-12, A7-19, A7-23); dplyr left Suggests. Spec
-  `dev/plans/2026-11-12-decontpro-docs.md`. Follow-up: #129 (names on
-  decontPro's parameter estimates).
+  `dev/plans/2026-11-12-decontpro-docs.md`. Follow-ups: #129 (names on
+  decontPro's parameter estimates), #131 (called cells or no counts in
+  `background`).
 
 ## Phase I: fixes, coverage, quality, speed
 
