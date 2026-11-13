@@ -144,10 +144,17 @@ the CD14 high peak. Approved changes:
 20. One sentence after the box plot: cell types with few droplets in the
     sample (T-cells 2, Precursors 8) are estimated poorly, another reason
     not to subsample.
-21. The runtime section gives the measured times on the current build
-    (one to two minutes per 500-droplet fit, about 25 minutes for all
-    droplets) until #130 is resolved. NEWS makes no claim about the
-    example's run time.
+21. The runtime section gives measured times. NEWS makes no claim about
+    the example's run time.
+
+Correction (2026-11-13): the slowdown was not real. The installed copy
+had been built from the `-O0 -g` objects that `load_all()` leaves in
+`src/` (`R CMD INSTALL .` reuses them). After `R CMD INSTALL --preclean .`
+a 500-droplet fit takes 5.6 to 8.9 s, the full data 111 s, and the
+example 0.9 s; check-full rebuilt both vignettes in 41 s. Results are
+identical between the two builds, so the comparison above stands. The
+runtime section says 5 to 10 seconds and about 2 minutes; #130 is to be
+closed as a false alarm.
 22. The full-data run belongs in the III-c article.
 
 Decided while writing, and recorded at the spec review:

@@ -352,8 +352,8 @@ aren't in the counts are dropped, and every ADT of the counts must be in
 # Runtime and reproducibility
 
 The run time grows with the number of ADTs times the number of droplets.
-Each fit in this vignette, 13 ADTs in 500 droplets, takes one to two minutes
-on a laptop; all 7,700 labelled droplets take about 25 minutes per fit.
+Each fit in this vignette, 13 ADTs in 500 droplets, takes 5 to 10 seconds
+on a laptop; a fit on all 7,700 labelled droplets takes about 2 minutes.
 Stan writes a temporary file during the fit, which DecontPro deletes when
 the fit ends.
 
