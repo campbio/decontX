@@ -82,11 +82,15 @@
 #' set.seed(1)
 #' counts <- matrix(rpois(80, lambda = 20), nrow = 10)
 #'
+#' # Name the droplets by their barcodes
+#' colnames(counts) <- paste0("cell", 1:8)
+#'
 #' # The cell type of each droplet
 #' cellTypes <- c("A", "A", "A", "A", "B", "B", "B", "B")
 #'
 #' # Simulated counts of the same 10 ADTs in 8 empty droplets (optional)
 #' emptyDroplets <- matrix(rpois(80, lambda = 2), nrow = 10)
+#' colnames(emptyDroplets) <- paste0("empty", 1:8)
 #'
 #' # Decontaminate the counts
 #' out <- decontPro(counts, cellTypes, background = emptyDroplets)
@@ -272,7 +276,20 @@ setMethod("decontPro", "ANY", function(filtered_counts,
       feature = "ADTs",
       verbose = args$verbose
     )
+    # Drop the called cells, like decontX() does (#131)
+    temp <- .checkBackground(counts, temp,
+      bgBatch = NULL, verbose = args$verbose,
+      countsArg = "filtered_counts", bgArg = bgArg
+    )$background
     .checkCountsDecon(temp, bgArg)
+    # A zero total would give a NaN profile, which Stan rejects as "not a
+    # simplex"
+    if (sum(temp) == 0) {
+      stop(
+        "'", bgArg, "' has no counts in the ADTs of 'filtered_counts', so ",
+        "it gives no ambient profile."
+      )
+    }
   }
 
   p <- Matrix::rowSums(temp)

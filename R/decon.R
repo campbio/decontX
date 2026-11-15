@@ -1379,13 +1379,14 @@ setMethod("decontX", "ANY", function(x,
 }
 
 
-## The background needs droplets, and bgBatch one value per droplet
-.checkBackgroundShape <- function(background, bgBatch) {
+## The background needs droplets, and bgBatch one value per droplet.
+## `bgArg` is the name the user gave the background argument
+.checkBackgroundShape <- function(background, bgBatch, bgArg = "background") {
   if (is.null(dim(background))) {
-    stop("'background' must be a matrix or a SingleCellExperiment.")
+    stop("'", bgArg, "' must be a matrix or a SingleCellExperiment.")
   }
   if (ncol(background) == 0) {
-    stop("'background' has no droplets.")
+    stop("'", bgArg, "' has no droplets.")
   }
   if (!is.null(bgBatch)) {
     if (length(bgBatch) != ncol(background)) {
@@ -1399,9 +1400,12 @@ setMethod("decontX", "ANY", function(x,
   invisible(NULL)
 }
 
+## Drops the background droplets whose barcodes (column names) are also in
+## x. decontPro() passes its own argument names for the messages
 .checkBackground <- function(x, background, bgBatch,
-                             logfile = NULL, verbose = FALSE) {
-  .checkBackgroundShape(background, bgBatch)
+                             logfile = NULL, verbose = FALSE,
+                             countsArg = "x", bgArg = "background") {
+  .checkBackgroundShape(background, bgBatch, bgArg)
 
   # Remove background barcodes that have already appeared in x
   # If bgBatch param is supplied, also remove duplicate bgBatch
@@ -1410,9 +1414,9 @@ setMethod("decontX", "ANY", function(x,
   } else {
     dupBarcode <- FALSE
     warning(
-      "No column names were found for the 'background' matrix. ",
-      "No checking was performed between the ids in the 'background' ",
-      "matrix and 'x'.",
+      "No column names were found for the '", bgArg, "' matrix. ",
+      "No checking was performed between the ids in the '", bgArg, "' ",
+      "matrix and '", countsArg, "'.",
       " Please ensure that no true cells are included in the background ",
       "matrix. Otherwise, results will be incorrect."
     )
@@ -1436,8 +1440,8 @@ setMethod("decontX", "ANY", function(x,
     }
     if (ncol(background) == 0) {
       stop(
-        "No droplets are left in 'background' after removing the barcodes ",
-        "that are also in 'x'."
+        "No droplets are left in '", bgArg, "' after removing the barcodes ",
+        "that are also in '", countsArg, "'."
       )
     }
   }

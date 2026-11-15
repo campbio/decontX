@@ -234,6 +234,88 @@ test_that("decontPro names ambient_counts when it isn't a matrix", {
   )
 })
 
+test_that("decontPro drops the called cells from background (#131)", {
+  # Stan is mocked out: the ambient profile must come from the empty
+  # droplets only, not from the barcodes that are also in filtered_counts
+  p <- refProData()
+  raw <- cbind(p$ambient, p$counts[, 1:3])
+  expected <- rowSums(p$ambient) / sum(p$ambient)
+
+  received <- NULL
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, ...) {
+      received <<- data
+      NULL
+    },
+    .processStanVbOut = function(stan_vb_output, dat) list()
+  )
+
+  expect_message(
+    decontPro(p$counts, p$k, background = raw),
+    regexp = "3  cells in the background matrix were removed"
+  )
+  expect_equal(received$p, expected)
+
+  # The SCE method extracts the counts first, so it drops them too
+  received <- NULL
+  sce <- SingleCellExperiment::SingleCellExperiment(list(counts = p$counts))
+  rawSce <- SingleCellExperiment::SingleCellExperiment(list(counts = raw))
+  decontPro(sce, p$k, background = rawSce, verbose = FALSE)
+  expect_equal(received$p, expected)
+})
+
+test_that("decontPro stops when background has no droplets left (#131)", {
+  p <- refProData()
+  expect_error(
+    decontPro(p$counts, p$k,
+      ambient_counts = p$counts[, 1:3], verbose = FALSE
+    ),
+    regexp = paste0(
+      "No droplets are left in 'ambient_counts' after removing the ",
+      "barcodes that are also in 'filtered_counts'"
+    )
+  )
+  expect_error(
+    decontPro(p$counts, p$k, background = p$ambient[, 0]),
+    regexp = "'background' has no droplets"
+  )
+})
+
+test_that("decontPro warns when background has no column names (#131)", {
+  p <- refProData()
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, ...) NULL,
+    .processStanVbOut = function(stan_vb_output, dat) list()
+  )
+  unnamed <- unname(p$ambient)
+  rownames(unnamed) <- rownames(p$ambient)
+  expect_warning(
+    decontPro(p$counts, p$k, ambient_counts = unnamed, verbose = FALSE),
+    regexp = paste0(
+      "No column names were found for the 'ambient_counts' matrix.*",
+      "'filtered_counts'"
+    )
+  )
+})
+
+test_that("decontPro stops when background has no ADT counts (#131)", {
+  # A zero total used to give a NaN profile that Stan rejected as "not a
+  # simplex"
+  p <- refProData()
+  zero <- p$ambient
+  zero[] <- 0L
+  expect_error(
+    decontPro(p$counts, p$k, background = zero),
+    regexp = "'background' has no counts in the ADTs of 'filtered_counts'"
+  )
+  # Counts only in an ADT that isn't in filtered_counts don't count
+  extra <- rbind(zero, extra_ADT = 50L)
+  expect_error(
+    decontPro(p$counts, p$k, ambient_counts = extra, verbose = FALSE),
+    regexp = "'ambient_counts' has no counts in the ADTs of 'filtered_counts'"
+  )
+})
+
 test_that("decontPro joins split Seurat layers in Cells() order", {
   p <- refProData()
   sample <- rep(c("a", "b"), 4)
