@@ -1407,8 +1407,7 @@ setMethod("decontX", "ANY", function(x,
                              countsArg = "x", bgArg = "background") {
   .checkBackgroundShape(background, bgBatch, bgArg)
 
-  # Remove background barcodes that have already appeared in x
-  # If bgBatch param is supplied, also remove duplicate bgBatch
+  # Remove barcodes also in x, with their bgBatch values if given
   if (!is.null(colnames(background))) {
     dupBarcode <- colnames(background) %in% colnames(x)
   } else {
