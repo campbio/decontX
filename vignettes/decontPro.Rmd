@@ -350,23 +350,22 @@ adtFiltered <- counts(sceFiltered)[isAdtFiltered, ]
 isAdtRaw <- rowData(sceRaw)$feature_type == "Antibody Capture"
 adtRaw <- counts(sceRaw)[isAdtRaw, ]
 
-# Keep the empty droplets: remove the barcodes of the called cells
-isEmpty <- !colnames(adtRaw) %in% colnames(adtFiltered)
-adtEmpty <- adtRaw[, isEmpty]
-
 # Estimate the ambient profile from the empty droplets
 emptyDropletResult <- decontPro(
   adtFiltered,
   cellTypes,
-  background = adtEmpty
+  background = adtRaw
 )
 ```
 
-Unlike `decontX()`, DecontPro doesn't remove the called cells from
-`background` itself, so remove them first, as above. When both matrices
-have row names, the ADTs are matched by name: ADTs in `background` that
-aren't in the counts are dropped, and every ADT of the counts must be in
-`background`. Without row names, the rows must be in the same order.
+Like `decontX()`, DecontPro removes the called cells from `background`
+itself: droplets whose barcodes (column names) are also in the counts are
+dropped, so the raw matrix can be given as it is. If `background` has no
+column names, nothing is removed and DecontPro warns, so give it the empty
+droplets only. When both matrices have row names, the ADTs are matched by
+name: ADTs in `background` that aren't in the counts are dropped, and every
+ADT of the counts must be in `background`. Without row names, the rows must
+be in the same order.
 
 # Runtime and reproducibility
 
@@ -386,9 +385,9 @@ the fit usually stops earlier, when it converges.
 ## Can I give DecontPro the raw matrix with every droplet?
 
 No. DecontPro models each droplet as a cell of a given type, so the counts
-must be the filtered matrix, with the called cells only. The empty droplets
-can still help, through the `background` argument (see
-[With empty droplets](#background)).
+must be the filtered matrix, with the called cells only. The raw matrix
+can still help, through the `background` argument, which takes it as it is
+(see [With empty droplets](#background)).
 
 # Citing DecontPro
 

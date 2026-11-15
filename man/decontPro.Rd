@@ -81,14 +81,17 @@ ADT's mean level. This background is part of the model, not the
 used to estimate the ambient ADT profile; without it, the profile comes
 from \code{filtered_counts}. Only each ADT's total across these droplets
 (the row sums) is used, pooled into one ambient profile, so the droplets
-must be empty: remove the called cells of \code{filtered_counts} first.
+must be empty. Droplets whose barcodes (column names) are also in
+\code{filtered_counts} are removed, so the raw matrix with every barcode
+can be given; without column names, nothing is removed, with a warning.
 Similar to \code{filtered_counts}, if it is a wrapper object, expect
 \code{counts} in the assay slot. When both have row names, its rows are
 matched to the ADTs of
 \code{filtered_counts} by name: ADTs that aren't in
 \code{filtered_counts} are dropped, and every ADT of
 \code{filtered_counts} must be present. Otherwise the rows are matched
-by position. The ADTs used must have no NA or negative counts.
+by position. The ADTs used must have no NA or negative counts, and some
+counts in total.
 Default NULL. Alias: \code{ambient_counts}.}
 
 \item{iter}{Maximum number of iterations of Stan's variational
@@ -138,11 +141,15 @@ Decontaminate using decontPro
 set.seed(1)
 counts <- matrix(rpois(80, lambda = 20), nrow = 10)
 
+# Name the droplets by their barcodes
+colnames(counts) <- paste0("cell", 1:8)
+
 # The cell type of each droplet
 cellTypes <- c("A", "A", "A", "A", "B", "B", "B", "B")
 
 # Simulated counts of the same 10 ADTs in 8 empty droplets (optional)
 emptyDroplets <- matrix(rpois(80, lambda = 2), nrow = 10)
+colnames(emptyDroplets) <- paste0("empty", 1:8)
 
 # Decontaminate the counts
 out <- decontPro(counts, cellTypes, background = emptyDroplets)
