@@ -27,14 +27,17 @@
 #' used to estimate the ambient ADT profile; without it, the profile comes
 #' from \code{filtered_counts}. Only each ADT's total across these droplets
 #' (the row sums) is used, pooled into one ambient profile, so the droplets
-#' must be empty: remove the called cells of \code{filtered_counts} first.
+#' must be empty. Droplets whose barcodes (column names) are also in
+#' \code{filtered_counts} are removed, so the raw matrix with every barcode
+#' can be given; without column names, nothing is removed, with a warning.
 #' Similar to \code{filtered_counts}, if it is a wrapper object, expect
 #' \code{counts} in the assay slot. When both have row names, its rows are
 #' matched to the ADTs of
 #' \code{filtered_counts} by name: ADTs that aren't in
 #' \code{filtered_counts} are dropped, and every ADT of
 #' \code{filtered_counts} must be present. Otherwise the rows are matched
-#' by position. The ADTs used must have no NA or negative counts.
+#' by position. The ADTs used must have no NA or negative counts, and some
+#' counts in total.
 #' Default NULL. Alias: \code{ambient_counts}.
 #' @param ... Only the aliases \code{cell_type}, \code{delta_sd},
 #' \code{background_sd} and \code{ambient_counts}, which can be used in

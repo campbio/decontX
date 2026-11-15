@@ -1,3 +1,14 @@
+# decontX 1.11.35
+
+* `decontPro()` now removes the called cells from `background`, as
+`decontX()` does: droplets whose barcodes (column names) are also in
+`filtered_counts` are dropped, so the raw matrix can be given as it is.
+Before, their native signal went into the ambient profile, so results
+change for calls whose `background` included called cells. A `background`
+without column names gives a warning, and one with no droplets left, or no
+counts in the ADTs of `filtered_counts`, stops with a clear error instead
+of Stan's "not a simplex" error (#131).
+
 # decontX 1.11.34
 
 * The decontPro vignette is rewritten. It uses the cord blood data's own
