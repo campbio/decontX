@@ -29,7 +29,11 @@
 #' (the row sums) is used, pooled into one ambient profile, so the droplets
 #' must be empty. Droplets whose barcodes (column names) are also in
 #' \code{filtered_counts} are removed, so the raw matrix with every barcode
-#' can be given; without column names, nothing is removed, with a warning.
+#' can be given. When either has no column names, nothing is removed, with
+#' a warning; a warning is also given when no barcode matches but
+#' \code{background} has droplets with as many counts as a typical cell.
+#' Barcodes are matched across all droplets, so with several samples they
+#' must be unique across samples, for example with a sample prefix in both.
 #' Similar to \code{filtered_counts}, if it is a wrapper object, expect
 #' \code{counts} in the assay slot. When both have row names, its rows are
 #' matched to the ADTs of

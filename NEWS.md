@@ -1,3 +1,21 @@
+# decontX 1.11.36
+
+* `decontX()` now matches the barcodes of `background` to the cells within
+each batch when `batch` and `bgBatch` are given. Before, a barcode that was
+a cell in one batch also removed the empty droplet with the same barcode in
+another, as happens with bare 10x barcodes from several samples. Results
+change slightly for such data (#134).
+* `decontX()` and `decontPro()` now warn when the called cells can't be
+found in `background` by barcode: when the counts have no column names
+(only `background` without them warned before), and when no barcode
+matches but `background` has droplets with as many counts as a typical
+cell, as a raw matrix does when its barcodes are named differently from
+the cells', for example without a sample prefix. These cells used to stay
+in the ambient profile without a word (#134).
+* `decontPro()` help and vignette say that `background` barcodes are matched
+across all droplets, so with several samples they must be unique across
+samples (#134).
+
 # decontX 1.11.35
 
 * `decontPro()` now removes the called cells from `background`, as
