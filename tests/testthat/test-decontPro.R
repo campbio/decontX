@@ -298,6 +298,45 @@ test_that("decontPro warns when background has no column names (#131)", {
   )
 })
 
+test_that("decontPro warns when filtered_counts has no column names", {
+  # #134
+  p <- refProData()
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, ...) NULL,
+    .processStanVbOut = function(stan_vb_output, dat) list()
+  )
+  unnamed <- p$counts
+  colnames(unnamed) <- NULL
+  expect_warning(
+    decontPro(unnamed, p$k, background = p$ambient, verbose = FALSE),
+    regexp = "No column names were found for the 'filtered_counts' matrix"
+  )
+})
+
+test_that("decontPro warns when background has cells under other names", {
+  # #134: a raw matrix with bare barcodes, and cells with a sample prefix
+  p <- refProData()
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, ...) NULL,
+    .processStanVbOut = function(stan_vb_output, dat) list()
+  )
+  prefixed <- p$counts
+  colnames(prefixed) <- paste0("sample1_", colnames(p$counts))
+  expect_warning(
+    decontPro(prefixed, p$k,
+      background = cbind(p$ambient, p$counts), verbose = FALSE
+    ),
+    regexp = paste0(
+      "None of the barcodes \\(column names\\) of 'background' are in ",
+      "'filtered_counts', but [0-9]+ of its droplets"
+    )
+  )
+  # Empty droplets share no barcodes with the cells either, and are fine
+  expect_no_warning(
+    decontPro(prefixed, p$k, background = p$ambient, verbose = FALSE)
+  )
+})
+
 test_that("decontPro stops when background has no ADT counts (#131)", {
   # A zero total used to give a NaN profile that Stan rejected as "not a
   # simplex"
