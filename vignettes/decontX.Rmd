@@ -186,9 +186,9 @@ With `batch` and `bgBatch`, the cell ids are matched within each batch, so a
 barcode that is a cell in one sample can still be an empty droplet in
 another. If either matrix has no cell ids, nothing can be removed and
 decontX gives a warning. It also warns when no cell id matches but the
-background has droplets with as many counts as a typical cell, which happens
-when the two matrices name the same barcodes differently, for example with
-and without a sample prefix.
+background has many droplets with as many counts as a typical cell, which
+happens when the two matrices name the same barcodes differently, for
+example with and without a sample prefix.
 
 When both matrices have gene names (row names), genes are matched by name:
 genes in the background that are not in `x` are dropped, and genes in `x`

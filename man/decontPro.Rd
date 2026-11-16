@@ -84,8 +84,10 @@ from \code{filtered_counts}. Only each ADT's total across these droplets
 must be empty. Droplets whose barcodes (column names) are also in
 \code{filtered_counts} are removed, so the raw matrix with every barcode
 can be given. When either has no column names, nothing is removed, with
-a warning; a warning is also given when no barcode matches but
-\code{background} has droplets with as many counts as a typical cell.
+a warning. A warning is also given when no barcode matches but
+\code{background} has at least a tenth as many droplets as there are
+cells with at least the median cell's total count, as a raw matrix does
+when the two name the same barcodes differently.
 Barcodes are matched across all droplets, so with several samples they
 must be unique across samples, for example with a sample prefix in both.
 Similar to \code{filtered_counts}, if it is a wrapper object, expect

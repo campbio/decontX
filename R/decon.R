@@ -52,10 +52,11 @@
 #' present. Otherwise the rows are matched by position. Barcodes (column
 #' names) that are also in \code{x} are removed, within each batch when
 #' \code{bgBatch} is given. A warning is given when either has no column
-#' names, or when no barcode matches but \code{background} has droplets
-#' with as many counts as a typical cell of \code{x}, as when the two name
-#' the same barcodes differently. With \code{background}, \code{z} may
-#' have a single cluster. Default NULL.
+#' names, or when no barcode of a batch matches but \code{background} has
+#' at least a tenth as many droplets as the batch has cells with at least
+#' the median cell's total count in the genes of \code{x}, as a raw matrix
+#' does when the two name the same barcodes differently. With
+#' \code{background}, \code{z} may have a single cluster. Default NULL.
 #' @param bgAssayName Character. Name of the assay to use if \code{background}
 #' is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
 #' same as
@@ -1468,39 +1469,53 @@ setMethod("decontX", "ANY", function(x,
     )
     return(rep(FALSE, ncol(background)))
   }
-  # Without both labels, every cell and droplet is in one group
-  if (is.null(batch) || is.null(bgBatch)) {
+  # With only one of the labels, .decontXBatches() stops later
+  if (is.null(batch) != is.null(bgBatch)) {
+    return(bgNames %in% xNames)
+  }
+  # Without labels, every cell and droplet is in one group
+  if (is.null(batch)) {
     batch <- rep("all", length(xNames))
     bgBatch <- rep("all", length(bgNames))
   }
   batch <- as.character(batch)
   bgBatch <- as.character(bgBatch)
   isCell <- logical(length(bgNames))
-  unmatched <- list()
+  unmatched <- character(0)
   for (b in unique(bgBatch)) {
     inBg <- bgBatch == b
-    inX <- batch == b
-    isCell[inBg] <- bgNames[inBg] %in% xNames[inX]
-    if (!any(isCell[inBg]) && any(inX)) {
-      unmatched[[b]] <- .cellSizedDroplets(x[, inX, drop = FALSE],
-        background[, inBg, drop = FALSE]
-      )
+    isCell[inBg] <- bgNames[inBg] %in% xNames[batch == b]
+    if (!any(isCell[inBg]) && b %in% batch) {
+      unmatched <- c(unmatched, b)
     }
   }
-  .warnUnmatchedCells(unlist(unmatched), length(unique(batch)) > 1,
-    countsArg = countsArg, bgArg = bgArg
-  )
+  if (length(unmatched) > 0) {
+    .warnUnmatchedCells(
+      .cellSizedDroplets(x, background, batch, bgBatch, unmatched),
+      length(unique(batch)) > 1,
+      countsArg = countsArg, bgArg = bgArg
+    )
+  }
   isCell
 }
 
-## The number of background droplets with at least as many counts as the
-## median cell, or 0 when there are fewer than a tenth of the cells. A raw
-## matrix holds every cell, so about half the cells' number; empty droplets
-## have far fewer counts than cells, so none
-.cellSizedDroplets <- function(x, background) {
-  cellMedian <- stats::median(Matrix::colSums(x), na.rm = TRUE)
-  n <- sum(Matrix::colSums(background) >= cellMedian, na.rm = TRUE)
-  if (n < max(1, 0.1 * ncol(x))) 0 else n
+## For each of 'batches', the number of background droplets with at least
+## as many counts as the median cell of the batch, or 0 when there are
+## fewer than a tenth of its cells. A raw matrix holds every cell, so about
+## half the cells' number; empty droplets have far fewer counts than cells,
+## so none. Only the genes of x are counted, as in the run, and a
+## background with NA is left to the count checks that follow
+.cellSizedDroplets <- function(x, background, batch, bgBatch, batches) {
+  if (!is.null(rownames(x)) && !is.null(rownames(background))) {
+    inX <- rownames(background) %in% rownames(x)
+    background <- background[inX, , drop = FALSE]
+  }
+  xTotals <- Matrix::colSums(x)
+  bgTotals <- Matrix::colSums(background)
+  vapply(batches, function(b) {
+    n <- sum(bgTotals[bgBatch == b] >= stats::median(xTotals[batch == b]))
+    if (is.na(n) || n < max(1, 0.1 * sum(batch == b))) 0 else n
+  }, numeric(1))
 }
 
 ## 'counts': the number of cell-sized droplets for each batch whose

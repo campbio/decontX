@@ -363,10 +363,10 @@ itself: droplets whose barcodes (column names) are also in the counts are
 dropped, so the raw matrix can be given as it is. If either matrix has no
 column names, nothing is removed and DecontPro warns, so give it the empty
 droplets only. It also warns when no barcode matches but `background` has
-droplets with as many counts as a typical cell, which happens when the two
-matrices name the same barcodes differently, for example with and without a
-sample prefix. All of `background` goes into one ambient profile, and its
-barcodes are matched across all droplets. With several samples, the
+many droplets with as many counts as a typical cell, which happens when the
+two matrices name the same barcodes differently, for example with and
+without a sample prefix. All of `background` goes into one ambient profile,
+and its barcodes are matched across all droplets. With several samples, the
 barcodes must be unique across samples, for example with a sample prefix in
 both matrices; otherwise a barcode that is a cell in one sample removes an
 empty droplet with the same barcode in another.

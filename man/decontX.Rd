@@ -106,10 +106,11 @@ that aren't in \code{x} are dropped, and every gene of \code{x} must be
 present. Otherwise the rows are matched by position. Barcodes (column
 names) that are also in \code{x} are removed, within each batch when
 \code{bgBatch} is given. A warning is given when either has no column
-names, or when no barcode matches but \code{background} has droplets
-with as many counts as a typical cell of \code{x}, as when the two name
-the same barcodes differently. With \code{background}, \code{z} may
-have a single cluster. Default NULL.}
+names, or when no barcode of a batch matches but \code{background} has
+at least a tenth as many droplets as the batch has cells with at least
+the median cell's total count in the genes of \code{x}, as a raw matrix
+does when the two name the same barcodes differently. With
+\code{background}, \code{z} may have a single cluster. Default NULL.}
 
 \item{bgAssayName}{Character. Name of the assay to use if \code{background}
 is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to

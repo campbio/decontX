@@ -8,8 +8,9 @@ change slightly for such data (#134).
 * `decontX()` and `decontPro()` now warn when the called cells can't be
 found in `background` by barcode: when the counts have no column names
 (only `background` without them warned before), and when no barcode
-matches but `background` has droplets with as many counts as a typical
-cell, as a raw matrix does when its barcodes are named differently from
+matches but `background` has many droplets with as many counts as a
+typical cell (at least a tenth as many as there are cells, at or above the
+median cell's total), as a raw matrix does when its barcodes are named differently from
 the cells', for example without a sample prefix. These cells used to stay
 in the ambient profile without a word (#134).
 * `decontPro()` help and vignette say that `background` barcodes are matched

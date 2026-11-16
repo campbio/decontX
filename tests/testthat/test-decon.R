@@ -2157,6 +2157,15 @@ test_that("decontX warns when x has no column names (#134)", {
     ),
     regexp = "No column names were found for the 'x' matrix"
   )
+
+  # Without names on either matrix, only the background is named
+  bg <- d$bg
+  colnames(bg) <- NULL
+  warnings <- capture_warnings(
+    decontX(x, z = d$sim$z, background = bg, maxIter = 2, verbose = FALSE)
+  )
+  expect_length(warnings, 1)
+  expect_match(warnings, "for the 'background' matrix")
 })
 
 test_that("decontX warns when background has cells under other names (#134)", {
@@ -2183,6 +2192,27 @@ test_that("decontX warns when background has cells under other names (#134)", {
   expect_no_warning(run(d$bg))
   # So are fewer cell-sized droplets than a tenth of the cells
   expect_no_warning(run(cbind(d$bg, x[, 1:9])))
+
+  # Only the genes of x count, as in the run: a raw matrix often has more
+  extra <- matrix(1000L,
+    nrow = 5, ncol = ncol(d$bg),
+    dimnames = list(paste0("extra", 1:5), colnames(d$bg))
+  )
+  expect_no_warning(run(rbind(d$bg, extra)))
+
+  # Input errors stop without the warning first
+  expect_no_warning(expect_error(
+    decontX(prefixed,
+      z = d$sim$z, batch = d$batch, background = cbind(d$bg, x),
+      verbose = FALSE
+    ),
+    regexp = "Please also supply background batch"
+  ))
+  withNA <- cbind(d$bg, x)
+  withNA[1, 1] <- NA
+  expect_no_warning(expect_error(run(withNA),
+    regexp = "Missing value in 'background' matrix"
+  ))
 })
 
 test_that("decontX matches the barcodes within each batch (#134)", {
