@@ -3,14 +3,15 @@
 # them on two installed commits. Each path takes the shared data from
 # refData() and returns only the parts of the result that are pinned.
 
-# Simulated counts, a second simulation used as the background, and the
-# batch labels shared by every path. The background droplets have far fewer
-# counts than the cells, like empty droplets (#134)
+# Simulated counts, the contamination counts of a second simulation used as
+# the background, and the batch labels shared by every path. Like empty
+# droplets, the background holds only ambient counts, far fewer than a cell
+# (#134). Smaller simulated totals (NRange) gave different counts on Linux
+# x86_64 and macOS arm64, so the default totals are kept
 refData <- function() {
   sim <- simulateContamination(C = 100, G = 60, K = 3, seed = 1)
-  bg <- simulateContamination(
-    C = 40, G = 60, K = 3, NRange = c(20, 50), seed = 2
-  )$observedCounts
+  bgSim <- simulateContamination(C = 40, G = 60, K = 3, seed = 2)
+  bg <- bgSim$observedCounts - bgSim$nativeCounts
   rownames(bg) <- rownames(sim$observedCounts)
   colnames(bg) <- paste0("bg_", seq_len(ncol(bg)))
   list(
