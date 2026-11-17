@@ -3,11 +3,15 @@
 # them on two installed commits. Each path takes the shared data from
 # refData() and returns only the parts of the result that are pinned.
 
-# Simulated counts, a second simulation used as the background, and the
-# batch labels shared by every path
+# Simulated counts, the contamination counts of a second simulation used as
+# the background, and the batch labels shared by every path. Like empty
+# droplets, the background holds only ambient counts, far fewer than a cell
+# (#134). Smaller simulated totals (NRange) gave different counts on Linux
+# x86_64 and macOS arm64, so the default totals are kept
 refData <- function() {
   sim <- simulateContamination(C = 100, G = 60, K = 3, seed = 1)
-  bg <- simulateContamination(C = 40, G = 60, K = 3, seed = 2)$observedCounts
+  bgSim <- simulateContamination(C = 40, G = 60, K = 3, seed = 2)
+  bg <- bgSim$observedCounts - bgSim$nativeCounts
   rownames(bg) <- rownames(sim$observedCounts)
   colnames(bg) <- paste0("bg_", seq_len(ncol(bg)))
   list(
@@ -18,13 +22,15 @@ refData <- function() {
   )
 }
 
-# The 10 x 8 decontPro fixture, with an ambient matrix for the same ADTs
+# The 10 x 8 decontPro fixture, with an ambient matrix for the same ADTs.
+# The ambient droplets have fewer counts than the cells, like empty
+# droplets (#134)
 refProData <- function() {
   withr::with_seed(42, {
     counts <- matrix(sample(1:10, 80, replace = TRUE), nrow = 10, ncol = 8,
       dimnames = list(paste0("g", seq_len(10)), paste0("c", seq_len(8)))
     )
-    ambient <- matrix(sample(1:100, 50, replace = TRUE), nrow = 10, ncol = 5,
+    ambient <- matrix(sample(1:3, 50, replace = TRUE), nrow = 10, ncol = 5,
       dimnames = list(paste0("g", seq_len(10)), paste0("e", seq_len(5)))
     )
   })

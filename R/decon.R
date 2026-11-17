@@ -49,9 +49,14 @@
 #' will be used as the contamination distribution. When both have row
 #' names, its rows are matched to the genes of \code{x} by name: genes
 #' that aren't in \code{x} are dropped, and every gene of \code{x} must be
-#' present. Otherwise the rows are matched by position. Barcodes that are
-#' also in \code{x} are removed. With \code{background}, \code{z} may have
-#' a single cluster. Default NULL.
+#' present. Otherwise the rows are matched by position. Barcodes (column
+#' names) that are also in \code{x} are removed, within each batch when
+#' \code{bgBatch} is given. A warning is given when either has no column
+#' names, or when no barcode of a batch matches but \code{background} has
+#' at least a tenth as many droplets as the batch has cells with at least
+#' the median cell's total count in the genes of \code{x}, as a raw matrix
+#' does when the two name the same barcodes differently. With
+#' \code{background}, \code{z} may have a single cluster. Default NULL.
 #' @param bgAssayName Character. Name of the assay to use if \code{background}
 #' is a \linkS4class[SingleCellExperiment]{SingleCellExperiment}. Default to
 #' same as
@@ -61,8 +66,10 @@
 #' those in \code{batch}, such that each batch of cells have their
 #' corresponding batch of empty droplets as background, pointed by this
 #' parameter: every batch needs at least one droplet, after barcodes that are
-#' also in \code{x} are removed. Labels must not be empty strings. It needs
-#' \code{batch} and \code{background}. Default to NULL.
+#' also in \code{x} are removed. Barcodes are matched to the cells of the
+#' same batch, so a barcode can be a cell in one batch and an empty droplet
+#' in another. Labels must not be empty strings. It needs \code{batch} and
+#' \code{background}. Default to NULL.
 #' @param maxIter Integer. Maximum iterations of the EM algorithm. Default 500.
 #' @param convergence Numeric. The EM algorithm will be stopped if the maximum
 #' difference in the contamination estimates between the previous and
@@ -381,7 +388,7 @@ setMethod("decontX", "ANY", function(x,
 
   if (!is.null(background)) {
     # Drop background barcodes that are also cells, with their bgBatch
-    temp <- .checkBackground(counts, background, bgBatch,
+    temp <- .checkBackground(counts, background, bgBatch, batch,
       logfile = params$logfile, verbose = params$verbose
     )
     background <- temp$background
@@ -1401,26 +1408,17 @@ setMethod("decontX", "ANY", function(x,
 }
 
 ## Drops the background droplets whose barcodes (column names) are also in
-## x. decontPro() passes its own argument names for the messages
-.checkBackground <- function(x, background, bgBatch,
+## x, within the same batch when batch and bgBatch are both given.
+## decontPro() passes its own argument names for the messages
+.checkBackground <- function(x, background, bgBatch, batch = NULL,
                              logfile = NULL, verbose = FALSE,
                              countsArg = "x", bgArg = "background") {
   .checkBackgroundShape(background, bgBatch, bgArg)
 
   # Remove barcodes also in x, with their bgBatch values if given
-  if (!is.null(colnames(background))) {
-    dupBarcode <- colnames(background) %in% colnames(x)
-  } else {
-    dupBarcode <- FALSE
-    warning(
-      "No column names were found for the '", bgArg, "' matrix. ",
-      "No checking was performed between the ids in the '", bgArg, "' ",
-      "matrix and '", countsArg, "'.",
-      " Please ensure that no true cells are included in the background ",
-      "matrix. Otherwise, results will be incorrect."
-    )
-  }
-
+  dupBarcode <- .backgroundCells(x, background, batch, bgBatch,
+    countsArg = countsArg, bgArg = bgArg
+  )
   if (any(dupBarcode)) {
     .logMessages(
       date(),
@@ -1451,6 +1449,99 @@ setMethod("decontX", "ANY", function(x,
   )
 
   re
+}
+
+## Which background droplets are cells of x: those whose barcode (column
+## name) is a cell's, in the same batch when batch and bgBatch are both
+## given. Warns when the barcodes can't be used to find the cells (#134)
+.backgroundCells <- function(x, background, batch, bgBatch,
+                             countsArg, bgArg) {
+  xNames <- colnames(x)
+  bgNames <- colnames(background)
+  if (is.null(xNames) || is.null(bgNames)) {
+    unnamed <- if (is.null(bgNames)) bgArg else countsArg
+    warning(
+      "No column names were found for the '", unnamed, "' matrix. ",
+      "No checking was performed between the ids in the '", bgArg, "' ",
+      "matrix and '", countsArg, "'.",
+      " Please ensure that no true cells are included in the background ",
+      "matrix. Otherwise, results will be incorrect."
+    )
+    return(rep(FALSE, ncol(background)))
+  }
+  # With only one of the labels, .decontXBatches() stops later
+  if (is.null(batch) != is.null(bgBatch)) {
+    return(bgNames %in% xNames)
+  }
+  # Without labels, every cell and droplet is in one group
+  if (is.null(batch)) {
+    batch <- rep("all", length(xNames))
+    bgBatch <- rep("all", length(bgNames))
+  }
+  batch <- as.character(batch)
+  bgBatch <- as.character(bgBatch)
+  isCell <- logical(length(bgNames))
+  unmatched <- character(0)
+  for (b in unique(bgBatch)) {
+    inBg <- bgBatch == b
+    isCell[inBg] <- bgNames[inBg] %in% xNames[batch == b]
+    if (!any(isCell[inBg]) && b %in% batch) {
+      unmatched <- c(unmatched, b)
+    }
+  }
+  if (length(unmatched) > 0) {
+    .warnUnmatchedCells(
+      .cellSizedDroplets(x, background, batch, bgBatch, unmatched),
+      length(unique(batch)) > 1,
+      countsArg = countsArg, bgArg = bgArg
+    )
+  }
+  isCell
+}
+
+## For each of 'batches', the number of background droplets with at least
+## as many counts as the median cell of the batch, or 0 when there are
+## fewer than a tenth of its cells. A raw matrix holds every cell, so about
+## half the cells' number; empty droplets have far fewer counts than cells,
+## so none. Only the genes of x are counted, as in the run, and a
+## background with NA is left to the count checks that follow
+.cellSizedDroplets <- function(x, background, batch, bgBatch, batches) {
+  if (!is.null(rownames(x)) && !is.null(rownames(background))) {
+    inX <- rownames(background) %in% rownames(x)
+    background <- background[inX, , drop = FALSE]
+  }
+  xTotals <- Matrix::colSums(x)
+  bgTotals <- Matrix::colSums(background)
+  vapply(batches, function(b) {
+    n <- sum(bgTotals[bgBatch == b] >= stats::median(xTotals[batch == b]))
+    if (is.na(n) || n < max(1, 0.1 * sum(batch == b))) 0 else n
+  }, numeric(1))
+}
+
+## 'counts': the number of cell-sized droplets for each batch whose
+## barcodes didn't match any cell's
+.warnUnmatchedCells <- function(counts, batched, countsArg, bgArg) {
+  counts <- counts[counts > 0]
+  if (length(counts) == 0) {
+    return(invisible(NULL))
+  }
+  forBatch <- ""
+  cellRef <- paste0("the median cell of '", countsArg, "'")
+  if (batched) {
+    forBatch <- paste0(
+      " for ", ngettext(length(counts), "batch ", "batches "),
+      .firstFew(names(counts))
+    )
+    cellRef <- "the median cell of their batch"
+  }
+  warning(
+    "None of the barcodes (column names) of '", bgArg, "' are in '",
+    countsArg, "'", forBatch, ", but ", sum(counts), " of its droplets ",
+    "have at least as many counts as ", cellRef, ". '", bgArg, "' may hold ",
+    "the called cells under other barcodes, for example without a sample ",
+    "prefix, and they would be used as empty droplets. Make the barcodes ",
+    "match, or remove the cells from '", bgArg, "'."
+  )
 }
 
 ## Match the rows of a background matrix to the rows of the counts: by name
