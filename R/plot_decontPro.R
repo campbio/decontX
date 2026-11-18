@@ -238,8 +238,8 @@ plotBoxByCluster <- function(counts,
   }
   cells <- colnames(counts)
   deconCells <- colnames(decontaminated_counts)
-  if (!is.null(cells) && !is.null(deconCells) &&
-    !identical(cells, deconCells)) {
+  bothNamed <- !is.null(cells) && !is.null(deconCells)
+  if (bothNamed && !identical(cells, deconCells)) {
     stop(
       "The column names of 'counts' and 'decontaminated_counts' differ. ",
       "If they hold the same droplets in another order, use ",
