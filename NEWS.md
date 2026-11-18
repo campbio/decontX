@@ -4,7 +4,8 @@
 columns of each `decontX_<batch>_UMAP` `DecontX_UMAP_1` and
 `DecontX_UMAP_2`, as in a single-batch run's `decontX_UMAP`. They were
 `UMAP_1` and `UMAP_2`, so code that reads these columns by name needs
-updating (#99).
+updating, and `plotDecontXContamination()` on one of them now titles its
+axes `DecontX_UMAP_1` and `DecontX_UMAP_2` (#99).
 * `decontPro()` now names its estimated parameters by ADT and droplet, from
 the row and column names of `filtered_counts`: the rows and columns of
 `delta_est` and `background_est`, the columns of `r_est`, and

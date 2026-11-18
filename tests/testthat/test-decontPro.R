@@ -1095,7 +1095,8 @@ test_that("the plots stop when the two matrices have different droplets", {
   counts <- matrix(c(60, 72, 52, 49, 89, 112),
     nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
   )
-  # 9 droplets: 3 + 9 values took the 6 labels recycled, with no error
+  # 9 droplets: the 2 x 3 "con"/"decon" labels were recycled over the
+  # 3 + 9 values, with no error
   wider <- cbind(counts, counts, counts) - 1
   colnames(wider) <- paste0("c", 1:9)
   expect_error(
