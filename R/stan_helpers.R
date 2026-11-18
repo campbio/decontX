@@ -94,17 +94,28 @@
   processed_stan <- list()
 
 
-  # Save raw estimations
+  # Save raw estimations, named by the ADTs and droplets of the counts
+  # (#129). Stan gives the means as 1-d arrays; they become plain vectors.
+  adts <- rownames(dat$counts)
+  droplets <- colnames(dat$counts)
+  # NULL when the counts have no names, as list(NULL, NULL) isn't
+  adtDropletNames <- dimnames(dat$counts)
   parameters <- list()
   parameters[["delta_sd"]] <- dat$delta_sd
   parameters[["background_sd"]] <- dat$background_sd
   parameters[["r_est"]] <- r_est
-  rownames(parameters[["r_est"]]) <- dat$cell_type_labels
+  dimnames(parameters[["r_est"]]) <- list(dat$cell_type_labels, adts)
   parameters[["p_est"]] <- p_est
   parameters[["delta_est"]] <- delta_est
-  parameters[["delta_mean_est"]] <- delta_mean_est
+  dimnames(parameters[["delta_est"]]) <- adtDropletNames
+  parameters[["delta_mean_est"]] <- stats::setNames(
+    as.vector(delta_mean_est), droplets
+  )
   parameters[["background_est"]] <- background_est
-  parameters[["background_mean_est"]] <- background_mean_est
+  dimnames(parameters[["background_est"]]) <- adtDropletNames
+  parameters[["background_mean_est"]] <- stats::setNames(
+    as.vector(background_mean_est), adts
+  )
 
   processed_stan[["parameters"]] <- parameters
 

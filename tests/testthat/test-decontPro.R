@@ -71,6 +71,39 @@ test_that("decontPro splits each count by the estimated rates", {
   expect_identical(params$background_mean_est, 0.1)
 })
 
+test_that("decontPro names the estimates by ADT and droplet", {
+  adts <- c("CD3", "CD4")
+  droplets <- c("d1", "d2", "d3")
+  counts <- matrix(c(6, 12, 8, 4, 12, 16),
+    nrow = 2,
+    dimnames = list(adts, droplets)
+  )
+  dat <- list(
+    N = 2, M = 3, counts = counts, OC = c(18, 12, 28),
+    p = c(CD3 = 0.25, CD4 = 0.75), cell_type = c(1, 2, 2),
+    cell_type_labels = c("B", "T"), delta_sd = 0.1, background_sd = 0.2
+  )
+  # Stan gives the per-droplet and per-ADT means as 1-d arrays
+  est <- list(
+    r = rbind(c(0.5, 0.5), c(0.75, 0.25)),
+    delta = rbind(c(0, 0), c(1, 1), c(0.5, 0.5)),
+    delta_mean = array(c(0.1, 0.2, 0.3)),
+    background = matrix(c(0, 0.5, 0, 0, 0, 0), nrow = 2),
+    background_mean = array(c(0.4, 0.5))
+  )
+  fit <- methods::new("stanfit", sim = list(est = est))
+  params <- .processStanVbOut(fit, dat)$parameters
+
+  expect_identical(dimnames(params$r_est), list(c("B", "T"), adts))
+  expect_identical(dimnames(params$delta_est), list(adts, droplets))
+  expect_identical(dimnames(params$background_est), list(adts, droplets))
+  expect_identical(params$delta_mean_est, c(d1 = 0.1, d2 = 0.2, d3 = 0.3))
+  expect_identical(params$background_mean_est, c(CD3 = 0.4, CD4 = 0.5))
+  # Values are unchanged
+  expect_identical(unname(params$delta_est), t(est$delta))
+  expect_identical(unname(params$background_est), est$background)
+})
+
 test_that("decontPro results match a Stan fit with default output draws", {
   p <- refProData()
   out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))

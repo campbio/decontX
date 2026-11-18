@@ -220,9 +220,8 @@ sum(decontResult$background_counts) / sum(adtCounts)
   background as a proportion of the droplet's total count.
 - `background_mean_est`: for each ADT, the mean level of `background_est`.
 
-Apart from `p_est` and the rows of `r_est`, these estimates don't carry
-names yet. Their ADTs follow the rows of the counts, and their droplets the
-columns.
+The ADTs and droplets of these estimates carry the row and column names of
+the counts, so a droplet's values can be looked up by its barcode.
 
 # Tuning the priors
 

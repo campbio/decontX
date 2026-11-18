@@ -80,10 +80,9 @@
 #'   getting the rest (ADT x droplet); \code{delta_mean_est}, its mean
 #'   level in each droplet; \code{background_est}, the background as a
 #'   proportion of the droplet's total count (ADT x droplet); and
-#'   \code{background_mean_est}, its mean level for each ADT. Except for
-#'   \code{p_est} and the rows of \code{r_est}, these have no names: their
-#'   ADTs and droplets follow the rows and columns of
-#'   \code{filtered_counts}.}
+#'   \code{background_mean_est}, its mean level for each ADT. The ADTs and
+#'   droplets of these estimates are named by the row and column names of
+#'   \code{filtered_counts}, if it has them.}
 #' }
 #'
 #' @examples
