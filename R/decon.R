@@ -191,7 +191,9 @@
 #' will be stored in \code{metadata(x)$decontX}. The UMAPs used to generated
 #' cell cluster labels will be stored in
 #' \code{reducedDims} slot in \code{x}, except with
-#' \code{embedding = FALSE}. Running \code{decontX} again on
+#' \code{embedding = FALSE}. Each has the columns \code{DecontX_UMAP_1}
+#' and \code{DecontX_UMAP_2}; with several batches, the cells outside a
+#' batch are \code{NA} in its UMAP. Running \code{decontX} again on
 #' \code{x} replaces the assay, the \code{colData} columns and
 #' \code{metadata(x)$decontX}. A UMAP from an earlier run
 #' (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
@@ -915,9 +917,9 @@ setMethod("decontX", "ANY", function(x,
 
 ## The UMAPs to store with one row per cell, named as the SCE reducedDims:
 ## a single batch's UMAP as it is, or each batch's padded with NA for the
-## cells of the other batches. The single UMAP keeps its DecontX_UMAP_1/2
-## columns and the padded ones get UMAP_1/2, as decontX always stored them.
-## None when the run had no embedding
+## cells of the other batches. Both keep the batch UMAP's column names
+## (DecontX_UMAP_1/2), so batched and single runs match (#99). None when
+## the run had no embedding
 .decontXUMAPs <- function(result, cellNames) {
   batches <- names(result$estimates)
   # Without the embedding, no batch has a UMAP
@@ -930,7 +932,7 @@ setMethod("decontX", "ANY", function(x,
   umaps <- lapply(batches, function(b) {
     umap <- matrix(NA, ncol = 2, nrow = length(cellNames))
     umap[result$batch == b, ] <- result$estimates[[b]]$UMAP
-    colnames(umap) <- c("UMAP_1", "UMAP_2")
+    colnames(umap) <- colnames(result$estimates[[b]]$UMAP)
     rownames(umap) <- cellNames
     umap
   })

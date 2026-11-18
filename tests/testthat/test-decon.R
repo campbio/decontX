@@ -318,10 +318,19 @@ test_that("batched SCE runs store one padded UMAP per batch", {
     name <- paste0("decontX_", b, "_UMAP")
     umap <- SingleCellExperiment::reducedDim(sce, name)
     inBatch <- d$batch == b
-    expect_identical(dimnames(umap), list(colnames(sce), c("UMAP_1", "UMAP_2")))
+    # Named as the UMAP of a single batch (#99)
+    expect_identical(
+      dimnames(umap),
+      list(colnames(sce), c("DecontX_UMAP_1", "DecontX_UMAP_2"))
+    )
     expect_true(all(is.na(umap[!inBatch, ])))
     expect_identical(unname(umap[inBatch, ]), unname(estimates[[b]]$UMAP))
   }
+  single <- decontX(sce, z = d$sim$z, verbose = FALSE)
+  expect_identical(
+    colnames(SingleCellExperiment::reducedDim(single, "decontX_UMAP")),
+    colnames(SingleCellExperiment::reducedDim(sce, "decontX_A_UMAP"))
+  )
 })
 
 test_that("the decontX core and its params constructor have no defaults", {
@@ -353,6 +362,7 @@ test_that("the decontX methods have the same arguments and defaults", {
 })
 
 test_that(".decontXUMAPs pads each batch's UMAP to every cell", {
+  # The padded UMAPs keep the batches' column names (#99)
   umapA <- matrix(1:4, 2, dimnames = list(c("c1", "c3"), c("u1", "u2")))
   umapB <- matrix(5:6, 1, dimnames = list("c2", c("u1", "u2")))
   single <- list(estimates = list(all_cells = list(UMAP = umapA)))
@@ -368,7 +378,7 @@ test_that(".decontXUMAPs pads each batch's UMAP to every cell", {
   cells <- c("c1", "c2", "c3")
   padded <- function(rows, values) {
     m <- matrix(NA_integer_, 3, 2,
-      dimnames = list(cells, c("UMAP_1", "UMAP_2"))
+      dimnames = list(cells, c("u1", "u2"))
     )
     m[rows, ] <- values
     m
