@@ -9,7 +9,9 @@ plotDensity(counts, decontaminated_counts, features, file = NULL)
 \arguments{
 \item{counts}{original count matrix of nADT x nDroplet.}
 
-\item{decontaminated_counts}{decontaminated count matrix.}
+\item{decontaminated_counts}{decontaminated count matrix, with the
+droplets of \code{counts} in the same order. If both have column names,
+they must be the same.}
 
 \item{features}{names of ADT to plot. Each must be a rowname of both
 \code{counts} and \code{decontaminated_counts}.}
