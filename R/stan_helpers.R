@@ -85,37 +85,39 @@
 
   r_est <- val$r
   p_est <- dat$p
+  # Named by the ADTs and droplets of the counts (#129). The matrices are
+  # named here, before they are stored, so the stored copies share their
+  # data. dimnames() is NULL when the counts have no names. Stan gives the
+  # means as 1-d arrays; they become plain vectors.
+  adtDropletNames <- dimnames(dat$counts)
   delta_est <- t(val$delta)
-  delta_mean_est <- val$delta_mean
+  dimnames(delta_est) <- adtDropletNames
+  delta_mean_est <- stats::setNames(
+    as.vector(val$delta_mean), adtDropletNames[[2]]
+  )
   background_est <- val$background
-  background_mean_est <- val$background_mean
+  dimnames(background_est) <- adtDropletNames
+  background_mean_est <- stats::setNames(
+    as.vector(val$background_mean), adtDropletNames[[1]]
+  )
 
 
   processed_stan <- list()
 
 
-  # Save raw estimations, named by the ADTs and droplets of the counts
-  # (#129). Stan gives the means as 1-d arrays; they become plain vectors.
-  adts <- rownames(dat$counts)
-  droplets <- colnames(dat$counts)
-  # NULL when the counts have no names, as list(NULL, NULL) isn't
-  adtDropletNames <- dimnames(dat$counts)
+  # Save raw estimations
   parameters <- list()
   parameters[["delta_sd"]] <- dat$delta_sd
   parameters[["background_sd"]] <- dat$background_sd
   parameters[["r_est"]] <- r_est
-  dimnames(parameters[["r_est"]]) <- list(dat$cell_type_labels, adts)
+  dimnames(parameters[["r_est"]]) <- list(
+    dat$cell_type_labels, adtDropletNames[[1]]
+  )
   parameters[["p_est"]] <- p_est
   parameters[["delta_est"]] <- delta_est
-  dimnames(parameters[["delta_est"]]) <- adtDropletNames
-  parameters[["delta_mean_est"]] <- stats::setNames(
-    as.vector(delta_mean_est), droplets
-  )
+  parameters[["delta_mean_est"]] <- delta_mean_est
   parameters[["background_est"]] <- background_est
-  dimnames(parameters[["background_est"]]) <- adtDropletNames
-  parameters[["background_mean_est"]] <- stats::setNames(
-    as.vector(background_mean_est), adts
-  )
+  parameters[["background_mean_est"]] <- background_mean_est
 
   processed_stan[["parameters"]] <- parameters
 
