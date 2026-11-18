@@ -5,7 +5,9 @@
 #' compared.
 #'
 #' @param counts original count matrix of nADT x nDroplet.
-#' @param decontaminated_counts decontaminated count matrix.
+#' @param decontaminated_counts decontaminated count matrix, with the
+#' droplets of \code{counts} in the same order. If both have column names,
+#' they must be the same.
 #' @param features names of ADT to plot. Each must be a rowname of both
 #' \code{counts} and \code{decontaminated_counts}.
 #' @param file file name to save the plot into as a pdf. ".pdf" is added
@@ -97,7 +99,9 @@ plotDensity <- function(counts,
 #' Boxplot of features grouped by cell type
 #'
 #' @param counts original count matrix of nADT x nDroplet.
-#' @param decontaminated_counts decontaminated count matrix.
+#' @param decontaminated_counts decontaminated count matrix, with the
+#' droplets of \code{counts} in the same order. If both have column names,
+#' they must be the same.
 #' @param cell_type 1xnDroplet vector of cell_type, one entry per droplet
 #' (column of \code{counts}).
 #' @param features names of ADT to plot. Each must be a rowname of both
@@ -146,12 +150,6 @@ plotBoxByCluster <- function(counts,
                              cell_type,
                              features,
                              file = NULL) {
-  if (length(cell_type) != ncol(counts)) {
-    stop(
-      "'cell_type' must have one entry per droplet (", ncol(counts),
-      "), not ", length(cell_type)
-    )
-  }
   p <- .plotEachFeature(
     counts,
     decontaminated_counts,
@@ -203,6 +201,7 @@ plotBoxByCluster <- function(counts,
                              features,
                              plotOne,
                              cellType = NULL) {
+  .checkPlotDroplets(counts, decontaminated_counts, cellType)
   features <- as.character(features)
   if (length(features) == 0) {
     stop("'features' must name at least one feature")
@@ -223,6 +222,36 @@ plotBoxByCluster <- function(counts,
     )
     plotOne(df.m, feature)
   })
+}
+
+
+## The two matrices are stacked by position, so their droplets must be the
+## same, in the same order, and 'cellType' must have one entry per droplet
+## (#125)
+.checkPlotDroplets <- function(counts, decontaminated_counts, cellType) {
+  if (ncol(counts) != ncol(decontaminated_counts)) {
+    stop(
+      "'counts' and 'decontaminated_counts' must have the same droplets: ",
+      "they have ", ncol(counts), " and ", ncol(decontaminated_counts),
+      " columns"
+    )
+  }
+  cells <- colnames(counts)
+  deconCells <- colnames(decontaminated_counts)
+  if (!is.null(cells) && !is.null(deconCells) &&
+    !identical(cells, deconCells)) {
+    stop(
+      "The column names of 'counts' and 'decontaminated_counts' differ. ",
+      "If they hold the same droplets in another order, use ",
+      "'decontaminated_counts[, colnames(counts)]'"
+    )
+  }
+  if (!is.null(cellType) && length(cellType) != ncol(counts)) {
+    stop(
+      "'cell_type' must have one entry per droplet (", ncol(counts),
+      "), not ", length(cellType)
+    )
+  }
 }
 
 

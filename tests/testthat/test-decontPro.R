@@ -1058,6 +1058,49 @@ test_that("plotBoxByCluster stops when cell_type isn't one per droplet", {
   }
 })
 
+test_that("the plots stop when the two matrices have different droplets", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  # 9 droplets: 3 + 9 values took the 6 labels recycled, with no error
+  wider <- cbind(counts, counts, counts) - 1
+  colnames(wider) <- paste0("c", 1:9)
+  expect_error(
+    plotDensity(counts, wider, "CD3"),
+    regexp = paste0(
+      "'counts' and 'decontaminated_counts' must have the same droplets: ",
+      "they have 3 and 9 columns"
+    )
+  )
+  expect_error(
+    plotBoxByCluster(counts, wider, c(1, 2, 1), "CD3"),
+    regexp = "they have 3 and 9 columns"
+  )
+
+  # Same droplets in another order were paired by position
+  reordered <- counts[, c(3, 1, 2)] - 1
+  for (plot in list(
+    function(decon) plotDensity(counts, decon, "CD3"),
+    function(decon) plotBoxByCluster(counts, decon, c(1, 2, 1), "CD3")
+  )) {
+    expect_error(
+      plot(reordered),
+      regexp = paste0(
+        "The column names of 'counts' and 'decontaminated_counts' differ. ",
+        "If they hold the same droplets in another order, use ",
+        "'decontaminated_counts\\[, colnames\\(counts\\)\\]'"
+      )
+    )
+    # Reordered as the error says, they plot
+    expect_s3_class(plot(reordered[, colnames(counts)]), "patchwork")
+  }
+
+  # Without column names on one side, only the number of droplets is checked
+  unnamed <- unname(counts) - 1
+  rownames(unnamed) <- rownames(counts)
+  expect_s3_class(plotDensity(counts, unnamed, "CD3"), "patchwork")
+})
+
 test_that("plotDensity and plotBoxByCluster stop for empty or unknown names", {
   counts <- matrix(c(60, 72, 52, 49, 89, 112),
     nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
