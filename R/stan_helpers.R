@@ -85,10 +85,21 @@
 
   r_est <- val$r
   p_est <- dat$p
+  # Named by the ADTs and droplets of the counts (#129). The matrices are
+  # named here, before they are stored, so the stored copies share their
+  # data. dimnames() is NULL when the counts have no names. Stan gives the
+  # means as 1-d arrays; they become plain vectors.
+  adtDropletNames <- dimnames(dat$counts)
   delta_est <- t(val$delta)
-  delta_mean_est <- val$delta_mean
+  dimnames(delta_est) <- adtDropletNames
+  delta_mean_est <- stats::setNames(
+    as.vector(val$delta_mean), adtDropletNames[[2]]
+  )
   background_est <- val$background
-  background_mean_est <- val$background_mean
+  dimnames(background_est) <- adtDropletNames
+  background_mean_est <- stats::setNames(
+    as.vector(val$background_mean), adtDropletNames[[1]]
+  )
 
 
   processed_stan <- list()
@@ -99,7 +110,9 @@
   parameters[["delta_sd"]] <- dat$delta_sd
   parameters[["background_sd"]] <- dat$background_sd
   parameters[["r_est"]] <- r_est
-  rownames(parameters[["r_est"]]) <- dat$cell_type_labels
+  dimnames(parameters[["r_est"]]) <- list(
+    dat$cell_type_labels, adtDropletNames[[1]]
+  )
   parameters[["p_est"]] <- p_est
   parameters[["delta_est"]] <- delta_est
   parameters[["delta_mean_est"]] <- delta_mean_est

@@ -15,7 +15,9 @@ plotBoxByCluster(
 \arguments{
 \item{counts}{original count matrix of nADT x nDroplet.}
 
-\item{decontaminated_counts}{decontaminated count matrix.}
+\item{decontaminated_counts}{decontaminated count matrix, with the
+droplets of \code{counts} in the same order. If both have column names,
+they must be the same.}
 
 \item{cell_type}{1xnDroplet vector of cell_type, one entry per droplet
 (column of \code{counts}).}

@@ -30,13 +30,14 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("decontX")
 ```
 
-Alternatively, install the development version through
-[GitHub](https://github.com/campbio/decontX) using the `devtools`
-package:
+Alternatively, install the development version from the `devel` branch
+on [GitHub](https://github.com/campbio/decontX) using the `devtools`
+package. Without `ref = "devel"`, `install_github()` installs the current
+release instead:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("campbio/decontX")
+devtools::install_github("campbio/decontX", ref = "devel")
 ```
 
 ## Usage
@@ -73,7 +74,7 @@ To build the vignettes when installing from GitHub, add the flag
 
 ``` r
 library(devtools)
-install_github("campbio/decontX", build_vignettes = TRUE)
+install_github("campbio/decontX", ref = "devel", build_vignettes = TRUE)
 ```
 
 Then vignettes can be accessed through:

@@ -1,3 +1,23 @@
+# decontX 1.11.37
+
+* `decontX()` on a SingleCellExperiment with several batches now names the
+columns of each `decontX_<batch>_UMAP` `DecontX_UMAP_1` and
+`DecontX_UMAP_2`, as in a single-batch run's `decontX_UMAP`. They were
+`UMAP_1` and `UMAP_2`, so code that reads these columns by name needs
+updating, and `plotDecontXContamination()` on one of them now titles its
+axes `DecontX_UMAP_1` and `DecontX_UMAP_2` (#99).
+* `decontPro()` now names its estimated parameters by ADT and droplet, from
+the row and column names of `filtered_counts`: the rows and columns of
+`delta_est` and `background_est`, the columns of `r_est`, and
+`delta_mean_est` and `background_mean_est`, which are now plain named
+vectors instead of 1-d arrays. Their values are unchanged (#129).
+* `plotDensity()` and `plotBoxByCluster()` now stop when `counts` and
+`decontaminated_counts` have different numbers of droplets, or column
+names that differ. They paired the two matrices by position, so they gave
+a wrong plot with no error (#125).
+* The README installs the development version from the `devel` branch.
+`install_github("campbio/decontX")` installs the current release (#137).
+
 # decontX 1.11.36
 
 * `decontX()` now matches the barcodes of `background` to the cells within

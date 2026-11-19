@@ -71,6 +71,39 @@ test_that("decontPro splits each count by the estimated rates", {
   expect_identical(params$background_mean_est, 0.1)
 })
 
+test_that("decontPro names the estimates by ADT and droplet", {
+  adts <- c("CD3", "CD4")
+  droplets <- c("d1", "d2", "d3")
+  counts <- matrix(c(6, 12, 8, 4, 12, 16),
+    nrow = 2,
+    dimnames = list(adts, droplets)
+  )
+  dat <- list(
+    N = 2, M = 3, counts = counts, OC = c(18, 12, 28),
+    p = c(CD3 = 0.25, CD4 = 0.75), cell_type = c(1, 2, 2),
+    cell_type_labels = c("B", "T"), delta_sd = 0.1, background_sd = 0.2
+  )
+  # Stan gives the per-droplet and per-ADT means as 1-d arrays
+  est <- list(
+    r = rbind(c(0.5, 0.5), c(0.75, 0.25)),
+    delta = rbind(c(0, 0), c(1, 1), c(0.5, 0.5)),
+    delta_mean = array(c(0.1, 0.2, 0.3)),
+    background = matrix(c(0, 0.5, 0, 0, 0, 0), nrow = 2),
+    background_mean = array(c(0.4, 0.5))
+  )
+  fit <- methods::new("stanfit", sim = list(est = est))
+  params <- .processStanVbOut(fit, dat)$parameters
+
+  expect_identical(dimnames(params$r_est), list(c("B", "T"), adts))
+  expect_identical(dimnames(params$delta_est), list(adts, droplets))
+  expect_identical(dimnames(params$background_est), list(adts, droplets))
+  expect_identical(params$delta_mean_est, c(d1 = 0.1, d2 = 0.2, d3 = 0.3))
+  expect_identical(params$background_mean_est, c(CD3 = 0.4, CD4 = 0.5))
+  # Values are unchanged
+  expect_identical(unname(params$delta_est), t(est$delta))
+  expect_identical(unname(params$background_est), est$background)
+})
+
 test_that("decontPro results match a Stan fit with default output draws", {
   p <- refProData()
   out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
@@ -1056,6 +1089,50 @@ test_that("plotBoxByCluster stops when cell_type isn't one per droplet", {
       )
     )
   }
+})
+
+test_that("the plots stop when the two matrices have different droplets", {
+  counts <- matrix(c(60, 72, 52, 49, 89, 112),
+    nrow = 2, dimnames = list(c("CD3", "CD4"), paste0("c", 1:3))
+  )
+  # 9 droplets: the 2 x 3 "con"/"decon" labels were recycled over the
+  # 3 + 9 values, with no error
+  wider <- cbind(counts, counts, counts) - 1
+  colnames(wider) <- paste0("c", 1:9)
+  expect_error(
+    plotDensity(counts, wider, "CD3"),
+    regexp = paste0(
+      "'counts' and 'decontaminated_counts' must have the same droplets: ",
+      "they have 3 and 9 columns"
+    )
+  )
+  expect_error(
+    plotBoxByCluster(counts, wider, c(1, 2, 1), "CD3"),
+    regexp = "they have 3 and 9 columns"
+  )
+
+  # Same droplets in another order were paired by position
+  reordered <- counts[, c(3, 1, 2)] - 1
+  for (plot in list(
+    function(decon) plotDensity(counts, decon, "CD3"),
+    function(decon) plotBoxByCluster(counts, decon, c(1, 2, 1), "CD3")
+  )) {
+    expect_error(
+      plot(reordered),
+      regexp = paste0(
+        "The column names of 'counts' and 'decontaminated_counts' differ. ",
+        "If they hold the same droplets in another order, use ",
+        "'decontaminated_counts\\[, colnames\\(counts\\)\\]'"
+      )
+    )
+    # Reordered as the error says, they plot
+    expect_s3_class(plot(reordered[, colnames(counts)]), "patchwork")
+  }
+
+  # Without column names on one side, only the number of droplets is checked
+  unnamed <- unname(counts) - 1
+  rownames(unnamed) <- rownames(counts)
+  expect_s3_class(plotDensity(counts, unnamed, "CD3"), "patchwork")
 })
 
 test_that("plotDensity and plotBoxByCluster stop for empty or unknown names", {

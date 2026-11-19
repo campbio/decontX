@@ -260,7 +260,9 @@ will be stored in \code{colData(x)}. \code{estimates} and \code{runParams}
 will be stored in \code{metadata(x)$decontX}. The UMAPs used to generated
 cell cluster labels will be stored in
 \code{reducedDims} slot in \code{x}, except with
-\code{embedding = FALSE}. Running \code{decontX} again on
+\code{embedding = FALSE}. Each has the columns \code{DecontX_UMAP_1}
+and \code{DecontX_UMAP_2}; with several batches, the cells outside a
+batch are \code{NA} in its UMAP. Running \code{decontX} again on
 \code{x} replaces the assay, the \code{colData} columns and
 \code{metadata(x)$decontX}. A UMAP from an earlier run
 (\code{decontX_UMAP} or \code{decontX_<batch>_UMAP}) stays in
