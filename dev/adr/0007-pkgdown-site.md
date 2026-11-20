@@ -2,9 +2,8 @@
 
 ## Status
 
-Proposed (2026-10-27). A stub for maintainer review: the decisions below
-were made in the plan and during the Phase 0 review (2026-10-18 to
-2026-10-27); the open points at the end are not yet decided.
+Accepted (2026-11-20). Proposed 2026-10-27 as a stub from the deep
+review; the maintainer settled its open points on 2026-11-20 (#84).
 
 ## Context
 
@@ -25,65 +24,147 @@ development from the version number: a fourth component (such as
 both release and devel (for example 1.10.x and 1.11.x), so `mode: auto`
 would call every build a release.
 
+The shared standards (r-bioc-dev-standards) have no deploy workflow, so
+decontX carries its own. The current release branch, `RELEASE_3_23`
+(1.10.0), has no `_pkgdown.yml` and the old vignette layout.
+
 ## Decision
 
-We will publish a pkgdown site on GitHub Pages with two versions.
+We will publish a pkgdown site on GitHub Pages, at
+`https://campbio.github.io/decontX/`, with two versions. The lab's
+`https://www.camplab.net/decontx/` will point to it (maintainer action).
 
-**Sites.**
-- The release site, at the root, documents the current Bioconductor
-  release. It is rebuilt at each release from the current `RELEASE_*`
-  branch.
-- The development site, at `/dev/`, is built from `devel` (decided
-  2026-10-27).
+### Sites and mode
 
-**Mode by branch.** The build sets the pkgdown development mode from the
-branch it builds, not from the version number: `devel` builds go to
-`/dev/`, `RELEASE_*` builds to the root.
+- The **release site**, at the root, documents the current Bioconductor
+  release. It is built from the current `RELEASE_*` branch.
+- The **development site**, at `/dev/`, is built from `devel`.
+- The build sets the mode from the branch, with the `PKGDOWN_DEV_MODE`
+  environment variable: `devel` for `devel` builds, which pkgdown writes
+  under `dev/`, and `release` for `RELEASE_*` builds. `_pkgdown.yml` has
+  no `development:` mode.
 
-**Deploy.** A deploy workflow from the shared standards publishes to the
-`gh-pages` branch. The `docs/` deny rule in the repo is unaffected.
+### Deploy workflow
 
-**Content.**
-- `_pkgdown.yml` with a reference index.
-- Full-data articles in `vignettes/articles/`: the full PBMC data for
-  decontX and the full cord_blood CITE-seq data for decontPro. Heavy
-  articles may use precomputed outputs.
-- Articles are run and checked locally only. `dev/RELEASE.md` gains a
-  step to re-run the articles and rebuild the release site at each
-  release.
-- The development site renders the short vignettes in CI. The full-data
-  articles are never rendered in CI.
+One workflow, `.github/workflows/pkgdown.yaml`, in decontX:
 
-**Checks.** CI keeps `pkgdown::check_pkgdown()`. `make site-check` runs
-before PRs that touch the site.
+- **Development build:** on every push to `devel`, and on demand
+  (`workflow_dispatch`). It deploys only into `dev/` on the `gh-pages`
+  branch and never touches the root.
+- **Release build:** on every push to a `RELEASE_*` branch, and on
+  demand. It first reads `release_version` from
+  `https://bioconductor.org/config.yaml`, as the shared `sync-stable`
+  workflow does, and stops unless the branch is the current release, so
+  a late fix on an old release branch can't overwrite the root. It
+  deploys to the root and keeps `dev/`.
+- When Bioconductor cuts a new release, pushing the new `RELEASE_X_Y`
+  branch to GitHub rebuilds the root; no extra step.
+- Each job runs in the Bioconductor docker image for its branch (`devel`,
+  or the image tagged with the release branch name), as R-CMD-check
+  does.
+- Both jobs share one concurrency group, so two deploys never write to
+  `gh-pages` at once.
+- No scheduled builds: nothing changes between pushes.
+- Pull requests never deploy. Their CI runs `pkgdown::check_pkgdown()`
+  only, and `make site-check` runs before PRs that touch the site.
+- The same workflow file is added to `RELEASE_3_23` in its own commit
+  (no version bump, as for 7e14846). With no `_pkgdown.yml` there,
+  pkgdown builds a default site from the 1.10.0 README, help and
+  vignettes, so the root works from the first deploy. The full layout
+  reaches the root with the first release cut after this lands (Bioc
+  3.24).
 
-**Links.** The site URL goes into DESCRIPTION `URL:` and the README.
-After the first deploy, the short vignettes link to the matching
-articles. The FAQ stays in the vignettes, because it ships with the
-package; articles link back to it.
+Alternatives: building the release site locally and pushing it by hand
+(a second deploy path that depends on one machine); a shared deploy
+workflow in r-bioc-dev-standards (worth doing once a second package
+needs it, not before).
 
-**Maintainer actions.** Enabling GitHub Pages and the first deploy.
+### Content and layout
+
+- **Navbar:** Get started, Reference, Articles, Changelog (from
+  `NEWS.md`), and a GitHub link. Bootstrap 5, otherwise pkgdown's
+  defaults.
+- **Get started** is a short `vignettes/decontX.Rmd`: what ambient and
+  background contamination are, when to use DecontX (scRNA-seq) and
+  when DecontPro (CITE-seq ADT), installation, links to the two
+  workflow vignettes, how to cite each method, and a tiny simulated
+  example ending with `sessionInfo()` (so BiocCheck has evaluated code).
+- The **RNA workflow vignette** moves to `vignettes/decontX_RNA.Rmd`. It
+  stays a package vignette, so it still ships with decontX and appears
+  on Bioconductor; `vignette("decontX")` opens the overview instead.
+- **Articles menu**, two groups:
+  - "decontX (RNA)": `decontX_RNA`, and later the full-data PBMC
+    article.
+  - "decontPro (Protein)": `decontPro`, and later the full-data
+    cord_blood article.
+- **Reference index:**
+
+  | Group | Topics |
+  |---|---|
+  | Decontaminate RNA (DecontX) | `decontX`, `decontXcounts`, `simulateContamination` |
+  | Plot DecontX results | `plotDecontXContamination`, `plotDecontXMarkerExpression`, `plotDecontXMarkerPercentage` |
+  | Decontaminate protein (DecontPro) | `decontPro`, `plotDensity`, `plotBoxByCluster` |
+  | Utilities | `retrieveFeatureIndex` |
+  | Package | `decontX-package` |
+
+  `decontSpa()` gets its own "Spatial" group when it lands.
+
+Alternative: moving the vignettes into `vignettes/articles/`. Rejected:
+that folder is left out of the package build, so they would no longer
+ship with decontX or appear on Bioconductor, `vignette()` would not find
+them, BiocCheck needs a real vignette, and the FAQ would leave the
+package.
+
+### Full-data articles
+
+- Full-data articles live in `vignettes/articles/` (left out of the
+  build): the full PBMC data for decontX and the full cord_blood
+  CITE-seq data for decontPro. They are fuller versions of the two
+  vignettes; they are their own issue.
+- They are **precomputed**. Each source is
+  `vignettes/articles/<name>.Rmd.orig`; it is knitted locally into a
+  plain `vignettes/articles/<name>.Rmd` that already holds the results,
+  with its figures committed beside it. CI renders both sites from these
+  files without computing anything, so the development and release
+  sites show the same articles. Each article states the decontX version
+  that produced it.
+- The articles are refreshed on `devel` before each release freeze, so
+  the new release branch carries them. `dev/RELEASE.md` gets that step.
+  The knit runs through a make target that the maintainer adds to the
+  Makefile with the articles.
+- Alternatives: rendering the articles in CI (too slow, and needs the
+  full data downloaded on every build); leaving them off the development
+  site (the release build would still need them precomputed or built
+  locally, so nothing is saved).
+
+### Links
+
+The site URL goes into DESCRIPTION `URL:`, the README and the `url:`
+field of `_pkgdown.yml`, with the vignette restructure. The vignettes
+link to the full-data articles once those exist. The FAQ stays in the
+vignettes, because it ships with the package; articles link back to it.
+
+### Maintainer actions
+
+Enabling GitHub Pages (from the `gh-pages` branch), the first deploys,
+and pointing camplab.net/decontx at the site.
 
 ## Consequences
 
 - Users get a browsable reference and full-data examples without
   slowing the Bioconductor build.
-- The development site shows unreleased changes, so the site must make
-  clear which version a page documents.
-- CI gains a site build on `devel`, which renders the short vignettes
-  and adds build time to those runs.
-- Each release has an extra local step: re-run the articles and rebuild
-  the release site.
-- `AGENTS.md` notes that there is no pkgdown site; that line and the
-  standards' site rules apply once the site exists.
-
-## Open points
-
-- How the full-data articles appear on the development site: copied
-  from the last release build, built from precomputed outputs, or
-  omitted with a link to the release site.
-- The deploy triggers: on every push to `devel`, or on a schedule; and
-  whether the release build triggers on a tag, a branch, or by hand.
-- How the build learns the current `RELEASE_*` branch when a new
-  Bioconductor release is cut.
-- The site layout and reference grouping in `_pkgdown.yml`.
+- The development site shows unreleased changes; pkgdown's development
+  mode marks its version in the navbar.
+- CI gains a site build on each push to `devel` (a few minutes: the
+  Stan compile and the RNA vignette dominate) and on release-branch
+  pushes.
+- Until the first deploy, DESCRIPTION's URL points to a page that does
+  not exist yet; the vignette restructure and the deploy workflow should
+  land close together.
+- `vignette("decontX")` opens the overview; old references to the RNA
+  workflow by that name need to change.
+- Each release has an extra local step: refresh the precomputed
+  articles before the freeze. Their figures add a few hundred KB to the
+  repository per refresh, but nothing to the package tarball.
+- `AGENTS.md` notes that there is no pkgdown site; that line changes, and
+  the standards' site rules apply, once `_pkgdown.yml` exists.
