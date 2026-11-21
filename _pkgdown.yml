@@ -1,0 +1,46 @@
+url: https://campbio.github.io/decontX/
+
+# The release or development mode comes from the branch being built, set
+# by the deploy workflow with PKGDOWN_DEV_MODE (ADR-0007), so there is no
+# `development:` field here.
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+- title: Decontaminate RNA (DecontX)
+  contents:
+  - decontX
+  - decontXcounts
+  - simulateContamination
+- title: Plot DecontX results
+  contents:
+  - plotDecontXContamination
+  - plotDecontXMarkerExpression
+  - plotDecontXMarkerPercentage
+- title: Decontaminate protein (DecontPro)
+  contents:
+  - decontPro
+  - plotDensity
+  - plotBoxByCluster
+- title: Utilities
+  contents:
+  - retrieveFeatureIndex
+- title: Package
+  contents:
+  - decontX-package
+
+articles:
+- title: decontX (RNA)
+  navbar: decontX (RNA)
+  contents:
+  - decontX_RNA
+- title: decontPro (Protein)
+  navbar: decontPro (Protein)
+  contents:
+  - decontPro

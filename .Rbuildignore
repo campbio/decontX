@@ -18,3 +18,5 @@
 ^\.worktreeinclude$
 ^\.covrignore$
 ^\.Renviron$
+^_pkgdown\.yml$
+^pkgdown$

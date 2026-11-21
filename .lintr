@@ -22,7 +22,7 @@ exclusions: list(
     "R/celda_functions.R",
     # Vignettes are prose + example code, knit locally and not exercised
     # by R CMD check; their chunk style is not part of the blocking lint.
-    "vignettes/decontX.Rmd",
+    "vignettes/decontX_RNA.Rmd",
     "vignettes/decontPro.Rmd"
   )
 encoding: "UTF-8"
