@@ -5,9 +5,11 @@
 #' algorithm for single cell protein expression data such as CITE-seq or
 #' Total-seq.
 #'
-#' See \code{vignette("decontX", package = "decontX")} and
-#' \code{vignette("decontPro", package = "decontX")} to get started, and
-#' \code{citation("decontX")} to cite the methods.
+#' See \code{vignette("decontX", package = "decontX")} to get started,
+#' \code{vignette("decontX_RNA", package = "decontX")} and
+#' \code{vignette("decontPro", package = "decontX")} for the RNA and protein
+#' workflows, \url{https://campbio.github.io/decontX/} for the package
+#' website, and \code{citation("decontX")} to cite the methods.
 #'
 #' @return None; this page documents the package.
 #' @name decontX-package
