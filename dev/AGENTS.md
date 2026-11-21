@@ -1,0 +1,169 @@
+# decontX: notes for coding agents
+
+The shared development standards (r-bioc-dev-standards) load
+automatically at session start in Claude Code. This file adds only what
+is specific to this package. Other agents (for example through
+GEMINI.md) don’t get them automatically: read
+<https://raw.githubusercontent.com/campbio/r-bioc-dev-standards/v1/standards.md>
+(or the cached copy in `~/.cache/r-bioc-dev-standards/v1/`) before
+starting, and follow it; those agents also aren’t bound by
+`.claude/settings.json`.
+
+In Claude Code, if the standards aren’t in your context at session
+start, this clone has no `.claude/settings.json`, so neither the
+standards nor the permission guardrails are active: stop, and ask the
+developer to run `make claude-setup` in a terminal outside Claude Code
+(not with `!`, which runs inside it and is refused), then restart
+`claude`.
+
+## About
+
+decontX implements two Bayesian decontamination methods for single-cell
+data: **DecontX** (Yang et al. 2020) estimates and removes ambient RNA
+contamination in scRNA-seq without needing empty droplets, and
+**DecontPro** (Yin et al. 2024) removes ambient and background
+contamination from CITE-seq ADT (protein) counts. Distributed through
+Bioconductor since 3.18. There is no Shiny app, so that part of the
+standards doesn’t apply. The pkgdown site (ADR-0007) is configured in
+`_pkgdown.yml`. `.github/workflows/pkgdown.yaml` builds it on pushes to
+`devel` (published at <https://campbio.github.io/decontX/dev/>) and to
+the current `RELEASE_*` branch (published at the root). The standards’
+site rules apply, including `make site-check` before PRs that touch the
+site.
+
+## Layout
+
+- `R/decon.R`: DecontX core. The
+  [`decontX()`](https://campbio.github.io/decontX/dev/reference/decontX.md)
+  S4 generic and methods, the EM algorithm, initialization, and argument
+  and background checks.
+- `R/decontXcounts.R`: the
+  [`decontXcounts()`](https://campbio.github.io/decontX/dev/reference/decontXcounts.md)
+  accessors.
+- `R/simulateContamination.R`:
+  [`simulateContamination()`](https://campbio.github.io/decontX/dev/reference/simulateContamination.md).
+- `R/decontPro.R`: the
+  [`decontPro()`](https://campbio.github.io/decontX/dev/reference/decontPro.md)
+  S4 generic and methods (Stan-based).
+- `R/plot_decontx.R`, `R/plot_decontPro.R`: plotting functions.
+- `R/celda_functions.R`: helpers copied from celda (see Related
+  packages), including the exported
+  [`retrieveFeatureIndex()`](https://campbio.github.io/decontX/dev/reference/retrieveFeatureIndex.md).
+- `R/stan_helpers.R`: Stan model wiring (`.callStanVb()`,
+  `.processStanVbOut()`).
+- `src/DecontX.cpp` (Rcpp/RcppEigen EM steps) and `src/matrixNorm.cpp`
+  (`fastNormProp()`, used by
+  [`simulateContamination()`](https://campbio.github.io/decontX/dev/reference/simulateContamination.md)).
+- `inst/stan/shrinkage.stan`: the DecontPro Stan model. Changing it is a
+  structural change and needs an ADR first.
+- `inst/stan/include/license.stan`: the GPL (\>= 3) notice rstantools
+  puts at the top of `src/stanExports_shrinkage.h`. Keep it: decontX’s
+  own code is MIT (DESCRIPTION), but the files rstantools generates and
+  the libraries the Stan model compiles against (rstan, RcppParallel,
+  Rcpp) are GPL (decided 2026-11-09, \#78). A change reaches the header
+  only when `src/` is rebuilt, which runs `configure` and so
+  [`rstantools::rstan_config()`](https://mc-stan.org/rstantools/reference/rstan_config.html).
+- Generated files, never hand-edited:
+  - Rcpp: `R/RcppExports.R`, `src/RcppExports.cpp`.
+  - rstantools: `R/stanmodels.R`, `src/stanExports_shrinkage.*` (from
+    `inst/stan/shrinkage.stan`).
+- `man/examples/decontX.R` is **hand-written**. It is the shared example
+  pulled into several help pages with `@example`, so edit it directly.
+- Vignettes: `vignettes/decontX.Rmd` is the short “Get started” overview
+  of both methods; `vignettes/decontX_RNA.Rmd` and
+  `vignettes/decontPro.Rmd` are the workflows. The site groups them in
+  `_pkgdown.yml`.
+- Style: the code uses **2-space indentation**, set in `.lintr`
+  (`indentation_linter(indent = 2L)`). With 4 spaces, lintr would report
+  over 800 indentation lints, against 3 with 2. Converting to 4 spaces
+  would be a separate maintainer decision and its own PR.
+
+## Object model
+
+No custom S4 classes. The generics
+[`decontX()`](https://campbio.github.io/decontX/dev/reference/decontX.md),
+[`decontPro()`](https://campbio.github.io/decontX/dev/reference/decontPro.md)
+and
+[`decontXcounts()`](https://campbio.github.io/decontX/dev/reference/decontXcounts.md)/`decontXcounts<-`
+dispatch on `SingleCellExperiment`, `Seurat` (decontPro only) and `ANY`
+(plain or sparse matrices). DecontX stores its results in the input
+SingleCellExperiment: - decontaminated counts in the `decontXcounts`
+assay (read it with
+[`decontXcounts()`](https://campbio.github.io/decontX/dev/reference/decontXcounts.md),
+not `assays()$`) - contamination in
+`colData(sce)$decontX_contamination` - cluster labels in
+`colData(sce)$decontX_clusters` - the UMAP in
+`reducedDim(sce, "decontX_UMAP")`
+
+`decontX(legacyInit = TRUE)` reproduces the pre-scrapper initialization.
+It is a permanent backwards-compatibility option, kept for as long as
+the upstream functions exist, so never describe it as transitional.
+
+## Tests
+
+- `tests/testthat/`: `test-decon.R`, `test-decontPro.R`,
+  `test-simulateContamination.R`, and shared fixtures in
+  `helper-decontx.R` (testthat edition 3).
+- Several decontPro tests run a real Stan variational fit. They use a 10
+  x 8 fixture to stay under a second each; keep decontPro fixtures that
+  small, and wrap real fits in `quietStan()` so rstan’s progress doesn’t
+  print.
+- The suite runs with no warnings and no console output: pass
+  `verbose = FALSE` to
+  [`decontX()`](https://campbio.github.io/decontX/dev/reference/decontX.md)
+  unless the log is under test.
+- Optional-package skips: the `legacyInit` tests need scater.
+  SeuratObject is in Imports, so the Seurat tests don’t skip.
+- `make test-one FILTER=decon` runs both `test-decon.R` and
+  `test-decontPro.R` (FILTER can’t anchor the pattern).
+
+## Extra make targets
+
+The standard targets come from the shared `standards.mk` in
+r-bioc-dev-standards; the Makefile holds only these extras. None are
+allow-listed, so each one prompts.
+
+- `coverage-report`: HTML coverage report
+  ([`covr::report()`](https://covr.r-lib.org/reference/report.html));
+  opens a browser. Ask first.
+- `build`: builds the source tarball in the repo root. Ask first; the
+  standard targets build in a temporary directory instead.
+- `clean`: deletes compiled objects and tarballs. People only: it’s in
+  the Makefile’s `PEOPLE_ONLY`, so make refuses it when run from Claude
+  Code, and `.claude/settings.json` denies it too.
+
+## Setup in a new worktree
+
+- Install every package in Suggests
+  ([`devtools::install_dev_deps()`](https://devtools.r-lib.org/reference/install_deps.html));
+  checks don’t relax missing Suggests.
+- The first build compiles the Stan model and the Rcpp code, which takes
+  several minutes. Later
+  [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
+  calls reuse the objects.
+- Generated files were last refreshed in 1.11.25 with roxygen2 8.1.1
+  (`Config/roxygen2/version` in DESCRIPTION) and rstantools 2.7.1 with
+  StanHeaders \>= 2.34 (`stan::rng_t` in `src/stanExports_shrinkage.*`).
+  Use those versions or newer so `make docs` doesn’t rewrite them.
+- [`devtools::load_all()`](https://devtools.r-lib.org/reference/load_all.html)
+  and `make test` regenerate `src/stanExports_shrinkage.*`. If that
+  changes them, restore them (`git restore src/`) before committing,
+  unless the refresh is the point of the change.
+- `make check` needs the `checkbashisms` script to check the rstantools
+  `configure` scripts (`brew install checkbashisms` on macOS). Without
+  it, R CMD check emits a WARNING.
+
+## Related packages
+
+- **celda:** `R/celda_functions.R` copies helpers from celda; keep the
+  two copies from drifting and coordinate cross-package changes through
+  issues. celda’s `R/decon.R` is now a thin layer that forwards to
+  [`decontX::decontX()`](https://campbio.github.io/decontX/dev/reference/decontX.md)
+  (decontX is in celda’s Suggests), so changes to decontX’s exported API
+  or results affect celda.
+- **singleCellTK** imports celda, so it reaches DecontX through celda.
+- ADR-0003 (`dev/adr/`) plans to reverse the celda/decontX dependency.
+
+## Overrides
+
+None.

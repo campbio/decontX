@@ -1,0 +1,4 @@
+# License
+
+YEAR: 2023\
+COPYRIGHT HOLDER: Joshua D. Campbell, Yuan Yin, Masanao Yajima\
