@@ -62,8 +62,10 @@ One workflow, `.github/workflows/pkgdown.yaml`, in decontX:
 - Each build runs in the Bioconductor docker image for its branch
   (`devel`, or the image tagged with the release branch name), as
   R-CMD-check does.
-- Builds are grouped by branch, and the deploy step has one group of its
-  own, so two deploys never write to `gh-pages` at once.
+- Builds are grouped by branch and deploys by site, so a push to one
+  branch never cancels the other's waiting build or deploy. The two
+  sites' deploys write to separate folders of `gh-pages`, and the deploy
+  action retries a rejected push.
 - No scheduled builds: nothing changes between pushes.
 - Pull requests never deploy. Their CI runs `pkgdown::check_pkgdown()`
   only, and `make site-check` runs before PRs that touch the site.

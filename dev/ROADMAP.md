@@ -178,11 +178,11 @@ ADR-0007 accepted 2026-11-20; spec in
 - Part 1 (PR #142): the "Get started" overview vignette, the RNA
   workflow renamed to `decontX_RNA`, `_pkgdown.yml`, the site URL, and a
   `check_pkgdown()` CI job.
-- Part 2 (in progress): the deploy workflow (release site at the root from the current
-  `RELEASE_*` branch, development site at `/dev/` from `devel`, mode set
-  by branch) and the `dev/RELEASE.md` steps; the same workflow on
-  `RELEASE_3_23`. Then the maintainer enables Pages and runs the first
-  deploys.
+- Part 2 (in progress): the deploy workflow (release site at the root
+  from the current `RELEASE_*` branch, development site at `/dev/` from
+  `devel`, mode set by branch) and the `dev/RELEASE.md` steps; the same
+  workflow on `RELEASE_3_23`. Then the maintainer enables Pages and runs
+  the first deploys.
 - #141: precomputed full-data articles for PBMC (decontX) and cord_blood
   (decontPro); after them, the vignettes link to the articles.
 

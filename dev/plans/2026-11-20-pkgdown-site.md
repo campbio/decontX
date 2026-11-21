@@ -105,10 +105,13 @@ No new testthat tests: nothing in `R/` changes. Verification:
 - Triggers: `push` to `devel` and `RELEASE_*`; `workflow_dispatch`.
 - `permissions: contents: read`, with `contents: write` on the deploy
   job only (to push `gh-pages`).
-- `concurrency`: one group per branch for the workflow, and a
-  `pkgdown-deploy` group on the deploy job, both without
-  `cancel-in-progress`. (A single group for every branch would let a
-  release push cancel a waiting devel build.)
+- `concurrency`: one group per branch for the workflow, and one group
+  per site (`pkgdown-deploy-<mode>`) on the deploy job, both without
+  `cancel-in-progress`. (A group shared by both branches would let one
+  push cancel the other's waiting build or deploy, since GitHub keeps
+  only one waiting run per group.)
+- The dependency step stops if any dependency failed to install, rather
+  than failing later in a vignette.
 - A first step picks the mode: `devel` → `devel`; `RELEASE_*` → compare
   with `release_version` from `bioconductor.org/config.yaml` (the same
   download-then-awk as `sync-stable`), `release` if it matches, else
