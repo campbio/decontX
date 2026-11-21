@@ -10,8 +10,9 @@
 #
 # The mode is set from the branch with PKGDOWN_DEV_MODE, because
 # Bioconductor's three-part versions defeat pkgdown's `mode: auto`.
-# Pull requests never deploy; the lint workflow runs check_pkgdown() on
-# them. Enabling Pages (from the gh-pages branch) is a maintainer action.
+# Pull requests never deploy (on devel, the lint workflow runs
+# check_pkgdown() on them). The same file lives on the release branches.
+# Enabling Pages (from the gh-pages branch) is a maintainer action.
 
 name: pkgdown
 
