@@ -25,17 +25,17 @@ knitr::opts_chunk$set(
 # Introduction
 
 In droplet-based single-cell assays, each droplet should capture one cell.
-But the cell suspension also holds free material, such as RNA from cells
-that broke open, and some of it is captured in every droplet. Its counts
-are added to the cell's own counts:
+But not every count in a droplet comes from its cell. Two kinds of
+contamination add counts that aren't the cell's own:
 
-- **Ambient contamination.** Free RNA or free antibody-derived tags (ADTs)
-  in the suspension. Its profile is a mix of all the cells in the sample,
-  so it adds counts of genes or proteins that the cell doesn't express:
-  for example, T cell markers in a B cell.
+- **Ambient contamination.** The cell suspension holds free material, such
+  as RNA from cells that broke open, or free antibody-derived tags (ADTs),
+  and some of it is captured in every droplet. Its profile is a mix of all
+  the cells in the sample, so it adds counts of genes or proteins that the
+  cell doesn't express: for example, T cell markers in a B cell.
 - **Background contamination.** In protein (ADT) data, a low,
   non-specific level of counts for many ADTs, even in cell types that lack
-  the protein.
+  the protein. Its source isn't known.
 
 Contamination blurs the difference between cell types, and it can make a
 cell look like it expresses markers of another cell type. The decontX
