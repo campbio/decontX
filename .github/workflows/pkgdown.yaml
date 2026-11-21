@@ -27,9 +27,9 @@ permissions:
   contents: read
 
 # One build per branch at a time; a newer push to the same branch replaces
-# a run still waiting. The deploy job has its own group (below), so builds
-# of devel and the release branch run side by side but never write to
-# gh-pages together.
+# a run still waiting. Builds of devel and the release branch run side by
+# side; their deploys write to separate folders of gh-pages (dev/, and the
+# root without dev/), and the deploy action retries a rejected push.
 concurrency:
   group: pkgdown-${{ github.ref_name }}
   cancel-in-progress: false
@@ -96,6 +96,12 @@ jobs:
           BiocManager::install(c("pkgdown", "remotes"), update = FALSE, ask = FALSE)
           deps <- remotes::local_package_deps(dependencies = TRUE)
           BiocManager::install(deps, update = FALSE, ask = FALSE)
+          # BiocManager only warns when a package fails to install; stop
+          # here rather than partway through the vignettes.
+          missing <- setdiff(deps, rownames(installed.packages()))
+          if (length(missing) > 0) {
+            stop("Could not install: ", paste(missing, collapse = ", "))
+          }
         shell: Rscript {0}
 
       - name: Install decontX
@@ -121,8 +127,10 @@ jobs:
     # needs (git, rsync); the only job that can write to the repository.
     needs: [mode, build]
     runs-on: ubuntu-latest
+    # One group per site, so a devel deploy can never replace a waiting
+    # release deploy (GitHub keeps only one waiting job per group).
     concurrency:
-      group: pkgdown-deploy
+      group: pkgdown-deploy-${{ needs.mode.outputs.mode }}
       cancel-in-progress: false
     permissions:
       contents: write
