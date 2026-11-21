@@ -12,7 +12,9 @@
 # Bioconductor's three-part versions defeat pkgdown's `mode: auto`.
 # Pull requests never deploy (on devel, the lint workflow runs
 # check_pkgdown() on them). The same file lives on the release branches.
-# Enabling Pages (from the gh-pages branch) is a maintainer action.
+# Enabling Pages (from the gh-pages branch) is a maintainer action. To run
+# it by hand, pick devel or the release branch under "Run workflow"; the
+# default branch (main) is skipped.
 
 name: pkgdown
 
@@ -24,10 +26,12 @@ on:
 permissions:
   contents: read
 
-# One deploy at a time, so the devel and release builds never write to
-# gh-pages together. Queued runs wait rather than cancel.
+# One build per branch at a time; a newer push to the same branch replaces
+# a run still waiting. The deploy job has its own group (below), so builds
+# of devel and the release branch run side by side but never write to
+# gh-pages together.
 concurrency:
-  group: pkgdown
+  group: pkgdown-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -109,12 +113,17 @@ jobs:
           name: site
           path: docs
           include-hidden-files: true
+          # Only the deploy job below needs it.
+          retention-days: 1
 
   deploy:
     # Outside the container, which may lack the tools the deploy action
     # needs (git, rsync); the only job that can write to the repository.
     needs: [mode, build]
     runs-on: ubuntu-latest
+    concurrency:
+      group: pkgdown-deploy
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
