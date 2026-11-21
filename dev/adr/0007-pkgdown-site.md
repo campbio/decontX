@@ -59,11 +59,11 @@ One workflow, `.github/workflows/pkgdown.yaml`, in decontX:
   deploys to the root and keeps `dev/`.
 - When Bioconductor cuts a new release, pushing the new `RELEASE_X_Y`
   branch to GitHub rebuilds the root; no extra step.
-- Each job runs in the Bioconductor docker image for its branch (`devel`,
-  or the image tagged with the release branch name), as R-CMD-check
-  does.
-- Both jobs share one concurrency group, so two deploys never write to
-  `gh-pages` at once.
+- Each build runs in the Bioconductor docker image for its branch
+  (`devel`, or the image tagged with the release branch name), as
+  R-CMD-check does.
+- Builds are grouped by branch, and the deploy step has one group of its
+  own, so two deploys never write to `gh-pages` at once.
 - No scheduled builds: nothing changes between pushes.
 - Pull requests never deploy. Their CI runs `pkgdown::check_pkgdown()`
   only, and `make site-check` runs before PRs that touch the site.

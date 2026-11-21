@@ -103,8 +103,12 @@ No new testthat tests: nothing in `R/` changes. Verification:
 `.github/workflows/pkgdown.yaml`, as ADR-0007 describes:
 
 - Triggers: `push` to `devel` and `RELEASE_*`; `workflow_dispatch`.
-- `permissions: contents: write` (to push `gh-pages`).
-- `concurrency: group: pkgdown, cancel-in-progress: false`.
+- `permissions: contents: read`, with `contents: write` on the deploy
+  job only (to push `gh-pages`).
+- `concurrency`: one group per branch for the workflow, and a
+  `pkgdown-deploy` group on the deploy job, both without
+  `cancel-in-progress`. (A single group for every branch would let a
+  release push cancel a waiting devel build.)
 - A first step picks the mode: `devel` → `devel`; `RELEASE_*` → compare
   with `release_version` from `bioconductor.org/config.yaml` (the same
   download-then-awk as `sync-stable`), `release` if it matches, else
