@@ -1,3 +1,15 @@
+# decontX 1.11.38
+
+* A new "Getting started" vignette, `vignette("decontX", package =
+"decontX")`, gives a short overview of DecontX and DecontPro, when to use
+each, and a quick example on simulated data. The DecontX workflow vignette
+that had that name is now `vignette("decontX_RNA", package = "decontX")`;
+its workflow is unchanged (#84).
+* decontX has a documentation website, <https://campbio.github.io/decontX/>,
+for the current Bioconductor release, and
+<https://campbio.github.io/decontX/dev/> for the development version. Its
+address is in DESCRIPTION and the README (#84).
+
 # decontX 1.11.37
 
 * `decontX()` on a SingleCellExperiment with several batches now names the

@@ -1,6 +1,6 @@
 Package: decontX
 Title: Decontamination of Single Cell Genomics Data
-Version: 1.11.37
+Version: 1.11.38
 Authors@R: 
     c(person("Yuan", "Yin", , "yuan_yin@outlook.com", role = c("aut"),
            comment = c(ORCID = "0000-0001-9261-6061")),
@@ -17,7 +17,7 @@ Description: This package contains implementation of DecontX (Yang et al. 2020)
     is a Bayesian method that estimates the level of contamination from ambient 
     and background sources in CITE-seq ADT dataset and decontaminate the dataset. 
 License: MIT + file LICENSE
-URL: https://github.com/campbio/decontX
+URL: https://campbio.github.io/decontX/, https://github.com/campbio/decontX
 BugReports: https://github.com/campbio/decontX/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

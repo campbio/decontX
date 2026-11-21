@@ -22,9 +22,12 @@ data: **DecontX** (Yang et al. 2020) estimates and removes ambient RNA
 contamination in scRNA-seq without needing empty droplets, and
 **DecontPro** (Yin et al. 2024) removes ambient and background
 contamination from CITE-seq ADT (protein) counts. Distributed through
-Bioconductor since 3.18. There is no Shiny app and no pkgdown site yet
-(see `dev/ROADMAP.md`), so those parts of the standards don't apply,
-including `make site-check`.
+Bioconductor since 3.18. There is no Shiny app, so that part of the
+standards doesn't apply. The pkgdown site (ADR-0007) is configured in
+`_pkgdown.yml`. Once its deploy workflow lands (#84), GitHub Pages serves
+the release at https://campbio.github.io/decontX/ and `devel` at `/dev/`.
+The standards' site rules apply, including `make site-check` before PRs
+that touch the site.
 
 ## Layout
 
@@ -55,7 +58,10 @@ including `make site-check`.
     `inst/stan/shrinkage.stan`).
 - `man/examples/decontX.R` is **hand-written**. It is the shared example
   pulled into several help pages with `@example`, so edit it directly.
-- `vignettes/decontX.Rmd`, `vignettes/decontPro.Rmd`.
+- Vignettes: `vignettes/decontX.Rmd` is the short "Get started"
+  overview of both methods; `vignettes/decontX_RNA.Rmd` and
+  `vignettes/decontPro.Rmd` are the workflows. The site groups them in
+  `_pkgdown.yml`.
 - Style: the code uses **2-space indentation**, set in `.lintr`
   (`indentation_linter(indent = 2L)`). With 4 spaces, lintr would report
   over 800 indentation lints, against 3 with 2. Converting to 4 spaces

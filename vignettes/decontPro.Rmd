@@ -59,6 +59,10 @@ DecontPro fits the model with Stan's variational inference, splits each
 count into the three parts in proportion to their estimated rates, and
 returns the native part as the decontaminated counts.
 
+For a short overview of the package and of DecontX, its method for RNA
+counts, see [Getting started with decontX](decontX.html),
+`vignette("decontX", package = "decontX")`.
+
 # Installation
 
 The decontX package, which contains DecontPro, can be installed from

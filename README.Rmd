@@ -63,9 +63,17 @@ decontaminated <- result$decontXcounts
 
 The vignettes show the full workflow, including a SingleCellExperiment, cluster labels, empty droplets, and plots of the results.
 
+## Documentation
+
+The package website, <https://campbio.github.io/decontX/>, has the vignettes and the help pages of every function for the current Bioconductor release. The development version's site is at <https://campbio.github.io/decontX/dev/>.
+
 ## Vignettes
 
-Vignettes are available on [Bioconductor](https://bioconductor.org/packages/decontX).
+Vignettes are available on [Bioconductor](https://bioconductor.org/packages/decontX):
+
+- Getting started: an overview of DecontX and DecontPro, with a quick example.
+- decontX (RNA): the DecontX workflow for single-cell RNA-seq data.
+- decontPro (Protein): the DecontPro workflow for CITE-seq ADT data.
 
 To build the vignettes when installing from GitHub, add the flag `build_vignettes = TRUE`:
 
@@ -78,6 +86,7 @@ Then vignettes can be accessed through:
 
 ```{r eval=FALSE}
 vignette('decontX', package = 'decontX')
+vignette('decontX_RNA', package = 'decontX')
 vignette('decontPro', package = 'decontX')
 ```
 

@@ -27,7 +27,7 @@ Numbering is sequential, zero-padded to four digits.
 | [0004](0004-container-agnostic-core.md) | Separate a container-agnostic core from the decontX and decontPro methods | Proposed | 2026-10-27 |
 | [0005](0005-multi-container-methods.md) | Add Seurat, AnnData and ExperimentSubset methods that return the same class | Proposed | 2026-10-27 |
 | [0006](0006-decontpro-arguments.md) | Rename decontPro's arguments to camelCase and expose its fit controls | Accepted | 2026-11-11 |
-| [0007](0007-pkgdown-site.md) | Publish a pkgdown site on GitHub Pages with release and development versions | Proposed | 2026-10-27 |
+| [0007](0007-pkgdown-site.md) | Publish a pkgdown site on GitHub Pages with release and development versions | Accepted | 2026-11-20 |
 | [0008](0008-drop-plyr-and-reshape2.md) | Drop plyr and reshape2 from Imports | Accepted | 2026-11-08 |
 | [0009](0009-raise-scrapper-floor.md) | Raise the scrapper floor to 1.5 | Accepted | 2026-11-10 |
 | [0010](0010-declare-base-imports.md) | Declare stats, grid and utils in Imports | Accepted | 2026-11-10 |
