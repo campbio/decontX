@@ -28,8 +28,11 @@ git remote add bioc git@git.bioconductor.org:packages/decontX
 3. Triage every ERROR/WARNING/NOTE into a fix plan (GitHub issues);
    fix; re-run; land fixes via PRs to `devel`.
 4. Run `/security-review` on the release branch diff.
-5. Update `NEWS.md` with a section for the new release version.
-6. Bump `Version:` in DESCRIPTION (z increment) and push `devel` to
+5. Refresh the precomputed full-data articles in `vignettes/articles/`
+   (#141, once they exist) on `devel`, so the new release branch carries
+   them to the release site (ADR-0007).
+6. Update `NEWS.md` with a section for the new release version.
+7. Bump `Version:` in DESCRIPTION (z increment) and push `devel` to
    both GitHub and `bioc/devel`.
 
 ## At release
@@ -48,4 +51,10 @@ git remote add bioc git@git.bioconductor.org:packages/decontX
   only the early-warning system.
 - Confirm the landing page shows the new version:
   https://bioconductor.org/packages/decontX
+- Push the new `RELEASE_X_Y` branch to GitHub if it isn't there yet. The
+  push runs the pkgdown workflow, which rebuilds the release site at
+  https://campbio.github.io/decontX/ once `bioconductor.org/config.yaml`
+  names the new release (re-run it from the Actions tab if the push came
+  first). Confirm the root shows the new version and that `/dev/` still
+  works.
 - Run the dev/AUDIT.md dependency/deprecation audit for the new devel cycle.
