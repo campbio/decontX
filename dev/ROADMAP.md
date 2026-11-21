@@ -175,10 +175,10 @@ Done in two parts (see Done).
 ADR-0007 accepted 2026-11-20; spec in
 `dev/plans/2026-11-20-pkgdown-site.md`.
 
-- Part 1 (in progress): the "Get started" overview vignette, the RNA
+- Part 1 (PR #142): the "Get started" overview vignette, the RNA
   workflow renamed to `decontX_RNA`, `_pkgdown.yml`, the site URL, and a
   `check_pkgdown()` CI job.
-- Part 2: the deploy workflow (release site at the root from the current
+- Part 2 (in progress): the deploy workflow (release site at the root from the current
   `RELEASE_*` branch, development site at `/dev/` from `devel`, mode set
   by branch) and the `dev/RELEASE.md` steps; the same workflow on
   `RELEASE_3_23`. Then the maintainer enables Pages and runs the first

@@ -24,10 +24,10 @@ contamination in scRNA-seq without needing empty droplets, and
 contamination from CITE-seq ADT (protein) counts. Distributed through
 Bioconductor since 3.18. There is no Shiny app, so that part of the
 standards doesn't apply. The pkgdown site (ADR-0007) is configured in
-`_pkgdown.yml`. Once its deploy workflow lands (#84), GitHub Pages serves
-the release at https://campbio.github.io/decontX/ and `devel` at `/dev/`.
-The standards' site rules apply, including `make site-check` before PRs
-that touch the site.
+`_pkgdown.yml`. `.github/workflows/pkgdown.yaml` builds it on pushes to
+`devel` (published at https://campbio.github.io/decontX/dev/) and to the
+current `RELEASE_*` branch (published at the root). The standards' site
+rules apply, including `make site-check` before PRs that touch the site.
 
 ## Layout
 
