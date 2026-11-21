@@ -8,8 +8,9 @@ is tested. Three parts:
    ADR-0007, restructure the vignettes, add `_pkgdown.yml` and the URL.
    Version 1.11.38.
 2. **`feature/pkgdown-deploy`, PR "Fixes #84":** the deploy workflow and
-   the `dev/RELEASE.md` step, from `devel` after part 1 merges. No
-   version bump (CI and dev files only).
+   the `dev/RELEASE.md` step. Stacked on part 1's branch, because it
+   updates the AGENTS.md and roadmap lines part 1 adds; its PR goes into
+   `devel` after part 1 merges. No version bump (CI and dev files only).
 3. **A release-branch PR into `RELEASE_3_23`:** the same workflow file
    only. No version bump.
 
@@ -102,8 +103,15 @@ No new testthat tests: nothing in `R/` changes. Verification:
 `.github/workflows/pkgdown.yaml`, as ADR-0007 describes:
 
 - Triggers: `push` to `devel` and `RELEASE_*`; `workflow_dispatch`.
-- `permissions: contents: write` (to push `gh-pages`).
-- `concurrency: group: pkgdown, cancel-in-progress: false`.
+- `permissions: contents: read`, with `contents: write` on the deploy
+  job only (to push `gh-pages`).
+- `concurrency`: one group per branch for the workflow, and one group
+  per site (`pkgdown-deploy-<mode>`) on the deploy job, both without
+  `cancel-in-progress`. (A group shared by both branches would let one
+  push cancel the other's waiting build or deploy, since GitHub keeps
+  only one waiting run per group.)
+- The dependency step stops if any dependency failed to install, rather
+  than failing later in a vignette.
 - A first step picks the mode: `devel` → `devel`; `RELEASE_*` → compare
   with `release_version` from `bioconductor.org/config.yaml` (the same
   download-then-awk as `sync-stable`), `release` if it matches, else
@@ -113,10 +121,12 @@ No new testthat tests: nothing in `R/` changes. Verification:
   BiocManager plus pkgdown, and runs
   `pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)`
   with `PKGDOWN_DEV_MODE` set.
-- Deploy with a pinned `JamesIves/github-pages-deploy-action`:
-  development from `docs/dev` to `target-folder: dev` (clean inside
-  `dev/` only); release from `docs` to the root with
-  `clean-exclude: dev`.
+- The build job uploads `docs/` as an artifact. A separate deploy job,
+  outside the container (which may lack git or rsync) and the only job
+  with `contents: write`, publishes it with
+  `JamesIves/github-pages-deploy-action`: development from `docs/dev` to
+  `target-folder: dev` (clean inside `dev/` only); release from `docs` to
+  the root with `clean-exclude: dev`.
 - Actions pinned by major-version tag, as the other workflows are.
 
 `dev/RELEASE.md`:

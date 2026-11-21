@@ -48,6 +48,10 @@ jobs:
         with:
           use-public-rspm: true
 
+      # check_pkgdown() renders the article titles from Markdown with
+      # Pandoc, which the runner doesn't have.
+      - uses: r-lib/actions/setup-pandoc@v2
+
       - name: Install pkgdown
         run: install.packages("pkgdown")
         shell: Rscript {0}
