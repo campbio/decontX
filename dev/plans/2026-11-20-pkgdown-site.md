@@ -34,10 +34,11 @@ No package code changes, so results are unchanged.
     ADT counts; one sentence on each model; what each needs (counts,
     optional cluster or cell-type labels, optional empty droplets).
   - Installation: `BiocManager::install("decontX")`.
-  - A quick example: `set.seed()`, `simulateContamination()` with a
-    small size, `decontX()` with `verbose = FALSE`, then the estimated
-    contamination next to the simulated truth. A few lines; runs in
-    seconds.
+  - A quick example: `simulateContamination()` and `decontX()` with
+    their defaults (both seeded by their `seed` argument, so no
+    `set.seed()`), with the log hidden by the chunk option
+    `message = FALSE`, then the estimated contamination plotted against
+    the simulated truth. A few lines; runs in seconds.
   - Next steps: links to the two workflow vignettes, by `vignette()`
     call and as relative links that work on Bioconductor and on the
     site.
@@ -116,7 +117,7 @@ No new testthat tests: nothing in `R/` changes. Verification:
   development from `docs/dev` to `target-folder: dev` (clean inside
   `dev/` only); release from `docs` to the root with
   `clean-exclude: dev`.
-- Actions pinned by SHA, as the other workflows are.
+- Actions pinned by major-version tag, as the other workflows are.
 
 `dev/RELEASE.md`:
 - Pre-freeze: refresh the precomputed articles on `devel` (once they
