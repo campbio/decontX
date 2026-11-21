@@ -170,17 +170,21 @@ Done in two parts (see Done).
   replaces the manual round trip; runnable examples for each method;
   NEWS and a vignette callout for the decontPro break.
 
-### III-c: pkgdown site and articles (ADR-0007 first), #84
+### III-c: pkgdown site and articles, #84 and #141
 
-- Documentation moves to GitHub Pages: a release site at the root,
-  rebuilt at each release from the `RELEASE_*` branch, and a development
-  site at `/dev/`, built from `devel`. The pkgdown mode is set by branch
-  (Bioc's three-part versions defeat `mode: auto`).
-- `_pkgdown.yml`; full-data articles for PBMC (decontX) and cord_blood
-  (decontPro), run locally at each release; how the articles appear on
-  the development site is decided in ADR-0007. Enabling Pages and the
-  first deploy are maintainer actions. After it, the vignettes link to
-  the articles.
+ADR-0007 accepted 2026-11-20; spec in
+`dev/plans/2026-11-20-pkgdown-site.md`.
+
+- Part 1 (in progress): the "Get started" overview vignette, the RNA
+  workflow renamed to `decontX_RNA`, `_pkgdown.yml`, the site URL, and a
+  `check_pkgdown()` CI job.
+- Part 2: the deploy workflow (release site at the root from the current
+  `RELEASE_*` branch, development site at `/dev/` from `devel`, mode set
+  by branch) and the `dev/RELEASE.md` steps; the same workflow on
+  `RELEASE_3_23`. Then the maintainer enables Pages and runs the first
+  deploys.
+- #141: precomputed full-data articles for PBMC (decontX) and cord_blood
+  (decontPro); after them, the vignettes link to the articles.
 
 ## Longer term
 
