@@ -1,0 +1,164 @@
+# Builds the pkgdown site and publishes it to GitHub Pages (ADR-0007).
+#
+# - A push to devel builds the development site, in pkgdown's development
+#   mode, and publishes it at /dev/.
+# - A push to the current Bioconductor release branch builds the release
+#   site and publishes it at the root, keeping /dev/. The current release
+#   comes from https://bioconductor.org/config.yaml, as in the stable-branch
+#   sync; other RELEASE_* branches are skipped, so a fix on an old release
+#   can't overwrite the current one.
+#
+# The mode is set from the branch with PKGDOWN_DEV_MODE, because
+# Bioconductor's three-part versions defeat pkgdown's `mode: auto`.
+# Pull requests never deploy (on devel, the lint workflow runs
+# check_pkgdown() on them). The same file lives on the release branches.
+# Enabling Pages (from the gh-pages branch) is a maintainer action. To run
+# it by hand, pick devel or the release branch under "Run workflow"; the
+# default branch (main) is skipped.
+
+name: pkgdown
+
+on:
+  push:
+    branches: [devel, 'RELEASE_*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One build per branch at a time; a newer push to the same branch replaces
+# a run still waiting. Builds of devel and the release branch run side by
+# side; their deploys write to separate folders of gh-pages (dev/, and the
+# root without dev/), and the deploy action retries a rejected push.
+concurrency:
+  group: pkgdown-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  mode:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+    steps:
+      - name: Choose the site mode from the branch
+        id: mode
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          case "$BRANCH" in
+            devel)
+              mode=devel
+              ;;
+            RELEASE_*)
+              # Download first, then parse: piping curl into an awk that
+              # exits early makes curl fail under pipefail.
+              cfg=$(curl -fsSL https://bioconductor.org/config.yaml)
+              rel=$(awk -F'"' '/^release_version:/ {print $2; exit}' <<< "$cfg")
+              if [ -z "$rel" ]; then
+                echo "::error::Could not read release_version from config.yaml"
+                exit 1
+              fi
+              current="RELEASE_${rel//./_}"
+              if [ "$BRANCH" = "$current" ]; then
+                mode=release
+              else
+                echo "::notice::$BRANCH is not the current release ($current); not deploying."
+                mode=skip
+              fi
+              ;;
+            *)
+              echo "::notice::Only devel and the current RELEASE_* branch deploy the site; not deploying $BRANCH."
+              mode=skip
+              ;;
+          esac
+          echo "Mode: $mode"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: mode
+    if: needs.mode.outputs.mode != 'skip'
+    runs-on: ubuntu-latest
+    # The Bioconductor image for the branch: devel, or the image tagged with
+    # the release branch name (for example RELEASE_3_23).
+    container:
+      image: bioconductor/bioconductor_docker:${{ needs.mode.outputs.mode == 'devel' && 'devel' || github.ref_name }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      PKGDOWN_DEV_MODE: ${{ needs.mode.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        # Resolve everything through BiocManager so versions stay coherent
+        # with the container's Bioc (remotes only LISTS the deps).
+        run: |
+          BiocManager::install(c("pkgdown", "remotes"), update = FALSE, ask = FALSE)
+          deps <- remotes::local_package_deps(dependencies = TRUE)
+          BiocManager::install(deps, update = FALSE, ask = FALSE)
+          # BiocManager only warns when a package fails to install; stop
+          # here rather than partway through the vignettes.
+          missing <- setdiff(deps, rownames(installed.packages()))
+          if (length(missing) > 0) {
+            stop("Could not install: ", paste(missing, collapse = ", "))
+          }
+        shell: Rscript {0}
+
+      - name: Install decontX
+        run: R CMD INSTALL .
+
+      - name: Build the site
+        # In development mode pkgdown writes the site to docs/dev/; in
+        # release mode, to docs/.
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Upload the site
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: docs
+          include-hidden-files: true
+          # Only the deploy job below needs it.
+          retention-days: 1
+
+  deploy:
+    # Outside the container, which may lack the tools the deploy action
+    # needs (git, rsync); the only job that can write to the repository.
+    needs: [mode, build]
+    runs-on: ubuntu-latest
+    # One group per site, so a devel deploy can never replace a waiting
+    # release deploy (GitHub keeps only one waiting job per group).
+    concurrency:
+      group: pkgdown-deploy-${{ needs.mode.outputs.mode }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the site
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+
+      - name: Publish the development site at /dev/
+        if: needs.mode.outputs.mode == 'devel'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: site/dev
+          target-folder: dev
+          # Removes stale files inside dev/ only.
+          clean: true
+
+      - name: Publish the release site at the root
+        if: needs.mode.outputs.mode == 'release'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: site
+          # Removes stale files at the root, but never the development site.
+          clean: true
+          clean-exclude: dev
