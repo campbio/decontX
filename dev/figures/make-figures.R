@@ -7,11 +7,16 @@
 #   decontPro-model.tmpl.svg, with ADT density curves.
 #
 # The data are simulated for illustration only; they are not decontX
-# output. vignettes/decontX-model.svg has no data layer, so it is edited
-# directly. Run from the repository root:
+# output. Edit the templates, then rerun this script; never edit the two
+# generated SVGs by hand, or the next run overwrites the change.
+# vignettes/decontX-model.svg has no data layer, so it is edited directly.
+# Run from the repository root:
 #
 #   Rscript dev/figures/make-figures.R
 
+if (!file.exists("DESCRIPTION") || !dir.exists("dev/figures")) {
+  stop("Run this script from the root of the decontX repository.")
+}
 set.seed(84)
 here <- "dev/figures"
 
@@ -84,7 +89,15 @@ ymax <- max(before, after)
 fill_template <- function(template, out, values) {
   svg <- paste(readLines(file.path(here, template)), collapse = "\n")
   for (key in names(values)) {
-    svg <- sub(paste0("{{", key, "}}"), values[[key]], svg, fixed = TRUE)
+    placeholder <- paste0("{{", key, "}}")
+    pieces <- strsplit(svg, placeholder, fixed = TRUE)[[1]]
+    if (length(pieces) != 2) {
+      stop(template, " must contain ", placeholder, " exactly once.")
+    }
+    svg <- paste0(pieces[1], values[[key]], pieces[2])
+  }
+  if (grepl("{{", svg, fixed = TRUE)) {
+    stop(template, " has a placeholder this script doesn't fill.")
   }
   writeLines(svg, out)
 }
