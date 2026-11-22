@@ -68,6 +68,7 @@
     <use href="#ab" transform="translate(664,147) rotate(20)"/>
     <use href="#ab" transform="translate(856,146) rotate(-50)"/><use href="#ab" transform="translate(828,116) rotate(30)"/>
     <use href="#ab" transform="translate(938,112) rotate(60)"/>
+    <use href="#ab" transform="translate(778,130) rotate(80)"/><use href="#ab" transform="translate(738,129) rotate(-70)"/>
   </g>
   <!-- background: grey; in cell droplets and in spongelets (760) -->
   <g stroke="#8C8C8C">
