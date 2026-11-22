@@ -39,7 +39,8 @@ contamination add counts that aren't the cell's own:
   cell doesn't express: for example, T cell markers in a B cell.
 - **Background contamination.** In protein (ADT) data, a low,
   non-specific level of counts for many ADTs, even in cell types that lack
-  the protein. Its source isn't known.
+  the protein. Possible sources include non-specific antibody binding and
+  spongelets: droplets with no cell but a medium level of ADTs.
 
 Contamination blurs the difference between cell types, and it can make a
 cell look like it expresses markers of another cell type. The decontX
