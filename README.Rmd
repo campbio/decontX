@@ -23,6 +23,8 @@ knitr::opts_chunk$set(
 
 Methods for decontamination of single cell data. This package implements both DecontX (Yang et al., [2020](https://doi.org/10.1186/s13059-020-1950-6)) for single-cell RNA-seq data and DecontPro (Yin et al., [2024](https://doi.org/10.1093/nar/gkad1032)) for single-cell protein expression data.
 
+<img src="man/figures/decontX-overview.svg" width="100%" alt="Overview of decontX. Top: a droplet holds a B cell plus ambient RNA from other cells, so its counts include T cell and monocyte markers; decontX() or decontPro() removes them and keeps the B cell marker. Bottom: on a UMAP before decontamination, contaminated cells blur toward the middle and a T cell marker shows up in B cells and monocytes; after, the clusters are tighter and the marker stays in T cells." />
+
 ## Installation Instructions
 
 You can install the package through [Bioconductor](https://bioconductor.org/packages/decontX) with:
