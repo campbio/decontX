@@ -88,8 +88,8 @@ droplets <- adtCounts(raw)
 rownames(cells)
 ```
 
-The last three ADTs are the isotype controls. One cell has no ADT counts
-at all, which leaves nothing to normalize, so we drop it:
+The ADTs whose names end in `_control` are the isotype controls. Cells
+with no ADT counts at all leave nothing to normalize, so we drop them:
 
 ```{r zero_cells}
 sum(colSums(cells) == 0)
@@ -254,6 +254,21 @@ plotBoxByCluster(
 )
 ```
 
+```{r check_mixed_cd16, include = FALSE}
+# The text says the empty droplets remove more CD16 from the mixed group
+# than from the NK cells.
+cd16Kept <- function(type) {
+  i <- cellType == type
+  sum(withEmpty$decontaminated_counts["CD16", i]) / sum(cells["CD16", i])
+}
+stopifnot(cd16Kept("mixed") < cd16Kept("NK"))
+```
+
+Most cell types keep their markers. The exception is CD16 in the `mixed`
+group: it keeps much less of its CD16 than the NK cells do. The group
+mixes cells with and without CD16, so DecontPro can't treat it as one
+population, which is the problem the next section shows.
+
 # When the labels are too coarse
 
 DecontPro treats each cell type as one population: an ADT that is high in
@@ -276,12 +291,22 @@ plotDensity(cells, coarse$decontaminated_counts,
             c("CD3", "CD4", "CD8a", "CD45RA"))
 ```
 
-With one T-cell label, the high CD4 peak of the CD4 T cells is gone, and
-the naive T cells' CD45RA peak shrinks: within the T cells, DecontPro
-treats these real differences as contamination. If the
-decontaminated counts lose a peak that the markers say is real, check
-whether the labels split the cells that carry it from the cells that
-don't.
+```{r lost_marker, include = FALSE}
+coarseRemoved <- removed(coarse)
+lostMarker <- names(which.max(coarseRemoved[c("CD4", "CD8a")]))
+# The text says one of CD4 and CD8a is mostly removed, and that CD45RA
+# loses more than with the fine labels.
+stopifnot(coarseRemoved[lostMarker] > 0.8,
+          coarseRemoved["CD45RA"] > removed(default)["CD45RA"])
+```
+
+With one T-cell label, DecontPro removes most of one T-cell subset's
+marker, in this fit `r lostMarker`, and the naive T cells' CD45RA peak
+shrinks: within the T cells, it treats these real differences as
+contamination. Which of CD4 and CD8a is lost isn't stable; we have seen
+fits of these same data lose the other one. If the decontaminated counts
+lose a peak that the markers say is real, check whether the labels split
+the cells that carry it from the cells that don't.
 
 # Summary
 

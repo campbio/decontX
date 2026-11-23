@@ -25,8 +25,9 @@ full cord_blood data" for decontPro. Probes on 2026-11-23 changed both:
   `background`) and isotype controls, which cord_blood lacks. Its
   cell-type labels come from clustering the ADTs, so the maintainer can
   judge how much work labels are. With coarse labels (one T-cell label
-  for CD4 and CD8), DecontPro removes the CD4 T cells' real CD4 peak and
-  shrinks the naive CD45RA peak; the article shows that as a pitfall.
+  for CD4 and CD8), DecontPro removes the real peak of CD4 or CD8a
+  (which one varied between fits of the same data) and shrinks the
+  naive CD45RA peak; the article shows that as a pitfall.
 
 ADR-0007 gets a dated note saying so, rather than a new ADR.
 
@@ -120,8 +121,10 @@ Title: "DecontPro on 10x PBMC data with empty droplets".
 4. DecontPro with `background`: the spongelets in the raw matrix.
 5. Comparison: `plotDensity()`, `plotBoxByCluster()`, share removed per
    ADT; the isotype controls as a check (they should be mostly removed).
-6. Pitfall: the same fit with one T-cell label removes the CD4 T cells'
-   CD4 peak and shrinks the naive CD45RA peak.
+6. Pitfall: the same fit with one T-cell label removes the real peak of
+   CD4 or CD8a, named at knit time, and shrinks the naive CD45RA peak.
+   The `mixed` group shows the same problem for CD16 with the empty
+   droplets.
 7. Links back to the vignette for the priors and the FAQ.
 
 ## Testing and checks

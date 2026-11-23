@@ -166,8 +166,8 @@ counts to checking the results:
   priors, and a FAQ.
 
 The package website, <https://campbio.github.io/decontX/>, has these
-vignettes and the help pages of every function. Its development version
-also has two articles on larger, real data:
+vignettes and the help pages of every function, and two articles on
+larger, real data:
 [Using empty droplets with DecontX](https://campbio.github.io/decontX/dev/articles/decontX_background.html),
 on single-nucleus lung data, and
 [DecontPro on 10x PBMC data with empty droplets](https://campbio.github.io/decontX/dev/articles/decontPro_pbmc10k.html).

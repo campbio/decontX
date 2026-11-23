@@ -73,9 +73,9 @@ and unzip a copy into a temporary folder:
 
 ```{r download}
 bfc <- BiocFileCache(ask = FALSE)
-geo <- "https://ftp.ncbi.nlm.nih.gov/geo/samples/GSM5229nnn/"
+geo <- "https://ftp.ncbi.nlm.nih.gov/geo/samples/"
 rawUrl <- paste0(
-  geo, "GSM5229973/suppl/",
+  geo, "GSM5229nnn/GSM5229973/suppl/",
   "GSM5229973_02-P005175-S053-R01_raw_feature_bc_matrix.h5.gz"
 )
 rawH5 <- R.utils::gunzip(
@@ -181,9 +181,10 @@ cellTypeMarkers <- list(
 )
 z <- noBackground$decontX_clusters
 x <- counts(nuclei)
-logNorm <- log1p(t(t(x) / colSums(x)) * 1e4)
+logNorm <- log1p(t(t(as.matrix(x[unlist(cellTypeMarkers), ])) /
+                   colSums(x)) * 1e4)
 score <- sapply(cellTypeMarkers, function(genes) {
-  tapply(colMeans(as.matrix(logNorm[genes, ])), z, mean)
+  tapply(colMeans(logNorm[genes, ]), z, mean)
 })
 score <- scale(score)
 round(score, 1)
@@ -195,6 +196,14 @@ nuclei$cellType <- unname(clusterType[as.character(z)])
 
 Each cluster scores clearly highest for one cell type. With other data,
 check the scores, and look at more markers when two cell types come close.
+
+```{r check_cell_types, include = FALSE}
+# Stop the knit if a refresh no longer gives what the text says: each
+# cluster clearly highest for one cell type, each cell type once.
+margin <- apply(score, 1, function(s) -diff(sort(s, decreasing = TRUE)[1:2]))
+stopifnot(all(margin > 1), !anyDuplicated(clusterType),
+          "Epithelial" %in% clusterType)
+```
 
 # What changes with the empty droplets
 
@@ -238,6 +247,13 @@ ggplot(estimates, aes(noBackground, withBackground, color = cellType)) +
   ) +
   theme_bw()
 cor(estimates$noBackground, estimates$withBackground)
+```
+
+```{r check_high, include = FALSE}
+# The text says the nuclei estimated as nearly all contamination with the
+# empty droplets are mostly epithelial.
+high <- table(estimates$cellType[estimates$withBackground > 0.9])
+stopifnot(names(which.max(high)) == "Epithelial", max(high) > sum(high) / 2)
 ```
 
 The run with the empty droplets finds more contamination in most cell
