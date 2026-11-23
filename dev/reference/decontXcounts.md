@@ -59,13 +59,13 @@ sce <- decontX(sce, z = sim$z, embedding = FALSE)
 #> --------------------------------------------------
 #> Starting DecontX
 #> --------------------------------------------------
-#> Mon Nov 23 12:25:40 2026 .. Analyzing all cells
-#> Mon Nov 23 12:25:40 2026 .... Converting to sparse matrix
-#> Mon Nov 23 12:25:40 2026 .... Estimating contamination
-#> Mon Nov 23 12:25:40 2026 ...... Completed iteration: 9 | converge: 0.0009154
-#> Mon Nov 23 12:25:40 2026 .. Calculating final decontaminated matrix
+#> Mon Nov 23 16:40:15 2026 .. Analyzing all cells
+#> Mon Nov 23 16:40:15 2026 .... Converting to sparse matrix
+#> Mon Nov 23 16:40:15 2026 .... Estimating contamination
+#> Mon Nov 23 16:40:15 2026 ...... Completed iteration: 9 | converge: 0.0009154
+#> Mon Nov 23 16:40:15 2026 .. Calculating final decontaminated matrix
 #> --------------------------------------------------
-#> Completed DecontX. Total time: 0.006694317 secs
+#> Completed DecontX. Total time: 0.004794598 secs
 #> --------------------------------------------------
 
 # Get the decontaminated counts

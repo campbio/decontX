@@ -136,14 +136,14 @@ sce <- decontX(sce)
 #> --------------------------------------------------
 #> Starting DecontX
 #> --------------------------------------------------
-#> Mon Nov 23 12:25:49 2026 .. Analyzing all cells
-#> Mon Nov 23 12:25:49 2026 .... Converting to sparse matrix
-#> Mon Nov 23 12:25:49 2026 .... Generating UMAP and estimating cell types
-#> Mon Nov 23 12:25:49 2026 .... Estimating contamination
-#> Mon Nov 23 12:25:49 2026 ...... Completed iteration: 9 | converge: 0.0009154
-#> Mon Nov 23 12:25:49 2026 .. Calculating final decontaminated matrix
+#> Mon Nov 23 16:40:21 2026 .. Analyzing all cells
+#> Mon Nov 23 16:40:21 2026 .... Converting to sparse matrix
+#> Mon Nov 23 16:40:21 2026 .... Generating UMAP and estimating cell types
+#> Mon Nov 23 16:40:22 2026 .... Estimating contamination
+#> Mon Nov 23 16:40:22 2026 ...... Completed iteration: 9 | converge: 0.0009154
+#> Mon Nov 23 16:40:22 2026 .. Calculating final decontaminated matrix
 #> --------------------------------------------------
-#> Completed DecontX. Total time: 0.2789302 secs
+#> Completed DecontX. Total time: 0.2385576 secs
 #> --------------------------------------------------
 
 # Plot contamination on UMAP

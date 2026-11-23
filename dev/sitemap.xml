@@ -1,10 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
-<url><loc>https://campbio.github.io/decontX/dev/AGENTS.html</loc></url>
-<url><loc>https://campbio.github.io/decontX/dev/CLAUDE.html</loc></url>
 <url><loc>https://campbio.github.io/decontX/dev/CONTRIBUTING.html</loc></url>
-<url><loc>https://campbio.github.io/decontX/dev/GEMINI.html</loc></url>
 <url><loc>https://campbio.github.io/decontX/dev/LICENSE-text.html</loc></url>
-<url><loc>https://campbio.github.io/decontX/dev/PULL_REQUEST_TEMPLATE.html</loc></url>
 <url><loc>https://campbio.github.io/decontX/dev/SECURITY.html</loc></url>
 <url><loc>https://campbio.github.io/decontX/dev/articles/decontPro.html</loc></url>
 <url><loc>https://campbio.github.io/decontX/dev/articles/decontX.html</loc></url>
