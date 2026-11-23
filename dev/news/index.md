@@ -1,5 +1,12 @@
 # Changelog
 
+## decontX 1.11.39
+
+- New overview figures: on the README and the website’s home page, what
+  contamination does to one cell and to a UMAP, and how decontX removes
+  it; in the “Getting started” vignette, where the contamination comes
+  from and what DecontX and DecontPro estimate.
+
 ## decontX 1.11.38
 
 - A new “Getting started” vignette,

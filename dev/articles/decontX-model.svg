@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" role="img" aria-labelledby="t d" font-family="Helvetica, Arial, sans-serif">
+  <title id="t">Where ambient RNA comes from, and what DecontX estimates</title>
+  <desc id="d">Top: in a microfluidic channel, the cell suspension, which holds free RNA from broken cells, is split by oil into a line of droplets; droplets with a cell and empty droplets both capture ambient RNA. Bottom: DecontX splits one B cell's counts into native counts, from the B cell profile, and contamination, from the other cell types' profiles.</desc>
+  <rect width="1000" height="500" rx="14" fill="#fff"/>
+
+  <text x="500" y="34" text-anchor="middle" font-size="19" font-weight="bold" fill="#222">Where ambient RNA comes from</text>
+
+  <!-- Channel fills -->
+  <rect x="30" y="100" width="300" height="60" fill="#F3F7FB"/>
+  <rect x="330" y="50" width="50" height="50" fill="#FBF3DD"/>
+  <rect x="330" y="160" width="50" height="50" fill="#FBF3DD"/>
+  <rect x="330" y="100" width="650" height="60" fill="#FBF3DD"/>
+  <path d="M330,100 L372,122 L372,138 L330,160 Z" fill="#F3F7FB"/>
+  <!-- Channel walls -->
+  <g fill="none" stroke="#8DA6BD" stroke-width="2">
+    <path d="M30,100 H330 V50"/><path d="M380,50 V100 H980"/>
+    <path d="M30,160 H330 V210"/><path d="M380,210 V160 H980"/>
+  </g>
+  <g font-size="13" fill="#555" text-anchor="middle">
+    <text x="390" y="72" text-anchor="start">oil</text><text x="390" y="198" text-anchor="start">oil</text>
+  </g>
+  <text x="180" y="90" text-anchor="middle" font-size="13" fill="#222">cell suspension: cells and free RNA</text>
+
+  <!-- Inlet: cells, a broken cell, free RNA -->
+  <g fill="#D6E6F5" stroke="#0072B2" stroke-width="2">
+    <circle cx="70" cy="130" r="16"/><circle cx="160" cy="130" r="16"/><circle cx="290" cy="130" r="16"/>
+  </g>
+  <circle cx="225" cy="130" r="16" fill="none" stroke="#E69F00" stroke-width="2" stroke-dasharray="5 4"/>
+  <g fill="#E69F00">
+    <circle cx="218" cy="125" r="3"/><circle cx="232" cy="134" r="3"/><circle cx="222" cy="139" r="3"/>
+    <circle cx="110" cy="114" r="3"/><circle cx="118" cy="148" r="3"/><circle cx="196" cy="112" r="3"/>
+    <circle cx="255" cy="150" r="3"/><circle cx="42" cy="150" r="3"/><circle cx="316" cy="110" r="3"/>
+    <circle cx="140" cy="111" r="3"/><circle cx="258" cy="110" r="3"/><circle cx="95" cy="140" r="3"/>
+  </g>
+
+  <!-- Droplets in a line -->
+  <g fill="#EEF5FB" stroke="#7FB2D9" stroke-width="1.5">
+    <circle cx="430" cy="130" r="25"/><circle cx="505" cy="130" r="25"/><circle cx="580" cy="130" r="25"/>
+    <circle cx="655" cy="130" r="25"/><circle cx="730" cy="130" r="25"/><circle cx="805" cy="130" r="25"/>
+    <circle cx="880" cy="130" r="25"/><circle cx="950" cy="130" r="25"/>
+  </g>
+  <g fill="#D6E6F5" stroke="#0072B2" stroke-width="1.5">
+    <circle cx="428" cy="132" r="12"/><circle cx="582" cy="131" r="12"/><circle cx="653" cy="129" r="12"/>
+    <circle cx="807" cy="132" r="12"/><circle cx="948" cy="130" r="12"/>
+  </g>
+  <g fill="#E69F00">
+    <circle cx="444" cy="118" r="3"/><circle cx="418" cy="148" r="3"/>
+    <circle cx="497" cy="122" r="3"/><circle cx="514" cy="140" r="3"/>
+    <circle cx="566" cy="146" r="3"/><circle cx="596" cy="118" r="3"/>
+    <circle cx="670" cy="140" r="3"/><circle cx="642" cy="114" r="3"/>
+    <circle cx="722" cy="122" r="3"/><circle cx="740" cy="138" r="3"/><circle cx="728" cy="146" r="3"/>
+    <circle cx="820" cy="118" r="3"/><circle cx="795" cy="148" r="3"/>
+    <circle cx="874" cy="124" r="3"/><circle cx="890" cy="140" r="3"/>
+    <circle cx="964" cy="118" r="3"/><circle cx="936" cy="146" r="3"/>
+  </g>
+  <g stroke="#999" stroke-width="1">
+    <line x1="580" y1="163" x2="580" y2="176"/><line x1="730" y1="163" x2="730" y2="176"/>
+  </g>
+  <g font-size="13" fill="#222" text-anchor="middle">
+    <text x="580" y="192">cell + ambient RNA</text>
+    <text x="730" y="192">empty droplet:</text>
+    <text x="730" y="208">ambient RNA only</text>
+  </g>
+  <text x="500" y="250" text-anchor="middle" font-size="13" fill="#555">Every droplet captures some of the free RNA, so each cell's counts include RNA from the other cell types.</text>
+
+  <line x1="30" y1="272" x2="970" y2="272" stroke="#DDD" stroke-width="1.5"/>
+
+  <!-- What DecontX estimates -->
+  <text x="225" y="304" text-anchor="middle" font-size="17" font-weight="bold" fill="#222">What DecontX estimates for one B cell</text>
+  <rect x="80" y="330" width="50" height="100" fill="#0072B2"/>
+  <rect x="165" y="390" width="50" height="40" fill="#0072B2"/>
+  <rect x="165" y="368" width="50" height="22" fill="#E69F00"/>
+  <rect x="250" y="402" width="50" height="28" fill="#E69F00"/>
+  <rect x="335" y="398" width="50" height="32" fill="#E69F00"/>
+  <line x1="65" y1="430" x2="400" y2="430" stroke="#222" stroke-width="1.5"/>
+  <g font-size="13" fill="#222" text-anchor="middle">
+    <text x="105" y="450">B cell</text><text x="105" y="466">marker</text>
+    <text x="190" y="450">gene shared</text><text x="190" y="466">by all cells</text>
+    <text x="275" y="450">T cell</text><text x="275" y="466">marker</text>
+    <text x="360" y="450">Monocyte</text><text x="360" y="466">marker</text>
+  </g>
+
+  <g font-size="14" fill="#222">
+    <text x="470" y="320" font-size="16" font-weight="bold">counts = native + contamination</text>
+    <rect x="470" y="340" width="14" height="14" fill="#0072B2"/>
+    <text x="492" y="352"><tspan font-weight="bold">native:</tspan> from the profile of the cell's own cell type</text>
+    <rect x="470" y="366" width="14" height="14" fill="#E69F00"/>
+    <text x="492" y="378"><tspan font-weight="bold">contamination:</tspan> a mix of the other cell types' profiles</text>
+    <text x="470" y="414">A marker that only B cells express stays with the B cell;</text>
+    <text x="470" y="432">a gene that every cell expresses is split between the two.</text>
+    <text x="470" y="458">Cell types come from your cluster labels, or DecontX finds them.</text>
+    <text x="470" y="476">Empty droplets, if you have them, give the ambient profile directly.</text>
+  </g>
+</svg>

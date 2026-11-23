@@ -14,7 +14,9 @@ contamination add counts that aren’t the cell’s own:
   a B cell.
 - **Background contamination.** In protein (ADT) data, a low,
   non-specific level of counts for many ADTs, even in cell types that
-  lack the protein. Its source isn’t known.
+  lack the protein. Possible sources include non-specific antibody
+  binding and spongelets: droplets with no cell but a medium level of
+  ADTs.
 
 Contamination blurs the difference between cell types, and it can make a
 cell look like it expresses markers of another cell type. The decontX
@@ -39,6 +41,29 @@ contamination and removes it, with two methods.
 
 For CITE-seq data, run DecontX on the RNA counts and DecontPro on the
 ADT counts.
+
+![Top: in a microfluidic channel, the cell suspension, which holds free
+RNA from broken cells, is split by oil into a line of droplets; droplets
+with a cell and empty droplets both capture ambient RNA. Bottom: for one
+B cell, a B cell marker is all native, a gene shared by all cells is
+part native and part contamination, and T cell and monocyte markers are
+all contamination.](decontX-model.svg)
+
+DecontX. Free RNA in the cell suspension is captured in every droplet.
+DecontX splits each cell’s counts into native counts, from its own cell
+type, and contamination, from the other cell types.
+
+![Top: in a microfluidic channel, stained cells and free antibodies are
+split into droplets: droplets with a cell, empty droplets with free
+antibodies only, and spongelets, with no cell but medium ADT counts.
+Bottom left: one B cell's ADT counts split into native, ambient and
+background parts. Bottom right: before decontamination, a T cell ADT has
+a peak in the other cells as well as in T cells; after, the other cells
+are near zero.](decontPro-model.svg)
+
+DecontPro. Free antibodies (ambient) are captured in every droplet, and
+background adds a low level of many ADTs to every cell. DecontPro splits
+each cell’s ADT counts into native, ambient and background parts.
 
 ## Installation
 
@@ -149,7 +174,7 @@ Please cite the method you used:
 `#> [1] stats     graphics  grDevices utils     datasets  methods   base     `\
 `#> `\
 `#> other attached packages:`\
-`#> [1] decontX_1.11.38  BiocStyle_2.41.0`\
+`#> [1] decontX_1.11.39  BiocStyle_2.41.0`\
 `#> `\
 `#> loaded via a namespace (and not attached):`\
 `#>  [1] tidyselect_1.2.1            dplyr_1.2.1                `\

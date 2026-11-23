@@ -439,7 +439,7 @@ expression data with DecontPro. *Nucleic Acids Research*, 52(1), e4.
 `#>  [7] IRanges_2.47.5              S4Vectors_0.51.10          `\
 `#>  [9] BiocGenerics_0.59.13        generics_0.1.4             `\
 `#> [11] MatrixGenerics_1.25.0       matrixStats_1.5.0          `\
-`#> [13] decontX_1.11.38             BiocStyle_2.41.0           `\
+`#> [13] decontX_1.11.39             BiocStyle_2.41.0           `\
 `#> `\
 `#> loaded via a namespace (and not attached):`\
 `#>   [1] DBI_1.3.0                   httr2_1.3.0                `\

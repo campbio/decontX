@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">decontX</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.11.38</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="In-development version">1.11.39</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,7 +71,7 @@ Campbell</h4>
 Medicine<br><a class="author_email" href="mailto:#"></a><a href="mailto:camp@bu.edu" class="email">camp@bu.edu</a>
       </address>
                   
-            <h4 data-toc-skip class="date">2026-11-21</h4>
+            <h4 data-toc-skip class="date">2026-11-23</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/campbio/decontX/blob/devel/vignettes/decontX.Rmd" class="external-link"><code>vignettes/decontX.Rmd</code></a></small>
       <div class="d-none name"><code>decontX.Rmd</code></div>
@@ -96,7 +96,8 @@ T cell markers in a B cell.</li>
 <li>
 <strong>Background contamination.</strong> In protein (ADT) data, a
 low, non-specific level of counts for many ADTs, even in cell types that
-lack the protein. Its source isn’t known.</li>
+lack the protein. Possible sources include non-specific antibody binding
+and spongelets: droplets with no cell but a medium level of ADTs.</li>
 </ul>
 <p>Contamination blurs the difference between cell types, and it can
 make a cell look like it expresses markers of another cell type. The
@@ -150,6 +151,20 @@ optional.</li>
 </ul>
 <p>For CITE-seq data, run DecontX on the RNA counts and DecontPro on the
 ADT counts.</p>
+<div class="figure">
+<img src="decontX-model.svg" class="r-plt" alt="Top: in a microfluidic channel, the cell suspension, which holds free RNA from broken cells, is split by oil into a line of droplets; droplets with a cell and empty droplets both capture ambient RNA. Bottom: for one B cell, a B cell marker is all native, a gene shared by all cells is part native and part contamination, and T cell and monocyte markers are all contamination." width="100%"><p class="caption">
+DecontX. Free RNA in the cell suspension is captured in every droplet.
+DecontX splits each cell’s counts into native counts, from its own cell
+type, and contamination, from the other cell types.
+</p>
+</div>
+<div class="figure">
+<img src="decontPro-model.svg" class="r-plt" alt="Top: in a microfluidic channel, stained cells and free antibodies are split into droplets: droplets with a cell, empty droplets with free antibodies only, and spongelets, with no cell but medium ADT counts. Bottom left: one B cell's ADT counts split into native, ambient and background parts. Bottom right: before decontamination, a T cell ADT has a peak in the other cells as well as in T cells; after, the other cells are near zero." width="100%"><p class="caption">
+DecontPro. Free antibodies (ambient) are captured in every droplet, and
+background adds a low level of many ADTs to every cell. DecontPro splits
+each cell’s ADT counts into native, ambient and background parts.
+</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -258,7 +273,7 @@ e4. <a href="https://doi.org/10.1093/nar/gkad1032" class="external-link">doi:10.
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] decontX_1.11.38  BiocStyle_2.41.0</span></span>
+<span><span class="co">#&gt; [1] decontX_1.11.39  BiocStyle_2.41.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] tidyselect_1.2.1            dplyr_1.2.1                </span></span>

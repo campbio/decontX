@@ -689,7 +689,7 @@ references.
     ## [19] Seqinfo_1.3.2               IRanges_2.47.5             
     ## [21] S4Vectors_0.51.10           BiocGenerics_0.59.13       
     ## [23] generics_0.1.4              MatrixGenerics_1.25.0      
-    ## [25] matrixStats_1.5.0           decontX_1.11.38            
+    ## [25] matrixStats_1.5.0           decontX_1.11.39            
     ## [27] BiocStyle_2.41.0           
     ## 
     ## loaded via a namespace (and not attached):

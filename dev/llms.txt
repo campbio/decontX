@@ -7,6 +7,14 @@ RNA-seq data and DecontPro (Yin et al.,
 [2024](https://doi.org/10.1093/nar/gkad1032)) for single-cell protein
 expression data.
 
+![Overview of decontX. Top: a droplet holds a B cell plus ambient RNA
+from other cells, so its counts include T cell and monocyte markers;
+decontX() or decontPro() removes them and keeps the B cell marker.
+Bottom: on a UMAP before decontamination, contaminated cells blur toward
+the middle and a T cell marker shows up in B cells and monocytes; after,
+the clusters are tighter and the marker stays in T
+cells.](reference/figures/decontX-overview.svg)
+
 ## Installation Instructions
 
 You can install the package through
