@@ -1,0 +1,386 @@
+---
+title: "Using empty droplets with DecontX: single-nucleus lung data"
+---
+
+<!-- This is the source of decontX_background.Rmd. Edit this file, not
+the .Rmd, then knit it from the package root with
+make knit-article FILTER=decontX_background, which runs the code and
+writes the .Rmd and its figures. -->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "decontX_background-figures/",
+  dev = "png",
+  dpi = 96,
+  message = FALSE
+)
+```
+
+*Computed with decontX `r packageVersion("decontX")` on `r Sys.Date()`.
+The code below downloads about 80 MB from GEO and runs in a few minutes.*
+
+# Why give DecontX the empty droplets?
+
+Without empty droplets, DecontX learns the contamination of each cell from
+the cells themselves: the contamination profile of a cluster is a mixture
+of the other clusters. That works when each cell type is mostly clean, so
+its markers stand out against the other cell types. It works less well
+when:
+
+- the contamination is high in every cluster, so the profile built from
+  the other clusters is itself contaminated, or
+- much of the ambient RNA comes from cells or debris that aren't among the
+  called cells, such as cells that lysed during dissociation, or the
+  cytoplasm and mitochondria stripped away when nuclei are isolated.
+
+The empty droplets hold the ambient RNA itself. With the `background`
+argument, DecontX takes the contamination profile from them instead of
+from the other clusters.
+
+Single-nucleus data from frozen tissue often fit both cases. This article
+runs DecontX with and without the empty droplets on one lung sample from a
+COVID-19 autopsy study and compares the two. The
+[DecontX vignette](https://campbio.github.io/decontX/dev/articles/decontX_RNA.html)
+covers the basics, the plotting functions, and a FAQ.
+
+The article needs these Bioconductor packages besides decontX:
+DropletUtils (to read the counts and call cells), BiocFileCache (to
+download and cache the data) and SingleCellExperiment, plus R.utils and
+ggplot2 from CRAN.
+
+```{r packages}
+library(decontX)
+library(DropletUtils)
+library(BiocFileCache)
+library(SingleCellExperiment)
+library(ggplot2)
+```
+
+# The data
+
+Delorey et al. (2021) profiled autopsy tissue from COVID-19 patients,
+including single-nucleus RNA-seq of lung (10x Genomics 3' v3 chemistry).
+GEO series [GSE171668](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE171668)
+has, for each sample, the raw matrix from CellRanger, which holds every
+droplet barcode, and the output of CellBender, another method for removing
+ambient RNA. We use one lung sample, 02-P005175-S053-R01 (donor D1). The
+files are gzipped, so we download them once into the BiocFileCache cache
+and unzip a copy into a temporary folder:
+
+```{r download}
+bfc <- BiocFileCache(ask = FALSE)
+geo <- "https://ftp.ncbi.nlm.nih.gov/geo/samples/GSM5229nnn/"
+rawUrl <- paste0(
+  geo, "GSM5229973/suppl/",
+  "GSM5229973_02-P005175-S053-R01_raw_feature_bc_matrix.h5.gz"
+)
+rawH5 <- R.utils::gunzip(
+  bfcrpath(bfc, rawUrl),
+  destname = tempfile(fileext = ".h5"),
+  remove = FALSE
+)
+
+raw <- read10xCounts(rawH5, col.names = TRUE, type = "HDF5")
+counts(raw) <- as(counts(raw), "dgCMatrix")
+raw <- raw[, colSums(counts(raw)) > 0]
+dim(raw)
+```
+
+The gene symbols carry the prefix of the reference genome
+(`GRCh38premrna_`), which we remove. A few symbols are duplicated, so we
+make them unique:
+
+```{r gene_names}
+rownames(raw) <- make.unique(sub("^GRCh38premrna_", "", rowData(raw)$Symbol))
+```
+
+# Calling nuclei
+
+`emptyDropsCellRanger()` separates droplets holding a nucleus from empty
+droplets, the way CellRanger does. It is random, so we set a seed:
+
+```{r call_nuclei}
+set.seed(2021)
+calls <- emptyDropsCellRanger(counts(raw))
+isNucleus <- !is.na(calls$FDR) & calls$FDR <= 0.01
+sum(isNucleus)
+```
+
+The droplets that weren't called are the empty droplets, which we give to
+DecontX as the background:
+
+```{r empty}
+empty <- raw[, !isNucleus]
+summary(colSums(counts(empty)))
+```
+
+Most hold only a few counts, but there are hundreds of thousands of them,
+so together they give a good estimate of the ambient RNA.
+
+The called nuclei still include damaged ones. Nuclei should hold few
+mitochondrial transcripts, so a high share of them points to cytoplasm
+stuck to the nucleus, or to ambient RNA. We keep the nuclei with less than
+5% mitochondrial counts:
+
+```{r qc}
+nuclei <- raw[, isNucleus]
+isMito <- grepl("^MT-", rownames(nuclei))
+total <- colSums(counts(nuclei))
+mitoPercent <- colSums(counts(nuclei)[isMito, ]) / total * 100
+quantile(mitoPercent, c(0.5, 0.75, 0.9))
+nuclei <- nuclei[, mitoPercent < 5]
+ncol(nuclei)
+median(colSums(counts(nuclei)))
+```
+
+The nuclei that fail QC are left out of both `nuclei` and `empty`: they
+aren't cells we want to decontaminate, and they aren't empty either.
+
+# DecontX with and without the empty droplets
+
+First, DecontX on its own. It clusters the nuclei and estimates each
+nucleus's contamination from the other clusters:
+
+```{r decontx_no_background}
+noBackground <- decontX(nuclei)
+table(noBackground$decontX_clusters)
+```
+
+Then with the empty droplets. We pass the clusters from the first run as
+`z`, so that the empty droplets are the only thing that changes between
+the two runs:
+
+```{r decontx_background}
+withBackground <- decontX(
+  nuclei,
+  z = noBackground$decontX_clusters,
+  background = empty
+)
+```
+
+## Naming the clusters
+
+To name the clusters, we score each one with the markers of the main cell
+types in the lung: the mean log-normalized expression of each marker set,
+scaled across clusters. Each cluster takes the cell type it scores highest
+for:
+
+```{r cell_types}
+cellTypeMarkers <- list(
+  Epithelial = c("SFTPC", "SFTPB", "NAPSA", "LAMP3", "AGER"),
+  Ciliated = c("FOXJ1", "CAPS", "TPPP3"),
+  Myeloid = c("MARCO", "CD163", "C1QA", "MRC1"),
+  Lymphoid = c("CD3E", "CD2", "NKG7", "MS4A1"),
+  Fibroblast = c("COL1A2", "DCN", "LUM"),
+  Endothelial = c("PECAM1", "VWF", "CLDN5"),
+  SmoothMuscle = c("ACTA2", "MYH11", "TAGLN")
+)
+z <- noBackground$decontX_clusters
+x <- counts(nuclei)
+logNorm <- log1p(t(t(x) / colSums(x)) * 1e4)
+score <- sapply(cellTypeMarkers, function(genes) {
+  tapply(colMeans(as.matrix(logNorm[genes, ])), z, mean)
+})
+score <- scale(score)
+round(score, 1)
+clusterType <- setNames(colnames(score)[apply(score, 1, which.max)],
+                        rownames(score))
+clusterType
+nuclei$cellType <- unname(clusterType[as.character(z)])
+```
+
+Each cluster scores clearly highest for one cell type. With other data,
+check the scores, and look at more markers when two cell types come close.
+
+# What changes with the empty droplets
+
+## The amount of contamination
+
+```{r contamination_summary}
+estimates <- data.frame(
+  cellType = nuclei$cellType,
+  noBackground = noBackground$decontX_contamination,
+  withBackground = withBackground$decontX_contamination
+)
+summary(estimates[, c("noBackground", "withBackground")])
+```
+
+```{r contamination_by_type, fig.width = 8, fig.height = 4}
+long <- data.frame(
+  cellType = rep(estimates$cellType, 2),
+  run = factor(
+    rep(c("Without empty droplets", "With empty droplets"),
+        each = nrow(estimates)),
+    levels = c("Without empty droplets", "With empty droplets")
+  ),
+  contamination = c(estimates$noBackground, estimates$withBackground)
+)
+ggplot(long, aes(cellType, contamination, fill = run)) +
+  geom_boxplot(outlier.size = 0.3) +
+  labs(x = NULL, y = "Estimated contamination", fill = NULL) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+```{r contamination_scatter, fig.width = 6, fig.height = 5}
+ggplot(estimates, aes(noBackground, withBackground, color = cellType)) +
+  geom_point(size = 0.4, alpha = 0.5) +
+  geom_abline(linetype = "dashed") +
+  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1))) +
+  labs(
+    x = "Contamination without empty droplets",
+    y = "Contamination with empty droplets",
+    color = NULL
+  ) +
+  theme_bw()
+cor(estimates$noBackground, estimates$withBackground)
+```
+
+The run with the empty droplets finds more contamination in most cell
+types, and the two runs agree only loosely on which nuclei are most
+contaminated. A group of nuclei, mostly in the epithelial cluster, come
+out as almost entirely contamination with the empty droplets: their
+counts look like the empty droplets'. They may be damaged nuclei, or
+droplets holding mostly debris, and are worth a closer look before
+further analysis.
+
+## What each run removes
+
+The two runs remove different genes. We compare the genes each run
+removes, summed over all nuclei, with the genes in the empty droplets:
+
+```{r removed_profiles}
+removedShare <- function(decontaminated) {
+  removed <- rowSums(counts(nuclei)) - rowSums(decontaminated)
+  removed[removed < 0] <- 0
+  removed / sum(removed)
+}
+profiles <- data.frame(
+  emptyDroplets = rowSums(counts(empty)) / sum(counts(empty)),
+  noBackground = removedShare(decontXcounts(noBackground)),
+  withBackground = removedShare(decontXcounts(withBackground))
+)
+round(cor(sqrt(profiles)), 2)
+
+topGenes <- function(share) {
+  top <- head(sort(share, decreasing = TRUE), 10)
+  paste0(names(top), " (", round(top * 100, 1), "%)")
+}
+data.frame(lapply(profiles, function(p) topGenes(setNames(p, rownames(nuclei)))))
+```
+
+With the empty droplets, what DecontX removes follows the empty droplets'
+profile, which is led by mitochondrial transcripts, likely from the
+cytoplasm stripped off during nuclei isolation. Without them, DecontX
+removes MALAT1 most, and few mitochondrial transcripts: those are in
+every cluster, so comparing clusters can't show that they are
+contamination.
+
+## Markers in the wrong cell types
+
+We store both results in one object and plot the share of nuclei of each
+cell type in which markers of other cell types are detected:
+
+```{r marker_percentage, fig.width = 10, fig.height = 7}
+assay(nuclei, "noBackground") <- decontXcounts(noBackground)
+assay(nuclei, "withBackground") <- decontXcounts(withBackground)
+
+markers <- list(
+  Surfactant = c("SFTPC", "SFTPB"),
+  Macrophage = c("MARCO", "CD163"),
+  Fibroblast = c("COL1A2", "DCN"),
+  Endothelial = c("PECAM1", "VWF"),
+  Mitochondrial = c("MT-CO1", "MT-ND3")
+)
+groupClusters <- split(names(clusterType), clusterType)
+plotDecontXMarkerPercentage(
+  nuclei,
+  markers = markers,
+  groupClusters = groupClusters,
+  assayName = c("counts", "noBackground", "withBackground"),
+  z = z
+)
+```
+
+Before decontamination, surfactant genes, which only the alveolar
+epithelial cells make, are detected in three quarters or more of the
+nuclei of every cell type. Both runs remove most of them from the other
+cell types, but the run with the empty droplets removes more. It also
+removes the mitochondrial transcripts from most nuclei, which the run
+without them leaves in nearly all of them. The markers of fibroblasts,
+endothelial cells and macrophages fall to a few percent outside their
+own cell types in both runs.
+
+# A comparison with CellBender
+
+GEO also has the CellBender output for this sample, which estimates the
+ambient RNA from the empty droplets as well. Neither method is ground
+truth, but we can check which DecontX run comes closer to it:
+
+```{r cellbender}
+cbUrl <- paste0(
+  geo, "GSM5230nnn/GSM5230057/suppl/",
+  "GSM5230057_02-P005175-S053-R01_out_FPR_0.01_filtered.h5.gz"
+)
+cbH5 <- R.utils::gunzip(
+  bfcrpath(bfc, cbUrl),
+  destname = tempfile(fileext = ".h5"),
+  remove = FALSE
+)
+cellbender <- read10xCounts(cbH5, col.names = TRUE, type = "HDF5")
+stopifnot(identical(rowData(cellbender)$ID, rowData(nuclei)$ID))
+
+shared <- intersect(colnames(nuclei), colnames(cellbender))
+length(shared)
+original <- counts(nuclei)[, shared]
+cellbenderCounts <- as(counts(cellbender)[, shared], "dgCMatrix")
+cellbenderRemoved <- 1 - colSums(cellbenderCounts) / colSums(original)
+
+kept <- match(shared, colnames(nuclei))
+round(c(
+  noBackground = cor(estimates$noBackground[kept], cellbenderRemoved),
+  withBackground = cor(estimates$withBackground[kept], cellbenderRemoved)
+), 2)
+```
+
+These are the correlations, across nuclei, between each DecontX run's
+contamination estimate and the share of counts CellBender removed. The
+run with the empty droplets agrees with CellBender much better.
+
+```{r cellbender_share}
+round(c(
+  CellBender = 1 - sum(cellbenderCounts) / sum(original),
+  noBackground = 1 - sum(decontXcounts(noBackground)[, shared]) / sum(original),
+  withBackground = 1 - sum(decontXcounts(withBackground)[, shared]) / sum(original)
+), 3)
+```
+
+DecontX removes more counts in total than CellBender does at the false
+positive rate used for these files (0.01).
+
+# Summary
+
+- Give DecontX the empty droplets when you have them and the
+  contamination is high, as is common in single-nucleus data and in
+  tissue that is hard to dissociate. Here they changed which nuclei
+  DecontX called contaminated and which genes it removed.
+- On clean data, such as the 10x PBMC data in the vignette, the two runs
+  agree more closely.
+- Leave out of the background the droplets you called as cells, including
+  the ones that fail QC.
+- With several samples, give each sample's empty droplets with `bgBatch`;
+  see the vignette.
+
+# Reference
+
+Delorey TM, Ziegler CGK, Heimberg G, et al. COVID-19 tissue atlases reveal
+SARS-CoV-2 pathology and cellular targets. *Nature* 595, 107–113 (2021).
+<https://doi.org/10.1038/s41586-021-03570-8>
+
+# Session information
+
+```{r session_info}
+sessionInfo()
+```
