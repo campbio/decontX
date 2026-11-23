@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 745" role="img" aria-labelledby="t d" font-family="Helvetica, Arial, sans-serif">
+  <title id="t">What decontX does</title>
+  <desc id="d">Top: a droplet holds a B cell and ambient RNA from other cells, so its counts include T cell and monocyte markers; decontX() or decontPro() removes them and keeps the B cell marker. Bottom: on a UMAP before decontamination, contaminated cells blur toward the middle and a T cell marker appears in B cells and monocytes; after, the clusters are tighter and the marker stays in T cells.</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
+    </marker>
+    <linearGradient id="expr" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#E3E3E3"/><stop offset="0.5" stop-color="#B9A3D3"/><stop offset="1" stop-color="#54278F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1000" height="745" rx="14" fill="#fff"/>
+
+  <!-- Row 1: one cell -->
+  <text x="150" y="40" text-anchor="middle" font-size="19" font-weight="bold" fill="#222">One droplet</text>
+  <text x="150" y="62" text-anchor="middle" font-size="13" fill="#555">a B cell, plus ambient RNA</text>
+  <circle cx="150" cy="170" r="95" fill="#EEF5FB" stroke="#7FB2D9" stroke-width="2"/>
+  <circle cx="140" cy="175" r="50" fill="#D6E6F5" stroke="#0072B2" stroke-width="2"/>
+  <circle cx="130" cy="170" r="16" fill="#A9C9E8"/>
+  <g fill="#0072B2">
+    <circle cx="115" cy="150" r="5"/><circle cx="155" cy="150" r="5"/>
+    <circle cx="165" cy="190" r="5"/><circle cx="122" cy="200" r="5"/>
+    <circle cx="148" cy="208" r="5"/><circle cx="170" cy="168" r="5"/>
+  </g>
+  <g fill="#E69F00">
+    <circle cx="88" cy="115" r="5"/><circle cx="205" cy="125" r="5"/>
+    <circle cx="222" cy="195" r="5"/><circle cx="190" cy="243" r="5"/>
+    <circle cx="95" cy="236" r="5"/><circle cx="68" cy="170" r="5"/>
+    <circle cx="160" cy="92" r="5"/>
+  </g>
+
+  <line x1="262" y1="170" x2="308" y2="170" stroke="#555" stroke-width="2" marker-end="url(#arr)"/>
+
+  <text x="440" y="40" text-anchor="middle" font-size="19" font-weight="bold" fill="#222">Observed counts</text>
+  <text x="440" y="62" text-anchor="middle" font-size="13" fill="#555">markers of other cell types show up</text>
+  <rect x="340" y="132" width="46" height="128" fill="#0072B2"/>
+  <rect x="415" y="228" width="46" height="32" fill="#E69F00"/>
+  <rect x="490" y="220" width="46" height="40" fill="#E69F00"/>
+  <line x1="325" y1="260" x2="555" y2="260" stroke="#222" stroke-width="1.5"/>
+  <g font-size="13" fill="#222" text-anchor="middle">
+    <text x="363" y="280">B cell</text><text x="363" y="296">marker</text>
+    <text x="438" y="280">T cell</text><text x="438" y="296">marker</text>
+    <text x="513" y="280">Monocyte</text><text x="513" y="296">marker</text>
+  </g>
+
+  <line x1="572" y1="170" x2="690" y2="170" stroke="#555" stroke-width="2" marker-end="url(#arr)"/>
+  <g font-family="Menlo, Consolas, monospace" font-size="14" fill="#222" text-anchor="middle">
+    <text x="630" y="150">decontX()</text>
+    <text x="630" y="196">decontPro()</text>
+  </g>
+  <g font-size="11" fill="#555" text-anchor="middle">
+    <text x="630" y="132">RNA</text>
+    <text x="630" y="212">protein (ADT)</text>
+  </g>
+
+  <text x="840" y="40" text-anchor="middle" font-size="19" font-weight="bold" fill="#222">Decontaminated counts</text>
+  <text x="840" y="62" text-anchor="middle" font-size="13" fill="#555">only the cell's own counts remain</text>
+  <rect x="740" y="132" width="46" height="128" fill="#0072B2"/>
+  <g fill="none" stroke="#E69F00" stroke-width="1.5" stroke-dasharray="4 3">
+    <rect x="815.75" y="228.75" width="44.5" height="30.5"/>
+    <rect x="890.75" y="220.75" width="44.5" height="38.5"/>
+  </g>
+  <line x1="725" y1="260" x2="955" y2="260" stroke="#222" stroke-width="1.5"/>
+  <g font-size="13" fill="#222" text-anchor="middle">
+    <text x="763" y="280">B cell</text><text x="763" y="296">marker</text>
+    <text x="838" y="280">T cell</text><text x="838" y="296">marker</text>
+    <text x="913" y="280">Monocyte</text><text x="913" y="296">marker</text>
+  </g>
+
+  <g font-size="13" fill="#222">
+    <circle cx="260" cy="328" r="6" fill="#0072B2"/>
+    <text x="272" y="333">the cell's own counts</text>
+    <circle cx="440" cy="328" r="6" fill="#E69F00"/>
+    <text x="452" y="333">ambient RNA from other cell types</text>
+    <rect x="702" y="322" width="16" height="12" fill="none" stroke="#E69F00" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="726" y="333">removed</text>
+  </g>
+
+  <line x1="30" y1="358" x2="970" y2="358" stroke="#DDD" stroke-width="1.5"/>
+
+  <!-- Row 2: all cells on a UMAP -->
+  <text x="500" y="390" text-anchor="middle" font-size="19" font-weight="bold" fill="#222">Across all cells: a T cell marker on a UMAP</text>
+  <text x="270" y="420" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">Before</text>
+  <text x="730" y="420" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">After</text>
+
+  <g transform="translate(110,430)">
+    <rect width="320" height="240" rx="8" fill="#FAFAFA" stroke="#E5E5E5"/>
+{{UMAP_BEFORE}}
+    <g font-size="12" fill="#333" text-anchor="middle">
+      <text x="55" y="30">T cells</text><text x="285" y="28">B cells</text><text x="175" y="230">Monocytes</text>
+    </g>
+  </g>
+  <g transform="translate(570,430)">
+    <rect width="320" height="240" rx="8" fill="#FAFAFA" stroke="#E5E5E5"/>
+{{UMAP_AFTER}}
+    <g font-size="12" fill="#333" text-anchor="middle">
+      <text x="55" y="30">T cells</text><text x="285" y="28">B cells</text><text x="175" y="230">Monocytes</text>
+    </g>
+  </g>
+
+  <line x1="445" y1="550" x2="555" y2="550" stroke="#555" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="500" y="538" text-anchor="middle" font-family="Menlo, Consolas, monospace" font-size="14" fill="#222">decontX()</text>
+
+  <g font-size="13" fill="#555" text-anchor="middle">
+    <text x="270" y="695">contaminated cells blur toward the middle,</text><text x="270" y="713">and the T cell marker shows up in other cells</text>
+    <text x="730" y="695">tighter clusters; the T cell marker</text><text x="730" y="713">stays in T cells</text>
+  </g>
+
+  <g font-size="11" fill="#333" text-anchor="middle">
+    <text x="945" y="452">T cell</text><text x="945" y="465">marker</text>
+    <rect x="937" y="474" width="16" height="130" fill="url(#expr)" stroke="#CCC"/>
+    <text x="945" y="619">low</text>
+  </g>
+  <text x="962" y="484" font-size="11" fill="#333">high</text>
+</svg>
