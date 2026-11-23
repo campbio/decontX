@@ -107,6 +107,14 @@ jobs:
       - name: Install decontX
         run: R CMD INSTALL .
 
+      - name: Leave repository-only files off the site
+        # pkgdown makes a page of every top-level and .github/ Markdown
+        # file and has no setting to skip one, so remove the agent notes
+        # and the PR template (its uppercase name isn't on pkgdown's skip
+        # list) from this checkout, which is thrown away (#145). rm -f
+        # doesn't fail on branches that lack some of them.
+        run: rm -f AGENTS.md CLAUDE.md GEMINI.md .github/PULL_REQUEST_TEMPLATE.md
+
       - name: Build the site
         # In development mode pkgdown writes the site to docs/dev/; in
         # release mode, to docs/.
