@@ -374,6 +374,12 @@ barcodes must be unique across samples, for example with a sample prefix in
 both matrices; otherwise a barcode that is a cell in one sample removes an
 empty droplet with the same barcode in another.
 
+The article
+[DecontPro on 10x PBMC data with empty droplets](https://campbio.github.io/decontX/dev/articles/decontPro_pbmc10k.html)
+on the package website runs this on real data: it labels the cells from
+their ADTs, runs DecontPro with and without the empty droplets, and shows
+what happens when the labels are too coarse.
+
 When both matrices have row names, the ADTs are matched by name: ADTs in
 `background` that aren't in the counts are dropped, and every ADT of the
 counts must be in `background`. Without row names, the rows must be in the

@@ -40,7 +40,9 @@ articles:
   navbar: decontX (RNA)
   contents:
   - decontX_RNA
+  - articles/decontX_background
 - title: decontPro (Protein)
   navbar: decontPro (Protein)
   contents:
   - decontPro
+  - articles/decontPro_pbmc10k

@@ -20,3 +20,4 @@
 ^\.Renviron$
 ^_pkgdown\.yml$
 ^pkgdown$
+^vignettes/articles$

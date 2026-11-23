@@ -205,6 +205,11 @@ the rows must be in the same order.
 All of the outputs are the same as when running decontX without setting the
 `background` parameter.
 
+The article
+[Using empty droplets with DecontX](https://campbio.github.io/decontX/dev/articles/decontX_background.html)
+on the package website runs decontX with and without the empty droplets on
+single-nucleus lung data, where they change the results.
+
 > Note: If the input object is just a matrix and not an SCE object, make sure
 > to save the output into a variable with a different name (e.g.
 > `result <- decontX(mat)`). The result object will be a list with
