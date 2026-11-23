@@ -132,6 +132,16 @@ package.
   that produced it.
 - The articles are refreshed on `devel` before each release freeze, so
   the new release branch carries them. `dev/RELEASE.md` gets that step.
+- *Note, 2026-11-23 (#141):* the datasets changed before the articles
+  were written. The RNA vignette already runs on all of pbmc4k, so the
+  decontX article is about the `background` matrix instead, on one
+  single-nucleus lung sample from GSE171668, where the empty droplets
+  change the results. The decontPro article uses pbmc_10k_protein_v3
+  from DropletTestFiles instead of all of cord_blood, for its raw
+  matrix and isotype controls. They are knitted with the shared
+  `make knit-article FILTER=<name>` target
+  (campbio/r-bioc-dev-standards#21). Details in
+  `dev/plans/2026-11-23-full-data-articles.md`.
   The knit runs through a make target that the maintainer adds to the
   Makefile with the articles.
 - Alternatives: rendering the articles in CI (too slow, and needs the
