@@ -25,8 +25,8 @@ full cord_blood data" for decontPro. Probes on 2026-11-23 changed both:
   `background`) and isotype controls, which cord_blood lacks. Its
   cell-type labels come from clustering the ADTs, so the maintainer can
   judge how much work labels are. With coarse labels (one T-cell label
-  for CD4 and CD8), DecontPro removes the real CD4 and CD8 peaks; the
-  article shows that as a pitfall.
+  for CD4 and CD8), DecontPro removes the CD4 T cells' real CD4 peak and
+  shrinks the naive CD45RA peak; the article shows that as a pitfall.
 
 ADR-0007 gets a dated note saying so, rather than a new ADR.
 
@@ -39,8 +39,10 @@ All in `vignettes/articles/`:
 - `decontX_background.Rmd`, `decontPro_pbmc10k.Rmd`: knitted, results
   only; pkgdown renders these. Produced by the maintainer's knit.
 - `decontX_background-figures/`, `decontPro_pbmc10k-figures/`: the
-  committed PNGs. Each `.Rmd.orig` sets its own `fig.path`, so a knit
-  with plain `knitr::knit()` puts them in the right place.
+  committed PNGs. Each `.Rmd.orig` sets its own relative `fig.path`, so
+  a knit run from `vignettes/articles/` (as the shared target does, and
+  as each source's header says for a knit by hand) puts them next to
+  the `.Rmd`.
 
 pkgdown copies only the files an article references, so the `.Rmd.orig`
 sources don't reach the site.
@@ -52,11 +54,13 @@ Other files:
   group, `articles/decontPro_pbmc10k` in "decontPro (Protein)".
 - `vignettes/decontX_RNA.Rmd`, background section, and
   `vignettes/decontPro.Rmd`, "With empty droplets": one sentence linking
-  the article. `vignettes/decontX.Rmd`, the list of vignettes: one line
-  per article. Links are absolute URLs to the development site
-  (`https://campbio.github.io/decontX/dev/articles/<name>.html`), because
-  the vignettes also render on Bioconductor, and the release site has
-  the articles only from the next release on.
+  the article. `vignettes/decontX.Rmd`: a sentence naming both articles
+  after the list of vignettes. These links are absolute URLs to the
+  development site (`https://campbio.github.io/decontX/dev/articles/<name>.html`),
+  because the vignettes also render on Bioconductor, and the release
+  site has the articles only from the next release on. The articles'
+  own links back to the vignettes are relative, so each site links to
+  its own copy.
 - `dev/adr/0007-pkgdown-site.md`: dated note on the datasets.
 - `dev/RELEASE.md` step 5: name the knit command.
 - `NEWS.md` and DESCRIPTION: 1.11.40.
@@ -106,7 +110,7 @@ Title: "Using empty droplets with DecontX: single-nucleus lung data".
 
 ## decontPro_pbmc10k: outline
 
-Title: "DecontPro on 10x PBMC CITE-seq data with empty droplets".
+Title: "DecontPro on 10x PBMC data with empty droplets".
 
 1. Data: pbmc_10k_protein_v3 (filtered and raw) from DropletTestFiles;
    the 17 ADTs, three of them isotype controls.
@@ -116,8 +120,8 @@ Title: "DecontPro on 10x PBMC CITE-seq data with empty droplets".
 4. DecontPro with `background`: the spongelets in the raw matrix.
 5. Comparison: `plotDensity()`, `plotBoxByCluster()`, share removed per
    ADT; the isotype controls as a check (they should be mostly removed).
-6. Pitfall: the same fit with one T-cell label removes the real CD4 and
-   CD8 peaks.
+6. Pitfall: the same fit with one T-cell label removes the CD4 T cells'
+   CD4 peak and shrinks the naive CD45RA peak.
 7. Links back to the vignette for the priors and the FAQ.
 
 ## Testing and checks

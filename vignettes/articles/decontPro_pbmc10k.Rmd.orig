@@ -5,7 +5,9 @@ title: "DecontPro on 10x PBMC data with empty droplets"
 <!-- This is the source of decontPro_pbmc10k.Rmd. Edit this file, not
 the .Rmd, then knit it from the package root with
 make knit-article FILTER=decontPro_pbmc10k, which runs the code and
-writes the .Rmd and its figures. -->
+writes the .Rmd and its figures. Without that target, knit it in R from
+vignettes/articles/, so the figures land next to the .Rmd:
+knitr::knit("decontPro_pbmc10k.Rmd.orig", "decontPro_pbmc10k.Rmd") -->
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -24,7 +26,7 @@ about ten minutes.*
 
 # Introduction
 
-The [DecontPro vignette](https://campbio.github.io/decontX/dev/articles/decontPro.html)
+The [DecontPro vignette](decontPro.html)
 runs DecontPro on a sample of 500 cord blood cells, with cell-type labels
 that come with the data. This article runs it on all the cells of a 10x
 Genomics CITE-seq dataset, and covers two steps the vignette doesn't:
@@ -175,8 +177,10 @@ table(cellType)
 
 ```{r check_labels, include = FALSE}
 # Stop the knit if a refresh no longer finds the main cell types.
+# The text below also says that exactly one cluster is "mixed".
 stopifnot(all(c("B", "CD14 monocyte", "NK") %in% cellType),
-          any(grepl("^CD4 T", cellType)), any(grepl("^CD8 T", cellType)))
+          any(grepl("^CD4 T", cellType)), any(grepl("^CD8 T", cellType)),
+          sum(clusterLabels == "mixed") == 1)
 ```
 
 One cluster fits none of the rules. It has CD16 with some CD3 and CD4,
@@ -289,7 +293,7 @@ don't.
   cells'.
 - Isotype controls, when the panel has them, show whether the
   contamination is being removed.
-- The [DecontPro vignette](https://campbio.github.io/decontX/dev/articles/decontPro.html)
+- The [DecontPro vignette](decontPro.html)
   covers the priors and has a FAQ.
 
 # Session information

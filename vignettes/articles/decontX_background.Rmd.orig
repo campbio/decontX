@@ -5,7 +5,9 @@ title: "Using empty droplets with DecontX: single-nucleus lung data"
 <!-- This is the source of decontX_background.Rmd. Edit this file, not
 the .Rmd, then knit it from the package root with
 make knit-article FILTER=decontX_background, which runs the code and
-writes the .Rmd and its figures. -->
+writes the .Rmd and its figures. Without that target, knit it in R from
+vignettes/articles/, so the figures land next to the .Rmd:
+knitr::knit("decontX_background.Rmd.orig", "decontX_background.Rmd") -->
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -42,7 +44,7 @@ from the other clusters.
 Single-nucleus data from frozen tissue often fit both cases. This article
 runs DecontX with and without the empty droplets on one lung sample from a
 COVID-19 autopsy study and compares the two. The
-[DecontX vignette](https://campbio.github.io/decontX/dev/articles/decontX_RNA.html)
+[DecontX vignette](decontX_RNA.html)
 covers the basics, the plotting functions, and a FAQ.
 
 The article needs these Bioconductor packages besides decontX:
@@ -366,8 +368,6 @@ positive rate used for these files (0.01).
   contamination is high, as is common in single-nucleus data and in
   tissue that is hard to dissociate. Here they changed which nuclei
   DecontX called contaminated and which genes it removed.
-- On clean data, such as the 10x PBMC data in the vignette, the two runs
-  agree more closely.
 - Leave out of the background the droplets you called as cells, including
   the ones that fail QC.
 - With several samples, give each sample's empty droplets with `bgBatch`;
