@@ -1,3 +1,12 @@
+# decontX 1.11.40
+
+* Two articles on the package website run the methods on larger, real
+data: "Using empty droplets with DecontX", on single-nucleus lung data,
+where giving decontX the empty droplets changes the results, and
+"DecontPro on 10x PBMC data with empty droplets", which labels the cells
+from their ADTs and shows what happens when the labels are too coarse.
+The vignettes link to them (#141).
+
 # decontX 1.11.39
 
 * New overview figures: on the README and the website's home page, what
