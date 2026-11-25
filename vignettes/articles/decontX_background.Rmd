@@ -12,7 +12,7 @@ knitr::knit("decontX_background.Rmd.orig", "decontX_background.Rmd") -->
 
 
 *Computed with decontX 1.11.40 on 2026-11-25.
-The code below downloads about 80 MB from GEO, a public database of
+The code below downloads about 55 MB from GEO, a public database of
 gene expression data, and takes a few minutes to run.*
 
 # Why give DecontX the empty droplets?
@@ -79,17 +79,13 @@ The data come from Delorey et al. (2021), who studied tissue from people
 who died of COVID-19. Among other data, they sequenced nuclei from lung
 tissue with 10x Genomics. For each sample, the GEO series
 [GSE171668](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE171668)
-has two files that we use:
+has the *raw matrix*, with the counts of every gene in every droplet,
+including the empty droplets. (The more common *filtered* matrix holds
+only the droplets with a cell or nucleus, so it has no empty droplets.)
 
-- The *raw matrix*, with the counts of every gene in every droplet,
-  including the empty droplets. The more common *filtered* matrix holds
-  only the droplets with a cell or nucleus, so it has no empty droplets.
-- The output of CellBender, another tool that removes ambient RNA. We
-  compare with it at the end.
-
-We use one lung sample, 02-P005175-S053-R01. The files are compressed.
-The code downloads each one once, keeps it in a cache folder, and unzips
-a copy into a temporary folder:
+We use one lung sample, 02-P005175-S053-R01. The file is compressed. The
+code downloads it once, keeps it in a cache folder, and unzips a copy
+into a temporary folder:
 
 
 ``` r
@@ -231,9 +227,11 @@ which it makes and the other cell types don't. For each cluster, we
 measure how much it expresses each cell type's markers, and name it
 after the cell type whose markers score highest.
 
-The code first *normalizes* the counts: it divides each nucleus's counts
-by its total, so that a nucleus doesn't score higher just because it has
-more counts, and takes the log. Then, for each cluster, it averages the
+First, we *normalize* the counts with `normalizeRnaCounts.se()` from
+the scrapper package, which decontX also uses. It scales each nucleus's
+counts by its total, so that a nucleus doesn't score higher just because
+it has more counts, and takes the log. The result is stored in `nuclei`
+as a new assay, `logcounts`. Then, for each cluster, we average the
 markers of each cell type. Last, `scale()` puts the scores of the
 different cell types on the same scale:
 
@@ -251,15 +249,13 @@ cellTypeMarkers <- list(
 )
 # The cluster of each nucleus, from the first run
 z <- noBackground$decontX_clusters
-x <- counts(nuclei)
-# Normalize the markers' counts: divide by each nucleus's total count,
-# multiply by 10,000, and take log(1 + count)
-logNorm <- log1p(t(t(as.matrix(x[unlist(cellTypeMarkers), ])) /
-                   colSums(x)) * 1e4)
+# Normalize the counts, adding the logcounts assay
+nuclei <- scrapper::normalizeRnaCounts.se(nuclei)
 # For each cell type, the mean of its markers, averaged over the nuclei
 # of each cluster
 score <- sapply(cellTypeMarkers, function(genes) {
-  tapply(colMeans(logNorm[genes, ]), z, mean)
+  markerMeans <- colMeans(as.matrix(logcounts(nuclei)[genes, ]))
+  tapply(markerMeans, z, mean)
 })
 # Put each cell type's scores on the same scale
 score <- scale(score)
@@ -268,20 +264,20 @@ round(score, 1)
 #> 1       -0.4     -0.4    -0.4     -0.4        2.2        -0.4         -0.2
 #> 2       -0.3     -0.4    -0.3     -0.3       -0.4         2.3         -0.4
 #> 3       -0.4     -0.4     2.3     -0.4       -0.5        -0.3         -0.4
-#> 4       -0.1     -0.3    -0.4      2.3       -0.5        -0.4         -0.4
+#> 4        0.0     -0.3    -0.4      2.3       -0.4        -0.4         -0.4
 #> 5        2.2     -0.4    -0.4     -0.4       -0.5        -0.5         -0.5
-#> 6       -0.6      2.3    -0.3     -0.5       -0.6        -0.4         -0.4
-#> 7       -0.4     -0.4    -0.4     -0.4        0.3        -0.4          2.3
+#> 6       -0.7      2.3    -0.3     -0.5       -0.6        -0.4         -0.4
+#> 7       -0.4     -0.4    -0.4     -0.4        0.2        -0.4          2.3
 #> attr(,"scaled:center")
 #>   Epithelial     Ciliated      Myeloid     Lymphoid   Fibroblast  Endothelial 
-#>    0.7922310    0.1583363    0.3899838    0.0382602    0.7475195    0.4636777 
+#>   0.55833578   0.09075791   0.26640625   0.02583742   0.51829497   0.31331862 
 #> SmoothMuscle 
-#>    0.3050924 
+#>   0.20906439 
 #> attr(,"scaled:scale")
 #>   Epithelial     Ciliated      Myeloid     Lymphoid   Fibroblast  Endothelial 
-#>   0.43710318   0.33634572   0.55764168   0.08122189   0.75418844   0.58954297 
+#>   0.39179953   0.19114811   0.41394707   0.05668636   0.58237322   0.43783648 
 #> SmoothMuscle 
-#>   0.48150279
+#>   0.35666977
 # Name each cluster after the cell type with the highest score
 clusterType <- setNames(colnames(score)[apply(score, 1, which.max)],
                         rownames(score))
@@ -486,67 +482,6 @@ while the run without them leaves them in nearly all nuclei. In both
 runs, the markers of fibroblasts, endothelial cells and macrophages drop
 to a few percent outside their own cell types.
 
-# A comparison with CellBender
-
-GEO also has CellBender's results for this sample. CellBender also learns
-the ambient RNA from the empty droplets, but with a different model.
-Neither method gives the true answer, but it is useful to see which
-DecontX run agrees better with CellBender. We download CellBender's
-counts and keep the nuclei that both methods kept:
-
-
-``` r
-cbUrl <- paste0(
-  geo, "GSM5230nnn/GSM5230057/suppl/",
-  "GSM5230057_02-P005175-S053-R01_out_FPR_0.01_filtered.h5.gz"
-)
-cbH5 <- R.utils::gunzip(
-  bfcrpath(bfc, cbUrl),
-  destname = tempfile(fileext = ".h5"),
-  remove = FALSE
-)
-cellbender <- read10xCounts(cbH5, col.names = TRUE, type = "HDF5")
-# Check that both files list the same genes, in the same order
-stopifnot(identical(rowData(cellbender)$ID, rowData(nuclei)$ID))
-
-# The nuclei that both CellBender and our QC kept
-shared <- intersect(colnames(nuclei), colnames(cellbender))
-length(shared)
-#> [1] 5926
-original <- counts(nuclei)[, shared]
-cellbenderCounts <- as(counts(cellbender)[, shared], "dgCMatrix")
-# The share of each nucleus's counts that CellBender removed
-cellbenderRemoved <- 1 - colSums(cellbenderCounts) / colSums(original)
-
-# Where these nuclei are in our table of estimates
-kept <- match(shared, colnames(nuclei))
-round(c(
-  noBackground = cor(estimates$noBackground[kept], cellbenderRemoved),
-  withBackground = cor(estimates$withBackground[kept], cellbenderRemoved)
-), 2)
-#>   noBackground withBackground 
-#>           0.26           0.54
-```
-
-These numbers are correlations, across nuclei, between each DecontX
-run's contamination estimates and the share of counts that CellBender
-removed. The run with the empty droplets agrees with CellBender much
-better. Last, the share of all counts that each method removed:
-
-
-``` r
-round(c(
-  CellBender = 1 - sum(cellbenderCounts) / sum(original),
-  noBackground = 1 - sum(decontXcounts(noBackground)[, shared]) / sum(original),
-  withBackground = 1 - sum(decontXcounts(withBackground)[, shared]) / sum(original)
-), 3)
-#>     CellBender   noBackground withBackground 
-#>          0.071          0.121          0.166
-```
-
-DecontX removes more counts in total than CellBender does with the
-setting used for these files (a false positive rate of 0.01).
-
 # Summary
 
 - Give DecontX the empty droplets when you have them and the
@@ -589,70 +524,61 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] bluster_1.23.1              DropletTestFiles_1.22.0    
-#>  [3] ggplot2_4.0.3               BiocFileCache_3.3.0        
-#>  [5] dbplyr_2.6.0                DropletUtils_1.32.0        
-#>  [7] SingleCellExperiment_1.35.2 SummarizedExperiment_1.43.0
-#>  [9] Biobase_2.73.2              GenomicRanges_1.65.4       
-#> [11] Seqinfo_1.3.2               IRanges_2.47.5             
-#> [13] S4Vectors_0.51.10           BiocGenerics_0.59.12       
-#> [15] generics_0.1.4              MatrixGenerics_1.25.0      
-#> [17] matrixStats_1.5.0           decontX_1.11.40            
+#>  [1] ggplot2_4.0.3               BiocFileCache_3.3.0        
+#>  [3] dbplyr_2.6.0                DropletUtils_1.32.0        
+#>  [5] SingleCellExperiment_1.35.2 SummarizedExperiment_1.43.0
+#>  [7] Biobase_2.73.2              GenomicRanges_1.65.4       
+#>  [9] Seqinfo_1.3.2               IRanges_2.47.5             
+#> [11] S4Vectors_0.51.10           BiocGenerics_0.59.12       
+#> [13] generics_0.1.4              MatrixGenerics_1.25.0      
+#> [15] matrixStats_1.5.0           decontX_1.11.40            
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] RColorBrewer_1.1-3        jsonlite_2.0.0           
-#>   [3] magrittr_2.0.5            farver_2.1.2             
-#>   [5] vctrs_0.7.3               memoise_2.0.1            
-#>   [7] DelayedMatrixStats_1.34.0 BiocBaseUtils_1.15.1     
-#>   [9] S4Arrays_1.13.2           AnnotationHub_4.3.3      
-#>  [11] curl_8.1.0                BiocNeighbors_2.7.3      
-#>  [13] Rhdf5lib_2.1.0            SparseArray_1.13.4       
-#>  [15] rhdf5_2.57.20             parallelly_1.50.0        
-#>  [17] StanHeaders_2.39.1        httr2_1.3.0              
-#>  [19] cachem_1.1.0              igraph_2.3.4             
-#>  [21] lifecycle_1.0.5           pkgconfig_2.0.3          
-#>  [23] Matrix_1.7-6              R6_2.6.1                 
-#>  [25] fastmap_1.2.0             future_1.80.0            
-#>  [27] digest_0.6.39             patchwork_1.3.2          
-#>  [29] AnnotationDbi_1.75.2      dqrng_0.4.1              
-#>  [31] ExperimentHub_3.3.2       RSQLite_3.53.3           
-#>  [33] beachmat_2.29.3           filelock_1.0.3           
-#>  [35] labeling_0.4.3            progressr_1.1.0          
-#>  [37] httr_1.4.9                abind_1.4-8              
-#>  [39] compiler_4.6.1            bit64_4.8.6              
-#>  [41] withr_3.0.3               S7_0.2.2                 
-#>  [43] inline_0.3.21             BiocParallel_1.47.0      
-#>  [45] DBI_1.3.0                 QuickJSR_1.11.0          
-#>  [47] pkgbuild_1.4.8            HDF5Array_1.41.3         
-#>  [49] R.utils_2.13.0            rappdirs_0.3.4           
-#>  [51] DelayedArray_0.39.8       loo_2.10.1               
-#>  [53] tools_4.6.1               otel_0.2.0               
-#>  [55] future.apply_1.21.0       MCMCprecision_0.4.2      
-#>  [57] R.oo_1.27.1               glue_1.8.1               
-#>  [59] h5mread_1.5.3             dbscan_1.2.7             
-#>  [61] rhdf5filters_1.25.5       grid_4.6.1               
-#>  [63] cluster_2.1.8.3           gtable_0.3.6             
-#>  [65] R.methodsS3_1.8.2         sp_2.2-4                 
-#>  [67] XVector_0.53.0            BiocVersion_3.24.0       
-#>  [69] pillar_1.11.1             spam_2.11-4              
-#>  [71] limma_3.99.3              dplyr_1.2.1              
-#>  [73] lattice_0.23-1            bit_4.6.0                
-#>  [75] tidyselect_1.2.1          locfit_1.5-9.12          
-#>  [77] Biostrings_2.81.9         scuttle_1.23.2           
-#>  [79] knitr_1.52                gridExtra_2.3.1          
-#>  [81] V8_8.2.0                  scrapper_1.7.9           
-#>  [83] edgeR_4.99.10             xfun_0.62                
-#>  [85] statmod_1.5.2             rstan_2.32.7             
-#>  [87] yaml_2.3.12               evaluate_1.0.5           
-#>  [89] codetools_0.2-20          tibble_3.3.1             
-#>  [91] BiocManager_1.30.27       cli_3.6.6                
-#>  [93] RcppParallel_6.2.1        Rcpp_1.1.2               
-#>  [95] globals_0.20.0            png_0.1-9                
-#>  [97] parallel_4.6.1            rstantools_2.7.1         
-#>  [99] blob_1.3.0                dotCall64_1.2            
-#> [101] sparseMatrixStats_1.24.0  listenv_1.1.0            
-#> [103] scales_1.4.0              crayon_1.5.3             
-#> [105] SeuratObject_5.4.0        purrr_1.2.2              
-#> [107] combinat_0.0-9            rlang_1.3.0              
-#> [109] KEGGREST_1.53.6
+#>  [1] DBI_1.3.0                 gridExtra_2.3.1          
+#>  [3] httr2_1.3.0               inline_0.3.21            
+#>  [5] rlang_1.3.0               magrittr_2.0.5           
+#>  [7] otel_0.2.0                compiler_4.6.1           
+#>  [9] RSQLite_3.53.3            DelayedMatrixStats_1.34.0
+#> [11] loo_2.10.1                vctrs_0.7.3              
+#> [13] combinat_0.0-9            pkgconfig_2.0.3          
+#> [15] fastmap_1.2.0             XVector_0.53.0           
+#> [17] labeling_0.4.3            scuttle_1.23.2           
+#> [19] purrr_1.2.2               bit_4.6.0                
+#> [21] xfun_0.62                 cachem_1.1.0             
+#> [23] beachmat_2.29.3           jsonlite_2.0.0           
+#> [25] blob_1.3.0                rhdf5filters_1.25.5      
+#> [27] DelayedArray_0.39.8       Rhdf5lib_2.1.0           
+#> [29] BiocParallel_1.47.0       parallel_4.6.1           
+#> [31] R6_2.6.1                  RColorBrewer_1.1-3       
+#> [33] StanHeaders_2.39.1        MCMCprecision_0.4.2      
+#> [35] limma_3.99.3              parallelly_1.50.0        
+#> [37] Rcpp_1.1.2                rstan_2.32.7             
+#> [39] knitr_1.52                future.apply_1.21.0      
+#> [41] R.utils_2.13.0            Matrix_1.7-6             
+#> [43] tidyselect_1.2.1          abind_1.4-8              
+#> [45] codetools_0.2-20          curl_8.1.0               
+#> [47] listenv_1.1.0             pkgbuild_1.4.8           
+#> [49] lattice_0.23-1            tibble_3.3.1             
+#> [51] withr_3.0.3               S7_0.2.2                 
+#> [53] evaluate_1.0.5            future_1.80.0            
+#> [55] RcppParallel_6.2.1        filelock_1.0.3           
+#> [57] pillar_1.11.1             dbscan_1.2.7             
+#> [59] sp_2.2-4                  scrapper_1.7.9           
+#> [61] rstantools_2.7.1          sparseMatrixStats_1.24.0 
+#> [63] scales_1.4.0              globals_0.20.0           
+#> [65] glue_1.8.1                tools_4.6.1              
+#> [67] BiocNeighbors_2.7.3       locfit_1.5-9.12          
+#> [69] dotCall64_1.2             rhdf5_2.57.20            
+#> [71] grid_4.6.1                QuickJSR_1.11.0          
+#> [73] edgeR_4.99.10             HDF5Array_1.41.3         
+#> [75] cli_3.6.6                 spam_2.11-4              
+#> [77] S4Arrays_1.13.2           dplyr_1.2.1              
+#> [79] V8_8.2.0                  gtable_0.3.6             
+#> [81] R.methodsS3_1.8.2         digest_0.6.39            
+#> [83] progressr_1.1.0           SparseArray_1.13.4       
+#> [85] dqrng_0.4.1               SeuratObject_5.4.0       
+#> [87] farver_2.1.2              memoise_2.0.1            
+#> [89] R.oo_1.27.1               lifecycle_1.0.5          
+#> [91] h5mread_1.5.3             statmod_1.5.2            
+#> [93] bit64_4.8.6
 ```
