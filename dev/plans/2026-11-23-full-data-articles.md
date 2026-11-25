@@ -26,8 +26,9 @@ full cord_blood data" for decontPro. Probes on 2026-11-23 changed both:
   cell-type labels come from clustering the ADTs, so the maintainer can
   judge how much work labels are. With coarse labels (one T-cell label
   for CD4 and CD8), DecontPro removes the real peak of CD4 or CD8a
-  (which one varied between fits of the same data) and shrinks the
-  naive CD45RA peak; the article shows that as a pitfall.
+  (which one depends on the label names, #148) and shrinks the naive
+  CD45RA peak; the article shows that as a pitfall and names the lost
+  marker at knit time.
 
 ADR-0007 gets a dated note saying so, rather than a new ADR.
 

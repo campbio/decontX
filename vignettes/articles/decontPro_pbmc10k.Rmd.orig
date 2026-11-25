@@ -300,13 +300,12 @@ stopifnot(coarseRemoved[lostMarker] > 0.8,
           coarseRemoved["CD45RA"] > removed(default)["CD45RA"])
 ```
 
-With one T-cell label, DecontPro removes most of one T-cell subset's
-marker, in this fit `r lostMarker`, and the naive T cells' CD45RA peak
-shrinks: within the T cells, it treats these real differences as
-contamination. Which of CD4 and CD8a is lost isn't stable; we have seen
-fits of these same data lose the other one. If the decontaminated counts
-lose a peak that the markers say is real, check whether the labels split
-the cells that carry it from the cells that don't.
+With one T-cell label, DecontPro removes most of the
+`r lostMarker` counts, the marker of one T-cell subset, and the naive T
+cells' CD45RA peak shrinks: within the T cells, it treats these real
+differences as contamination. If the decontaminated counts lose a peak
+that the markers say is real, check whether the labels split the cells
+that carry it from the cells that don't.
 
 # Summary
 
