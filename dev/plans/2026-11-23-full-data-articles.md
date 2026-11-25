@@ -17,8 +17,10 @@ full cord_blood data" for decontPro. Probes on 2026-11-23 changed both:
   nuclei sample from a COVID-19 autopsy (Delorey et al. 2021, GSE171668)
   does not: contamination is high in every cluster, so the profile decontX
   builds from the other clusters isn't clean, and the empty droplets
-  change the answer. With them, decontX's per-cell estimates and removed
-  profile move much closer to CellBender's. The article is about that.
+  change the answer: what decontX removes then matches the empty
+  droplets. The article is about that. (A comparison with the CellBender
+  output on GEO was dropped on 2026-11-25: it isn't needed to show when
+  to use the background matrix.)
 - **decontPro:** the vignette stays on cord_blood (500-droplet sample).
   The article uses pbmc_10k_protein_v3 from DropletTestFiles instead of
   all of cord_blood, because it has the raw matrix (spongelets, for
@@ -106,9 +108,7 @@ Title: "Using empty droplets with DecontX: single-nucleus lung data".
 5. Comparison: contamination per cell type for each run; what each run
    removes against the empty droplets' profile; detection of
    cell-type markers in other cell types before and after.
-6. A short comparison with the CellBender output that GEO provides for
-   the same sample.
-7. Summary: when to give decontX the empty droplets.
+6. Summary: when to give decontX the empty droplets.
 
 ## decontPro_pbmc10k: outline
 

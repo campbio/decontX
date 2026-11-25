@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 ```
 
 *Computed with decontX `r packageVersion("decontX")` on `r Sys.Date()`.
-The code below downloads about 80 MB from GEO, a public database of
+The code below downloads about 55 MB from GEO, a public database of
 gene expression data, and takes a few minutes to run.*
 
 # Why give DecontX the empty droplets?
@@ -87,17 +87,13 @@ The data come from Delorey et al. (2021), who studied tissue from people
 who died of COVID-19. Among other data, they sequenced nuclei from lung
 tissue with 10x Genomics. For each sample, the GEO series
 [GSE171668](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE171668)
-has two files that we use:
+has the *raw matrix*, with the counts of every gene in every droplet,
+including the empty droplets. (The more common *filtered* matrix holds
+only the droplets with a cell or nucleus, so it has no empty droplets.)
 
-- The *raw matrix*, with the counts of every gene in every droplet,
-  including the empty droplets. The more common *filtered* matrix holds
-  only the droplets with a cell or nucleus, so it has no empty droplets.
-- The output of CellBender, another tool that removes ambient RNA. We
-  compare with it at the end.
-
-We use one lung sample, 02-P005175-S053-R01. The files are compressed.
-The code downloads each one once, keeps it in a cache folder, and unzips
-a copy into a temporary folder:
+We use one lung sample, 02-P005175-S053-R01. The file is compressed. The
+code downloads it once, keeps it in a cache folder, and unzips a copy
+into a temporary folder:
 
 ```{r download}
 # BiocFileCache keeps downloaded files, so later runs reuse them
@@ -221,9 +217,11 @@ which it makes and the other cell types don't. For each cluster, we
 measure how much it expresses each cell type's markers, and name it
 after the cell type whose markers score highest.
 
-The code first *normalizes* the counts: it divides each nucleus's counts
-by its total, so that a nucleus doesn't score higher just because it has
-more counts, and takes the log. Then, for each cluster, it averages the
+First, we *normalize* the counts with `normalizeRnaCounts.se()` from
+the scrapper package, which decontX also uses. It scales each nucleus's
+counts by its total, so that a nucleus doesn't score higher just because
+it has more counts, and takes the log. The result is stored in `nuclei`
+as a new assay, `logcounts`. Then, for each cluster, we average the
 markers of each cell type. Last, `scale()` puts the scores of the
 different cell types on the same scale:
 
@@ -240,15 +238,13 @@ cellTypeMarkers <- list(
 )
 # The cluster of each nucleus, from the first run
 z <- noBackground$decontX_clusters
-x <- counts(nuclei)
-# Normalize the markers' counts: divide by each nucleus's total count,
-# multiply by 10,000, and take log(1 + count)
-logNorm <- log1p(t(t(as.matrix(x[unlist(cellTypeMarkers), ])) /
-                   colSums(x)) * 1e4)
+# Normalize the counts, adding the logcounts assay
+nuclei <- scrapper::normalizeRnaCounts.se(nuclei)
 # For each cell type, the mean of its markers, averaged over the nuclei
 # of each cluster
 score <- sapply(cellTypeMarkers, function(genes) {
-  tapply(colMeans(logNorm[genes, ]), z, mean)
+  markerMeans <- colMeans(as.matrix(logcounts(nuclei)[genes, ]))
+  tapply(markerMeans, z, mean)
 })
 # Put each cell type's scores on the same scale
 score <- scale(score)
@@ -426,60 +422,6 @@ removes more. It also removes the mitochondrial RNAs from most nuclei,
 while the run without them leaves them in nearly all nuclei. In both
 runs, the markers of fibroblasts, endothelial cells and macrophages drop
 to a few percent outside their own cell types.
-
-# A comparison with CellBender
-
-GEO also has CellBender's results for this sample. CellBender also learns
-the ambient RNA from the empty droplets, but with a different model.
-Neither method gives the true answer, but it is useful to see which
-DecontX run agrees better with CellBender. We download CellBender's
-counts and keep the nuclei that both methods kept:
-
-```{r cellbender}
-cbUrl <- paste0(
-  geo, "GSM5230nnn/GSM5230057/suppl/",
-  "GSM5230057_02-P005175-S053-R01_out_FPR_0.01_filtered.h5.gz"
-)
-cbH5 <- R.utils::gunzip(
-  bfcrpath(bfc, cbUrl),
-  destname = tempfile(fileext = ".h5"),
-  remove = FALSE
-)
-cellbender <- read10xCounts(cbH5, col.names = TRUE, type = "HDF5")
-# Check that both files list the same genes, in the same order
-stopifnot(identical(rowData(cellbender)$ID, rowData(nuclei)$ID))
-
-# The nuclei that both CellBender and our QC kept
-shared <- intersect(colnames(nuclei), colnames(cellbender))
-length(shared)
-original <- counts(nuclei)[, shared]
-cellbenderCounts <- as(counts(cellbender)[, shared], "dgCMatrix")
-# The share of each nucleus's counts that CellBender removed
-cellbenderRemoved <- 1 - colSums(cellbenderCounts) / colSums(original)
-
-# Where these nuclei are in our table of estimates
-kept <- match(shared, colnames(nuclei))
-round(c(
-  noBackground = cor(estimates$noBackground[kept], cellbenderRemoved),
-  withBackground = cor(estimates$withBackground[kept], cellbenderRemoved)
-), 2)
-```
-
-These numbers are correlations, across nuclei, between each DecontX
-run's contamination estimates and the share of counts that CellBender
-removed. The run with the empty droplets agrees with CellBender much
-better. Last, the share of all counts that each method removed:
-
-```{r cellbender_share}
-round(c(
-  CellBender = 1 - sum(cellbenderCounts) / sum(original),
-  noBackground = 1 - sum(decontXcounts(noBackground)[, shared]) / sum(original),
-  withBackground = 1 - sum(decontXcounts(withBackground)[, shared]) / sum(original)
-), 3)
-```
-
-DecontX removes more counts in total than CellBender does with the
-setting used for these files (a false positive rate of 0.01).
 
 # Summary
 
