@@ -73,7 +73,7 @@ Besides decontX, the code uses these R packages:
 The first three come from Bioconductor and the last two from CRAN.
 `BiocManager::install()` installs both kinds.
 
-```{r packages}
+```{r packages, warning = FALSE}
 library(decontX)
 library(DropletUtils)
 library(BiocFileCache)

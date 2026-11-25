@@ -57,7 +57,7 @@ downloads the data; DropletUtils, to read it; bluster, to cluster the
 cells; and ggplot2, which makes the plots. `BiocManager::install()`
 installs all of them.
 
-```{r packages}
+```{r packages, warning = FALSE}
 library(decontX)
 library(DropletTestFiles)
 library(DropletUtils)
