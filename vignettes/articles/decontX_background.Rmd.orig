@@ -1,5 +1,5 @@
 ---
-title: "Using empty droplets with DecontX: single-nucleus lung data"
+title: "Using empty droplets as the background with DecontX"
 ---
 
 <!-- This is the source of decontX_background.Rmd. Edit this file, not

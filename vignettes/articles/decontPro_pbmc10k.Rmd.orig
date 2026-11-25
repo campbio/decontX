@@ -1,5 +1,5 @@
 ---
-title: "DecontPro on 10x PBMC data with empty droplets"
+title: "Using empty droplets as the background with DecontPro"
 ---
 
 <!-- This is the source of decontPro_pbmc10k.Rmd. Edit this file, not

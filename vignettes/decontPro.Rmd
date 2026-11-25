@@ -375,7 +375,7 @@ both matrices; otherwise a barcode that is a cell in one sample removes an
 empty droplet with the same barcode in another.
 
 The article
-[DecontPro on 10x PBMC data with empty droplets](https://campbio.github.io/decontX/dev/articles/decontPro_pbmc10k.html)
+[Using empty droplets as the background with DecontPro](https://campbio.github.io/decontX/dev/articles/decontPro_pbmc10k.html)
 on the package website runs DecontPro on real data: it finds the cell
 types from the ADT counts, runs DecontPro with and without the empty
 droplets, and shows what goes wrong when one label covers two cell types.

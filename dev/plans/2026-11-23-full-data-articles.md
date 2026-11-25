@@ -89,7 +89,7 @@ Other files:
 
 ## decontX_background: outline
 
-Title: "Using empty droplets with DecontX: single-nucleus lung data".
+Title: "Using empty droplets as the background with DecontX".
 
 1. Why the background matrix: DecontX without it builds each cluster's
    contamination from the other clusters; when contamination is high in
@@ -113,7 +113,7 @@ Title: "Using empty droplets with DecontX: single-nucleus lung data".
 
 ## decontPro_pbmc10k: outline
 
-Title: "DecontPro on 10x PBMC data with empty droplets".
+Title: "Using empty droplets as the background with DecontPro".
 
 1. Data: pbmc_10k_protein_v3 (filtered and raw) from DropletTestFiles;
    the 17 ADTs, three of them isotype controls.
