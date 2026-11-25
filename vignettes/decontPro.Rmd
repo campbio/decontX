@@ -1,5 +1,5 @@
 ---
-title: "Decontamination of single cell protein expression data with DecontPro"
+title: "Decontamination of CITE-seq/Total-seq data with DecontPro"
 author:
 - name: Yuan Yin
   affiliation: &id Boston University School of Medicine

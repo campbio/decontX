@@ -1,5 +1,5 @@
 ---
-title: "Decontamination of ambient RNA in single-cell genomic data with DecontX"
+title: "Decontamination of scRNA-seq data with DecontX"
 author:
 - name: Shiyi (Iris) Yang
   affiliation: &id Boston University School of Medicine

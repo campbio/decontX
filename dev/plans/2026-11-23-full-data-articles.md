@@ -76,8 +76,9 @@ Other files:
 - The extra packages stay out of Suggests: only the local knit needs
   them, and each article lists its own for readers. The lung article
   uses DropletUtils, BiocFileCache, SingleCellExperiment, R.utils and
-  ggplot2; the PBMC article DropletTestFiles, DropletUtils, bluster and
-  ggplot2.
+  ggplot2; the PBMC article DropletTestFiles and DropletUtils. Both
+  normalize with scrapper, which decontX imports, rather than with
+  hand-written code (changed 2026-11-25).
 - Seeds are set before every random step (cell calling, clustering), and
   decontX and decontPro use their own `seed` defaults.
 - Cluster names come from the markers, not from cluster numbers, so a
@@ -116,8 +117,10 @@ Title: "DecontPro on 10x PBMC data with empty droplets".
 
 1. Data: pbmc_10k_protein_v3 (filtered and raw) from DropletTestFiles;
    the 17 ADTs, three of them isotype controls.
-2. Cell-type labels: CLR-normalize the ADTs (isotypes left out), cluster
-   with bluster, label clusters by rules on their mean ADT levels.
+2. Cell-type labels: take the ADTs out with `splitAltExps()`, normalize
+   them with `scrapper::normalizeAdtCounts.se()` (isotypes left out),
+   cluster with scrapper's SNN graph, and label clusters by rules on
+   their mean ADT levels.
 3. DecontPro with the default ambient estimate.
 4. DecontPro with `background`: the spongelets in the raw matrix.
 5. Comparison: `plotDensity()`, `plotBoxByCluster()`, share removed per
