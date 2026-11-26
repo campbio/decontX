@@ -1,5 +1,5 @@
 ---
-title: "DecontPro on 10x PBMC data with empty droplets"
+title: "Using empty droplets as the background with DecontPro"
 ---
 
 <!-- This is the source of decontPro_pbmc10k.Rmd. Edit this file, not
@@ -11,7 +11,7 @@ knitr::knit("decontPro_pbmc10k.Rmd.orig", "decontPro_pbmc10k.Rmd") -->
 
 
 
-*Computed with decontX 1.11.40 on 2026-11-25.
+*Computed with decontX 1.11.40 on 2026-11-26.
 The code below downloads about 200 MB and takes about ten minutes to
 run.*
 
@@ -43,18 +43,16 @@ The data also include *isotype controls*: antibodies that bind no
 protein on these cells. All of their counts are contamination, so they
 show how well DecontPro removes it.
 
-Besides decontX, the code uses these R packages: DropletTestFiles, which
-downloads the data; DropletUtils, to read it; bluster, to cluster the
-cells; and ggplot2, which makes the plots. `BiocManager::install()`
-installs all of them.
+Besides decontX, the code uses two R packages: DropletTestFiles, which
+downloads the data, and DropletUtils, which reads it.
+`BiocManager::install()` installs both. It also uses scrapper, which is
+installed with decontX, to normalize and cluster the cells.
 
 
 ``` r
 library(decontX)
 library(DropletTestFiles)
 library(DropletUtils)
-library(bluster)
-library(ggplot2)
 ```
 
 # The data
@@ -87,22 +85,25 @@ table(rowData(filtered)$Type)
 #>               17            33538
 ```
 
-DecontPro uses only the ADT counts. The function below keeps the ADT
-rows and stores them as a sparse matrix, which saves memory because most
-counts are 0. It also shortens the ADT names by removing `_TotalSeqB`,
-the name of the antibody kit:
+DecontPro uses only the ADT counts. `splitAltExps()`, from the
+SingleCellExperiment package, moves the ADT rows into an object of their
+own, an *alternative experiment*, and `altExp()` takes it out. The
+function below does that, stores the counts as a sparse matrix, which
+saves memory because most counts are 0, and shortens the ADT names by
+removing `_TotalSeqB`, the name of the antibody kit:
 
 
 ``` r
-adtCounts <- function(sce) {
-  isAdt <- rowData(sce)$Type == "Antibody Capture"
-  x <- as(counts(sce)[isAdt, ], "dgCMatrix")
-  rownames(x) <- sub("_TotalSeqB$", "", rowData(sce)$Symbol[isAdt])
-  x
+adtOnly <- function(sce) {
+  sce <- splitAltExps(sce, rowData(sce)$Type, ref = "Gene Expression")
+  adt <- altExp(sce, "Antibody Capture")
+  counts(adt) <- as(counts(adt), "dgCMatrix")
+  rownames(adt) <- sub("_TotalSeqB$", "", rowData(adt)$Symbol)
+  adt
 }
-cells <- adtCounts(filtered)
-droplets <- adtCounts(raw)
-rownames(cells)
+filtered <- adtOnly(filtered)
+raw <- adtOnly(raw)
+rownames(filtered)
 #>  [1] "CD3"           "CD4"           "CD8a"          "CD14"         
 #>  [5] "CD15"          "CD16"          "CD56"          "CD19"         
 #>  [9] "CD25"          "CD45RA"        "CD45RO"        "PD-1"         
@@ -117,9 +118,11 @@ other cells' (that needs a total above 0), so we drop them:
 
 ``` r
 # The number of cells with no ADT counts
-sum(colSums(cells) == 0)
+sum(colSums(counts(filtered)) == 0)
 #> [1] 1
-cells <- cells[, colSums(cells) > 0]
+cellsSce <- filtered[, colSums(counts(filtered)) > 0]
+# The ADT counts of the cells, the matrix DecontPro uses
+cells <- counts(cellsSce)
 # The number of cells left
 ncol(cells)
 #> [1] 7864
@@ -133,7 +136,7 @@ and so on:
 
 
 ``` r
-empty <- droplets[, !colnames(droplets) %in% colnames(filtered)]
+empty <- counts(raw)[, !colnames(raw) %in% colnames(filtered)]
 empty <- empty[, colSums(empty) > 0]
 # The number of empty droplets
 ncol(empty)
@@ -183,48 +186,49 @@ by their ADT counts finds the cell types, without the RNA. There are
 three steps:
 
 1. **Normalize.** Cells differ in their total counts for technical
-   reasons. The centered log-ratio (CLR) divides each cell's counts by
-   the cell's average count and takes the log, so that cells can be
-   compared. We leave out the isotype controls, which say nothing about
-   the cell type.
-2. **Cluster.** `clusterRows()` links each cell to the 20 cells with the
-   most similar ADT levels. It then splits this network into groups of
-   cells that are closely linked, with the Louvain method. `resolution`
-   sets how many groups it finds. The method uses random numbers, so we
-   set a *seed* first, which makes it give the same groups every time.
+   reasons. `normalizeAdtCounts.se()` divides each cell's counts by a
+   *size factor* made for ADT data and takes the log (base 2), so that
+   cells can be compared. It stores the result as a new assay,
+   `logcounts`. We leave out the isotype controls, which say nothing
+   about the cell type.
+2. **Cluster.** `buildSnnGraph()` links each cell to the 20 cells with
+   the most similar ADT levels. `clusterGraph()` then splits this network
+   into groups of cells that are closely linked, with the multilevel
+   (Louvain) method. `multilevel.resolution` sets how many groups it
+   finds. The method uses random numbers, so we give it a *seed*, which
+   makes it find the same groups every time.
 3. **Name the clusters** from their markers, in the next section.
 
 
 ``` r
 # TRUE for the isotype controls
-isIsotype <- grepl("_control$", rownames(cells))
-# Centered log-ratio: divide each cell's counts by the geometric mean of
-# its counts plus 1, then take log(1 + x)
-clr <- function(x) {
-  x <- as.matrix(x)
-  log1p(sweep(x, 2, exp(colMeans(log1p(x))), "/"))
-}
-normalized <- clr(cells[!isIsotype, ])
+isIsotype <- grepl("_control$", rownames(cellsSce))
+# Normalize the other ADTs, adding the logcounts assay
+markerSce <- scrapper::normalizeAdtCounts.se(cellsSce[!isIsotype, ])
+normalized <- as.matrix(logcounts(markerSce))
 
-set.seed(100)
-# clusterRows() wants one row per cell, so t() turns the matrix around
-clusters <- clusterRows(
-  t(normalized),
-  NNGraphParam(k = 20, cluster.fun = "louvain",
-               cluster.args = list(resolution = 0.5))
-)
+# Link each cell to its 20 most similar cells, then find the groups
+graph <- scrapper::buildSnnGraph(normalized, num.neighbors = 20)
+clusters <- scrapper::clusterGraph(
+  graph,
+  method = "multilevel",
+  multilevel.resolution = 0.5,
+  seed = 100
+)$membership
 # The number of cells in each cluster
 table(clusters)
 #> clusters
 #>    1    2    3    4    5    6    7    8 
-#> 1796  950 1245 1177  612  937  638  509
+#> 1792  946 1049 1433  600  918  701  425
 ```
 
 ## Naming the clusters
 
 To name the clusters, we take the mean normalized level of each ADT in
 each cluster. In the table, each row is a cluster and each column an
-ADT:
+ADT. On this log scale, an ADT is at about 5 or lower in cells that
+don't have its protein (its contamination), and above 9 in cells that
+do:
 
 
 ``` r
@@ -232,15 +236,15 @@ clusterMeans <- sapply(split(seq_along(clusters), clusters), function(i) {
   rowMeans(normalized[, i, drop = FALSE])
 })
 round(t(clusterMeans), 1)
-#>   CD3 CD4 CD8a CD14 CD15 CD16 CD56 CD19 CD25 CD45RA CD45RO PD-1 TIGIT CD127
-#> 1 0.5 2.1  0.4  3.2  1.2  0.8  0.5  0.1  0.4    1.6    1.9  0.4   0.1   0.2
-#> 2 0.4 0.3  0.5  0.4  1.1  3.0  2.1  0.2  0.2    4.4    0.4  0.4   0.6   0.3
-#> 3 3.7 3.6  0.4  0.5  0.9  0.4  0.2  0.1  0.2    3.2    0.5  0.3   0.1   1.0
-#> 4 3.2 3.7  0.3  0.4  0.8  0.4  0.2  0.1  0.5    0.6    2.5  0.6   0.2   1.0
-#> 5 0.4 0.4  0.3  0.4  1.3  0.6  0.4  2.6  0.5    4.4    0.4  0.4   0.2   0.3
-#> 6 3.2 0.5  3.2  0.4  0.9  0.4  0.4  0.1  0.2    1.4    2.0  0.5   0.3   1.0
-#> 7 1.4 1.9  0.7  1.0  1.4  2.3  0.6  0.2  0.2    2.4    1.3  0.3   0.2   0.4
-#> 8 3.1 0.3  4.3  0.3  0.9  0.4  0.3  0.1  0.2    3.5    0.4  0.3   0.2   0.8
+#>    CD3  CD4 CD8a CD14 CD15 CD16 CD56 CD19 CD25 CD45RA CD45RO PD-1 TIGIT CD127
+#> 1  5.6  9.1  5.2 10.8  7.6  6.4  5.3  2.8  4.9    8.1    8.7  5.0   3.5   4.1
+#> 2  5.0  4.7  5.1  5.1  7.3 10.5  9.1  3.0  4.2   12.6    5.2  5.0   6.0   4.5
+#> 3 11.6 11.5  5.0  5.5  6.9  5.4  4.3  2.6  3.8   11.0    5.0  4.6   3.2   7.0
+#> 4 10.8 11.4  5.1  5.3  6.6  5.1  3.9  2.2  5.3    6.4    9.3  5.5   3.9   6.6
+#> 5  5.3  5.2  4.8  5.4  7.6  5.9  5.3 10.1  5.5   12.6    5.4  5.4   4.1   4.7
+#> 6 10.8  4.7 10.8  4.8  6.9  5.3  5.1  2.5  3.9    7.9    8.5  5.3   4.4   6.5
+#> 7  7.4  8.3  5.7  6.6  7.5  8.8  5.4  3.3  4.3    9.5    7.3  4.7   3.9   4.9
+#> 8 10.6  4.9 12.4  4.8  6.9  5.2  4.6  2.6  3.9   11.4    4.9  4.9   3.6   6.9
 ```
 
 Known *markers*, proteins typical of one cell type, tell the clusters
@@ -253,20 +257,22 @@ apart:
   naive T cells, which haven't yet responded to an infection, and
   CD45RO marks memory T cells, which have.
 
-The function below writes these rules down and applies them to each
-cluster. It names the clusters by their markers, so the names stay right
-even if the clusters come out in a different order:
+The function below writes these rules down, taking a level above 9 as
+high (above 8 for CD56, whose signal is weaker) and below 7 as low, and
+applies them to each cluster. It names the
+clusters by their markers, so the names stay right even if the clusters
+come out in a different order:
 
 
 ``` r
 # Name one cluster from its mean ADT levels, m
 labelCluster <- function(m) {
-  if (m["CD19"] > 2) return("B")
-  if (m["CD14"] > 2) return("CD14 monocyte")
-  if (m["CD3"] < 1 && m["CD16"] > 2 && m["CD56"] > 1.5) return("NK")
+  if (m["CD19"] > 9) return("B")
+  if (m["CD14"] > 9) return("CD14 monocyte")
+  if (m["CD3"] < 7 && m["CD16"] > 9 && m["CD56"] > 8) return("NK")
   stage <- if (m["CD45RA"] > m["CD45RO"]) "naive" else "memory"
-  if (m["CD3"] > 2 && m["CD4"] > 2) return(paste("CD4 T", stage))
-  if (m["CD3"] > 2 && m["CD8a"] > 2) return(paste("CD8 T", stage))
+  if (m["CD3"] > 9 && m["CD4"] > 9) return(paste("CD4 T", stage))
+  if (m["CD3"] > 9 && m["CD8a"] > 9) return(paste("CD8 T", stage))
   "mixed"
 }
 # Name each cluster
@@ -281,9 +287,9 @@ cellType <- unname(clusterLabels[as.character(clusters)])
 table(cellType)
 #> cellType
 #>             B CD14 monocyte  CD4 T memory   CD4 T naive  CD8 T memory 
-#>           612          1796          1177          1245           937 
+#>           600          1792          1433          1049           918 
 #>   CD8 T naive         mixed            NK 
-#>           509           638           950
+#>           425           701           946
 ```
 
 
@@ -326,8 +332,8 @@ share <- function(fit) {
 }
 rbind(default = share(default), withEmpty = share(withEmpty))
 #>           ambient background removed
-#> default     0.175      0.064   0.239
-#> withEmpty   0.131      0.082   0.214
+#> default     0.189      0.071   0.259
+#> withEmpty   0.137      0.093   0.230
 ```
 
 And the share of each ADT's counts that each run removes:
@@ -340,23 +346,23 @@ removed <- function(fit) {
 }
 round(cbind(default = removed(default), withEmpty = removed(withEmpty)), 2)
 #>               default withEmpty
-#> CD3              0.19      0.06
-#> CD4              0.21      0.07
-#> CD8a             0.15      0.13
-#> CD14             0.22      0.21
-#> CD15             0.32      0.90
+#> CD3              0.20      0.07
+#> CD4              0.20      0.05
+#> CD8a             0.19      0.18
+#> CD14             0.22      0.22
+#> CD15             0.35      0.92
 #> CD16             0.20      0.72
-#> CD56             0.45      0.49
-#> CD19             0.29      0.29
-#> CD25             0.78      0.87
-#> CD45RA           0.27      0.15
-#> CD45RO           0.27      0.28
-#> PD-1             0.79      0.92
-#> TIGIT            0.85      0.88
-#> CD127            0.63      0.76
-#> IgG2a_control    0.90      1.00
-#> IgG1_control     0.86      0.98
-#> IgG2b_control    0.96      1.00
+#> CD56             0.46      0.50
+#> CD19             0.28      0.29
+#> CD25             0.79      0.89
+#> CD45RA           0.32      0.19
+#> CD45RO           0.27      0.30
+#> PD-1             0.81      0.96
+#> TIGIT            0.86      0.89
+#> CD127            0.65      0.77
+#> IgG2a_control    0.91      1.00
+#> IgG1_control     0.88      0.99
+#> IgG2b_control    0.97      1.00
 ```
 
 Both runs remove nearly all the counts of the isotype controls, as they
@@ -426,16 +432,16 @@ coarseType <- sub("^CD[48] T.*", "T", cellType)
 table(coarseType)
 #> coarseType
 #>             B CD14 monocyte         mixed            NK             T 
-#>           612          1796           638           950          3868
+#>           600          1792           701           946          3825
 coarse <- decontPro(cells, coarseType, verbose = FALSE)
 round(cbind(
   fineLabels = removed(default), coarseLabels = removed(coarse)
 )[c("CD3", "CD4", "CD8a", "CD45RA", "CD45RO"), ], 2)
 #>        fineLabels coarseLabels
-#> CD3          0.19         0.39
-#> CD4          0.21         0.28
-#> CD8a         0.15         1.00
-#> CD45RA       0.27         0.54
+#> CD3          0.20         0.39
+#> CD4          0.20         0.28
+#> CD8a         0.19         1.00
+#> CD45RA       0.32         0.55
 #> CD45RO       0.27         0.83
 ```
 
@@ -494,70 +500,68 @@ sessionInfo()
 #> [8] base     
 #> 
 #> other attached packages:
-#>  [1] bluster_1.23.1              DropletTestFiles_1.22.0    
-#>  [3] ggplot2_4.0.3               BiocFileCache_3.3.0        
-#>  [5] dbplyr_2.6.0                DropletUtils_1.32.0        
-#>  [7] SingleCellExperiment_1.35.2 SummarizedExperiment_1.43.0
-#>  [9] Biobase_2.73.2              GenomicRanges_1.65.4       
-#> [11] Seqinfo_1.3.2               IRanges_2.47.5             
-#> [13] S4Vectors_0.51.10           BiocGenerics_0.59.12       
-#> [15] generics_0.1.4              MatrixGenerics_1.25.0      
-#> [17] matrixStats_1.5.0           decontX_1.11.40            
+#>  [1] DropletUtils_1.32.0         SingleCellExperiment_1.35.2
+#>  [3] SummarizedExperiment_1.43.0 Biobase_2.73.2             
+#>  [5] GenomicRanges_1.65.4        Seqinfo_1.3.2              
+#>  [7] IRanges_2.47.5              S4Vectors_0.51.10          
+#>  [9] BiocGenerics_0.59.12        generics_0.1.4             
+#> [11] MatrixGenerics_1.25.0       matrixStats_1.5.0          
+#> [13] DropletTestFiles_1.22.0     decontX_1.11.40            
 #> 
 #> loaded via a namespace (and not attached):
-#>   [1] RColorBrewer_1.1-3        jsonlite_2.0.0           
-#>   [3] magrittr_2.0.5            farver_2.1.2             
-#>   [5] vctrs_0.7.3               memoise_2.0.1            
-#>   [7] DelayedMatrixStats_1.34.0 BiocBaseUtils_1.15.1     
-#>   [9] S4Arrays_1.13.2           AnnotationHub_4.3.3      
-#>  [11] curl_8.1.0                BiocNeighbors_2.7.3      
-#>  [13] Rhdf5lib_2.1.0            SparseArray_1.13.4       
-#>  [15] rhdf5_2.57.20             parallelly_1.50.0        
-#>  [17] StanHeaders_2.39.1        httr2_1.3.0              
-#>  [19] cachem_1.1.0              igraph_2.3.4             
-#>  [21] lifecycle_1.0.5           pkgconfig_2.0.3          
-#>  [23] Matrix_1.7-6              R6_2.6.1                 
-#>  [25] fastmap_1.2.0             future_1.80.0            
-#>  [27] digest_0.6.39             patchwork_1.3.2          
-#>  [29] AnnotationDbi_1.75.2      dqrng_0.4.1              
-#>  [31] ExperimentHub_3.3.2       RSQLite_3.53.3           
-#>  [33] beachmat_2.29.3           filelock_1.0.3           
-#>  [35] labeling_0.4.3            progressr_1.1.0          
-#>  [37] httr_1.4.9                abind_1.4-8              
-#>  [39] compiler_4.6.1            bit64_4.8.6              
-#>  [41] withr_3.0.3               S7_0.2.2                 
-#>  [43] inline_0.3.21             BiocParallel_1.47.0      
-#>  [45] DBI_1.3.0                 QuickJSR_1.11.0          
-#>  [47] pkgbuild_1.4.8            HDF5Array_1.41.3         
-#>  [49] R.utils_2.13.0            rappdirs_0.3.4           
-#>  [51] DelayedArray_0.39.8       loo_2.10.1               
-#>  [53] tools_4.6.1               otel_0.2.0               
-#>  [55] future.apply_1.21.0       MCMCprecision_0.4.2      
-#>  [57] R.oo_1.27.1               glue_1.8.1               
-#>  [59] h5mread_1.5.3             dbscan_1.2.7             
-#>  [61] rhdf5filters_1.25.5       grid_4.6.1               
-#>  [63] cluster_2.1.8.3           gtable_0.3.6             
-#>  [65] R.methodsS3_1.8.2         sp_2.2-4                 
-#>  [67] XVector_0.53.0            BiocVersion_3.24.0       
-#>  [69] pillar_1.11.1             spam_2.11-4              
-#>  [71] limma_3.99.3              dplyr_1.2.1              
-#>  [73] lattice_0.23-1            bit_4.6.0                
-#>  [75] tidyselect_1.2.1          locfit_1.5-9.12          
-#>  [77] Biostrings_2.81.9         scuttle_1.23.2           
-#>  [79] knitr_1.52                gridExtra_2.3.1          
-#>  [81] V8_8.2.0                  scrapper_1.7.9           
-#>  [83] edgeR_4.99.10             xfun_0.62                
-#>  [85] statmod_1.5.2             rstan_2.32.7             
-#>  [87] yaml_2.3.12               evaluate_1.0.5           
-#>  [89] codetools_0.2-20          tibble_3.3.1             
-#>  [91] BiocManager_1.30.27       cli_3.6.6                
-#>  [93] RcppParallel_6.2.1        Rcpp_1.1.2               
-#>  [95] globals_0.20.0            png_0.1-9                
-#>  [97] parallel_4.6.1            rstantools_2.7.1         
-#>  [99] blob_1.3.0                dotCall64_1.2            
-#> [101] sparseMatrixStats_1.24.0  listenv_1.1.0            
-#> [103] scales_1.4.0              crayon_1.5.3             
-#> [105] SeuratObject_5.4.0        purrr_1.2.2              
-#> [107] combinat_0.0-9            rlang_1.3.0              
-#> [109] KEGGREST_1.53.6
+#>   [1] DBI_1.3.0                 gridExtra_2.3.1          
+#>   [3] httr2_1.3.0               inline_0.3.21            
+#>   [5] rlang_1.3.0               magrittr_2.0.5           
+#>   [7] otel_0.2.0                compiler_4.6.1           
+#>   [9] RSQLite_3.53.3            DelayedMatrixStats_1.34.0
+#>  [11] loo_2.10.1                png_0.1-9                
+#>  [13] vctrs_0.7.3               combinat_0.0-9           
+#>  [15] pkgconfig_2.0.3           crayon_1.5.3             
+#>  [17] fastmap_1.2.0             dbplyr_2.6.0             
+#>  [19] XVector_0.53.0            labeling_0.4.3           
+#>  [21] scuttle_1.23.2            purrr_1.2.2              
+#>  [23] bit_4.6.0                 xfun_0.62                
+#>  [25] beachmat_2.29.3           cachem_1.1.0             
+#>  [27] jsonlite_2.0.0            blob_1.3.0               
+#>  [29] rhdf5filters_1.25.5       DelayedArray_0.39.8      
+#>  [31] Rhdf5lib_2.1.0            BiocParallel_1.47.0      
+#>  [33] parallel_4.6.1            R6_2.6.1                 
+#>  [35] RColorBrewer_1.1-3        StanHeaders_2.39.1       
+#>  [37] MCMCprecision_0.4.2       limma_3.99.3             
+#>  [39] parallelly_1.50.0         Rcpp_1.1.2               
+#>  [41] rstan_2.32.7              knitr_1.52               
+#>  [43] future.apply_1.21.0       R.utils_2.13.0           
+#>  [45] BiocBaseUtils_1.15.1      Matrix_1.7-6             
+#>  [47] tidyselect_1.2.1          abind_1.4-8              
+#>  [49] yaml_2.3.12               codetools_0.2-20         
+#>  [51] curl_8.1.0                listenv_1.1.0            
+#>  [53] pkgbuild_1.4.8            lattice_0.23-1           
+#>  [55] tibble_3.3.1              withr_3.0.3              
+#>  [57] KEGGREST_1.53.6           S7_0.2.2                 
+#>  [59] evaluate_1.0.5            future_1.80.0            
+#>  [61] RcppParallel_6.2.1        BiocFileCache_3.3.0      
+#>  [63] ExperimentHub_3.3.2       Biostrings_2.81.9        
+#>  [65] pillar_1.11.1             BiocManager_1.30.27      
+#>  [67] filelock_1.0.3            sp_2.2-4                 
+#>  [69] BiocVersion_3.24.0        ggplot2_4.0.3            
+#>  [71] scrapper_1.7.9            rstantools_2.7.1         
+#>  [73] sparseMatrixStats_1.24.0  scales_1.4.0             
+#>  [75] globals_0.20.0            glue_1.8.1               
+#>  [77] tools_4.6.1               AnnotationHub_4.3.3      
+#>  [79] BiocNeighbors_2.7.3       locfit_1.5-9.12          
+#>  [81] dotCall64_1.2             rhdf5_2.57.20            
+#>  [83] grid_4.6.1                QuickJSR_1.11.0          
+#>  [85] edgeR_4.99.10             AnnotationDbi_1.75.2     
+#>  [87] patchwork_1.3.2           HDF5Array_1.41.3         
+#>  [89] cli_3.6.6                 rappdirs_0.3.4           
+#>  [91] spam_2.11-4               S4Arrays_1.13.2          
+#>  [93] dplyr_1.2.1               V8_8.2.0                 
+#>  [95] gtable_0.3.6              R.methodsS3_1.8.2        
+#>  [97] digest_0.6.39             progressr_1.1.0          
+#>  [99] dqrng_0.4.1               SparseArray_1.13.4       
+#> [101] SeuratObject_5.4.0        farver_2.1.2             
+#> [103] R.oo_1.27.1               memoise_2.0.1            
+#> [105] lifecycle_1.0.5           h5mread_1.5.3            
+#> [107] httr_1.4.9                statmod_1.5.2            
+#> [109] bit64_4.8.6
 ```
