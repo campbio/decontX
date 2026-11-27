@@ -518,7 +518,8 @@ test_that("decontPro names the r_est rows by cell_type label", {
 })
 
 test_that("decontPro results don't depend on the label names (#148)", {
-  # Labels whose sorted order is the reverse of their order in the droplets
+  # Labels whose sorted order differs from their order in the droplets
+  # (d, a, c, b), so sorted codes would reorder the cell types
   p <- refProData()
   out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
   renamed <- quietStan(

@@ -399,10 +399,10 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 # Stan needs cell types coded 1..K with every code used. The codes follow
 # the order in which the cell types first appear in the droplets, so that
 # renaming the labels or reordering a factor's levels gives Stan the same
-# input and the same result (#148). `labels` holds the label of each code.
-# `order` gives the codes in the order of the output: sorted labels, or a
-# factor's levels with unused levels dropped. `arg` is the name the user
-# gave the argument.
+# input and the same result (#148). `labels` holds the labels in the order
+# of the output: sorted, or a factor's levels with unused levels dropped.
+# `order` gives the code of each of them. `arg` is the name the user gave
+# the argument.
 .recodeCellType <- function(cell_type, M, arg = "cellType") {
   if (length(cell_type) != M) {
     stop(
@@ -423,8 +423,8 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   firstSeen <- unique(levelCodes)
   list(
     codes = match(levelCodes, firstSeen),
-    labels = levels(cell_type)[firstSeen],
-    order = match(seq_along(firstSeen), firstSeen)
+    labels = levels(cell_type),
+    order = order(firstSeen)
   )
 }
 
