@@ -8,7 +8,8 @@ the cell types in the order they first appear in the droplets, and every
 parameter of the model starts at a fixed value, the native profile of
 each cell type at the same uniform profile. Results change for every
 user; decontX 1.11.40 or earlier gives the old numbers. The rows of
-`r_est` still follow the sorted labels or the factor's levels (#148).
+`r_est` still follow the sorted labels, or the factor's levels with
+unused levels dropped (#148).
 
 # decontX 1.11.40
 
