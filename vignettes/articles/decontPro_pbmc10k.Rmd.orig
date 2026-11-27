@@ -1,0 +1,405 @@
+---
+title: "Using empty droplets as the background with DecontPro"
+---
+
+<!-- This is the source of decontPro_pbmc10k.Rmd. Edit this file, not
+the .Rmd, then knit it from the package root with
+make knit-article FILTER=decontPro_pbmc10k, which runs the code and
+writes the .Rmd and its figures. Without that target, knit it in R from
+vignettes/articles/, so the figures land next to the .Rmd:
+knitr::knit("decontPro_pbmc10k.Rmd.orig", "decontPro_pbmc10k.Rmd") -->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "decontPro_pbmc10k-figures/",
+  dev = "png",
+  dpi = 96,
+  message = FALSE
+)
+```
+
+*Computed with decontX `r packageVersion("decontX")` on `r Sys.Date()`.
+The code below downloads about 200 MB and takes about ten minutes to
+run.*
+
+# Introduction
+
+CITE-seq measures RNA and proteins on the surface of the same cells. The
+proteins are measured with antibodies that carry a short DNA tag, called
+*antibody-derived tags* (ADTs). Each antibody binds one protein, so
+counting its tags shows how much of that protein a cell has. Like RNA,
+ADT counts are contaminated. Free antibodies in the liquid end up in
+every droplet (*ambient* contamination), and some antibodies stick to
+cells that don't have their protein (*background* contamination).
+DecontPro estimates both kinds and removes them.
+
+The [DecontPro vignette](decontPro.html) runs DecontPro on 500 cord
+blood cells whose cell types are already known. This article runs it on
+all the cells of a dataset from 10x Genomics, about 8,000, and covers two
+steps the vignette doesn't:
+
+- **Finding the cell types.** DecontPro needs the cell type, or cluster,
+  of each cell. Here we find them by grouping cells with similar ADT
+  counts (*clustering*).
+- **Using the empty droplets.** Most droplets hold no cell. 10x Genomics
+  shares the *raw matrix*, which holds every droplet, including these
+  empty droplets, so we can give them to DecontPro with the `background`
+  argument.
+
+The data also include *isotype controls*: antibodies that bind no
+protein on these cells. All of their counts are contamination, so they
+show how well DecontPro removes it.
+
+Besides decontX, the code uses two R packages: DropletTestFiles, which
+downloads the data, and DropletUtils, which reads it.
+`BiocManager::install()` installs both. It also uses scrapper, which is
+installed with decontX, to normalize and cluster the cells.
+
+```{r packages, warning = FALSE}
+library(decontX)
+library(DropletTestFiles)
+library(DropletUtils)
+```
+
+# The data
+
+The 10x Genomics dataset is "10k PBMCs from a Healthy Donor - Gene
+Expression and Cell Surface Protein". PBMCs (peripheral blood
+mononuclear cells) are white blood cells taken from blood: T cells,
+B cells, natural killer (NK) cells and monocytes. Along with the RNA,
+the data measure 17 ADTs. DropletTestFiles has two versions of the
+counts: the *filtered* matrix, with only the droplets that the 10x
+software (CellRanger) took to be cells, and the *raw* matrix, with every
+droplet. `table()` shows the two kinds of rows: genes ("Gene
+Expression") and ADTs ("Antibody Capture"):
+
+```{r download}
+# Find a file of this dataset, downloading it the first time
+getFile <- function(file) {
+  getTestFile(
+    paste0("DropletTestFiles/tenx-3.0.0-pbmc_10k_protein_v3/1.0.0/", file),
+    prefix = FALSE
+  )
+}
+filtered <- read10xCounts(getFile("filtered.h5"), col.names = TRUE,
+                          type = "HDF5")
+raw <- read10xCounts(getFile("raw.h5"), col.names = TRUE, type = "HDF5")
+table(rowData(filtered)$Type)
+```
+
+DecontPro uses only the ADT counts. `splitAltExps()`, from the
+SingleCellExperiment package, moves the ADT rows into an object of their
+own, an *alternative experiment*, and `altExp()` takes it out. The
+function below does that, stores the counts as a sparse matrix, which
+saves memory because most counts are 0, and shortens the ADT names by
+removing `_TotalSeqB`, the name of the antibody kit:
+
+```{r adt}
+adtOnly <- function(sce) {
+  sce <- splitAltExps(sce, rowData(sce)$Type, ref = "Gene Expression")
+  adt <- altExp(sce, "Antibody Capture")
+  counts(adt) <- as(counts(adt), "dgCMatrix")
+  rownames(adt) <- sub("_TotalSeqB$", "", rowData(adt)$Symbol)
+  adt
+}
+filtered <- adtOnly(filtered)
+raw <- adtOnly(raw)
+rownames(filtered)
+```
+
+The ADTs whose names end in `_control` are the isotype controls. A few
+cells have no ADT counts at all. Their counts can't be compared with
+other cells' (that needs a total above 0), so we drop them:
+
+```{r zero_cells}
+# The number of cells with no ADT counts
+sum(colSums(counts(filtered)) == 0)
+cellsSce <- filtered[, colSums(counts(filtered)) > 0]
+# The ADT counts of the cells, the matrix DecontPro uses
+cells <- counts(cellsSce)
+# The number of cells left
+ncol(cells)
+```
+
+The empty droplets are the droplets of the raw matrix that weren't
+called as cells. We drop the ones with no ADT counts, which add nothing.
+`quantile()` shows how many ADT counts the empty droplets hold: half of
+them hold no more than the first number, 90% no more than the second,
+and so on:
+
+```{r empty}
+empty <- counts(raw)[, !colnames(raw) %in% colnames(filtered)]
+empty <- empty[, colSums(empty) > 0]
+# The number of empty droplets
+ncol(empty)
+quantile(colSums(empty), c(0.5, 0.9, 0.99, 0.999))
+```
+
+Most empty droplets hold only a few ADT counts, but some hold hundreds.
+These are probably *spongelets*: droplets with no cell, but with a bit
+of cell membrane or other debris that soaks up antibodies. Because of
+them, the mix of ADTs in the empty droplets differs from the mix in the
+cells. The table shows each ADT's share of all ADT counts, in percent,
+in the cells and in the empty droplets:
+
+```{r profiles}
+round(cbind(
+  cells = rowSums(cells) / sum(cells),
+  emptyDroplets = rowSums(empty) / sum(empty)
+) * 100, 1)
+```
+
+# Finding the cell types from the ADTs
+
+The ADTs here mark the main types of blood cells, so grouping the cells
+by their ADT counts finds the cell types, without the RNA. There are
+three steps:
+
+1. **Normalize.** Cells differ in their total counts for technical
+   reasons. `normalizeAdtCounts.se()` divides each cell's counts by a
+   *size factor* made for ADT data and takes the log (base 2), so that
+   cells can be compared. It stores the result as a new assay,
+   `logcounts`. We leave out the isotype controls, which say nothing
+   about the cell type.
+2. **Cluster.** `buildSnnGraph()` links each cell to the 20 cells with
+   the most similar ADT levels. `clusterGraph()` then splits this network
+   into groups of cells that are closely linked, with the multilevel
+   (Louvain) method. `multilevel.resolution` sets how many groups it
+   finds. The method uses random numbers, so we give it a *seed*, which
+   makes it find the same groups every time.
+3. **Name the clusters** from their markers, in the next section.
+
+```{r clusters}
+# TRUE for the isotype controls
+isIsotype <- grepl("_control$", rownames(cellsSce))
+# Normalize the other ADTs, adding the logcounts assay
+markerSce <- scrapper::normalizeAdtCounts.se(cellsSce[!isIsotype, ])
+normalized <- as.matrix(logcounts(markerSce))
+
+# Link each cell to its 20 most similar cells, then find the groups
+graph <- scrapper::buildSnnGraph(normalized, num.neighbors = 20)
+clusters <- scrapper::clusterGraph(
+  graph,
+  method = "multilevel",
+  multilevel.resolution = 0.5,
+  seed = 100
+)$membership
+# The number of cells in each cluster
+table(clusters)
+```
+
+## Naming the clusters
+
+To name the clusters, we take the mean normalized level of each ADT in
+each cluster. In the table, each row is a cluster and each column an
+ADT. On this log scale, an ADT is at about 5 or lower in cells that
+don't have its protein (its contamination), and above 9 in cells that
+do:
+
+```{r cluster_means}
+clusterMeans <- sapply(split(seq_along(clusters), clusters), function(i) {
+  rowMeans(normalized[, i, drop = FALSE])
+})
+round(t(clusterMeans), 1)
+```
+
+Known *markers*, proteins typical of one cell type, tell the clusters
+apart:
+
+- B cells have CD19.
+- Classical monocytes have CD14.
+- NK cells have CD16 and CD56, but not CD3.
+- T cells have CD3, and either CD4 or CD8a. Among them, CD45RA marks
+  naive T cells, which haven't yet responded to an infection, and
+  CD45RO marks memory T cells, which have.
+
+The function below writes these rules down, taking a level above 9 as
+high (above 8 for CD56, whose signal is weaker) and below 7 as low, and
+applies them to each cluster. It names the
+clusters by their markers, so the names stay right even if the clusters
+come out in a different order:
+
+```{r labels}
+# Name one cluster from its mean ADT levels, m
+labelCluster <- function(m) {
+  if (m["CD19"] > 9) return("B")
+  if (m["CD14"] > 9) return("CD14 monocyte")
+  if (m["CD3"] < 7 && m["CD16"] > 9 && m["CD56"] > 8) return("NK")
+  stage <- if (m["CD45RA"] > m["CD45RO"]) "naive" else "memory"
+  if (m["CD3"] > 9 && m["CD4"] > 9) return(paste("CD4 T", stage))
+  if (m["CD3"] > 9 && m["CD8a"] > 9) return(paste("CD8 T", stage))
+  "mixed"
+}
+# Name each cluster
+clusterLabels <- apply(clusterMeans, 2, labelCluster)
+clusterLabels
+# The cell type of each cell
+cellType <- unname(clusterLabels[as.character(clusters)])
+table(cellType)
+```
+
+```{r check_labels, include = FALSE}
+# Stop the knit if a refresh no longer finds the main cell types.
+# The text below also says that exactly one cluster is "mixed".
+stopifnot(all(c("B", "CD14 monocyte", "NK") %in% cellType),
+          any(grepl("^CD4 T", cellType)), any(grepl("^CD8 T", cellType)),
+          sum(clusterLabels == "mixed") == 1)
+```
+
+One cluster fits none of the rules. It has CD16, with some CD3 and CD4,
+so it probably holds CD16 monocytes and *doublets* (droplets with two
+cells). We keep it as its own group, `mixed`, rather than force it into
+a cell type.
+
+# DecontPro without and with the empty droplets
+
+First, we run DecontPro with its default settings, which estimate the
+ambient contamination from the cells:
+
+```{r decontpro_default}
+default <- decontPro(cells, cellType, verbose = FALSE)
+```
+
+Then with the empty droplets, given as `background`, which DecontPro
+uses to estimate the ambient contamination instead:
+
+```{r decontpro_background}
+withEmpty <- decontPro(cells, cellType, background = empty, verbose = FALSE)
+```
+
+Each run takes a few minutes. The table below shows, for each run, the
+share of all ADT counts that it calls ambient contamination, the share
+it calls background contamination, and the total it removes:
+
+```{r shares}
+share <- function(fit) {
+  round(c(
+    ambient = sum(fit$ambient_counts),
+    background = sum(fit$background_counts),
+    removed = sum(cells) - sum(fit$decontaminated_counts)
+  ) / sum(cells), 3)
+}
+rbind(default = share(default), withEmpty = share(withEmpty))
+```
+
+And the share of each ADT's counts that each run removes:
+
+```{r removed_by_adt}
+# The share of each ADT's counts that a run removed
+removed <- function(fit) {
+  1 - rowSums(fit$decontaminated_counts) / rowSums(cells)
+}
+round(cbind(default = removed(default), withEmpty = removed(withEmpty)), 2)
+```
+
+Both runs remove nearly all the counts of the isotype controls, as they
+should. The runs differ most for CD15 and CD16. These make up a larger
+share of the empty droplets than of the cells, so DecontPro removes more
+of them when it learns the ambient contamination from the empty
+droplets.
+
+## The plots
+
+`plotDensity()` shows how the counts of each ADT are spread across the
+cells, before and after decontamination. Contamination adds counts to
+cells that don't have the protein, so after decontamination those cells
+should be near zero. First the run with the default settings, then the
+run with the empty droplets:
+
+```{r density_default, fig.width = 10, fig.height = 6}
+features <- c("CD3", "CD4", "CD8a", "CD14", "CD16", "CD19", "CD15",
+              "IgG1_control")
+plotDensity(cells, default$decontaminated_counts, features)
+```
+
+```{r density_background, fig.width = 10, fig.height = 6}
+plotDensity(cells, withEmpty$decontaminated_counts, features)
+```
+
+`plotBoxByCluster()` shows the levels of each ADT in each cell type,
+before and after decontamination:
+
+```{r box_by_type, fig.width = 12, fig.height = 7}
+plotBoxByCluster(
+  cells, withEmpty$decontaminated_counts, cellType,
+  c("CD3", "CD4", "CD8a", "CD14", "CD16", "CD19")
+)
+```
+
+```{r check_mixed_cd16, include = FALSE}
+# The text says the empty droplets remove more CD16 from the mixed group
+# than from the NK cells.
+cd16Kept <- function(type) {
+  i <- cellType == type
+  sum(withEmpty$decontaminated_counts["CD16", i]) / sum(cells["CD16", i])
+}
+stopifnot(cd16Kept("mixed") < cd16Kept("NK"))
+```
+
+Most cell types keep their markers. The exception is CD16 in the
+`mixed` group, which keeps much less of its CD16 than the NK cells do.
+The group mixes cells with CD16 and cells without it, so DecontPro can't
+treat it as one kind of cell. The next section shows this problem more
+clearly.
+
+# When one label covers two cell types
+
+DecontPro assumes that the cells with the same label are alike. If an
+ADT is high in some cells of a label and low in others, DecontPro takes
+the high counts as contamination. So the labels must keep apart the cell
+types whose markers differ. To show what happens otherwise, we run
+DecontPro again with one label for all T cells, which puts the CD4 and
+CD8 T cells together:
+
+```{r coarse}
+# Replace the four T-cell labels with one, "T"
+coarseType <- sub("^CD[48] T.*", "T", cellType)
+table(coarseType)
+coarse <- decontPro(cells, coarseType, verbose = FALSE)
+round(cbind(
+  fineLabels = removed(default), coarseLabels = removed(coarse)
+)[c("CD3", "CD4", "CD8a", "CD45RA", "CD45RO"), ], 2)
+```
+
+```{r density_coarse, fig.width = 10, fig.height = 6}
+plotDensity(cells, coarse$decontaminated_counts,
+            c("CD3", "CD4", "CD8a", "CD45RA"))
+```
+
+```{r lost_marker, include = FALSE}
+coarseRemoved <- removed(coarse)
+lostMarker <- names(which.max(coarseRemoved[c("CD4", "CD8a")]))
+# The text says one of CD4 and CD8a is mostly removed, and that CD45RA
+# loses more than with the fine labels.
+stopifnot(coarseRemoved[lostMarker] > 0.8,
+          coarseRemoved["CD45RA"] > removed(default)["CD45RA"])
+```
+
+With one T-cell label, DecontPro removes most of the `r lostMarker`
+counts, the marker of one kind of T cell, and the naive T cells' CD45RA
+peak shrinks. Within the T cells, it treats real differences between
+cells as contamination. If the decontaminated counts lose a peak that
+the markers say is real, check whether your labels keep the cells that
+have the protein apart from the cells that don't.
+
+# Summary
+
+- Clustering the ADTs gives good labels when the antibodies mark the
+  main cell types, as here. Name the clusters from their markers, and
+  keep apart cell types whose markers differ, such as CD4 and CD8 T
+  cells.
+- The empty droplets show DecontPro the ambient contamination directly.
+  In 10x data they can include spongelets, so their mix of ADTs can
+  differ from the cells'.
+- Isotype controls, if your data have them, show whether the
+  contamination is removed: nearly all of their counts should go.
+- The [DecontPro vignette](decontPro.html) covers the settings of the
+  model (its priors) and answers common questions (FAQ).
+
+# Session information
+
+```{r session_info}
+sessionInfo()
+```

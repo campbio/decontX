@@ -29,8 +29,14 @@ git remote add bioc git@git.bioconductor.org:packages/decontX
    fix; re-run; land fixes via PRs to `devel`.
 4. Run `/security-review` on the release branch diff.
 5. Refresh the precomputed full-data articles in `vignettes/articles/`
-   (#141, once they exist) on `devel`, so the new release branch carries
-   them to the release site (ADR-0007).
+   on `devel`, so the new release branch carries them to the release
+   site (ADR-0007, #141). Install this checkout (the target stops if
+   the installed decontX isn't the version in DESCRIPTION), then run
+   `make knit-article FILTER=<name>` (or, before that shared target
+   exists, the `knitr::knit()` call in the header of each source) for
+   each `<name>.Rmd.orig`, look over the results and figures, and
+   commit the `.Rmd` files and `-figures/` folders. Each knit downloads
+   its data and takes several minutes.
 6. Update `NEWS.md` with a section for the new release version.
 7. Bump `Version:` in DESCRIPTION (z increment) and push `devel` to
    both GitHub and `bioc/devel`.
