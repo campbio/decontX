@@ -1,7 +1,8 @@
 # decontPro results independent of the cell-type label names (#148)
 
-Design approved in chat on 2026-11-27, with both parts. Version 1.11.41,
-branch `fix/decontpro-label-invariance` from `campbio/devel` 6abc6b9.
+Design approved in chat on 2026-11-27, with both parts. The `r` start
+was revised to uniform during implementation (approved 2026-11-27).
+Version 1.11.41, branch `fix/decontpro-label-invariance` from `campbio/devel` 6abc6b9.
 
 ## Problem
 
@@ -31,14 +32,13 @@ cell type different noise, even from the same start.
    now. The `cellType` documentation stays as it is.
 2. **Fixed starting values for every parameter**, so Stan draws no
    random start:
-   - `r[k]`: cell type k's observed ADT proportions, from its droplets'
-     row sums plus 1 per ADT (a simplex can't hold a 0, and a cell type
-     can have no counts of an ADT);
+   - `r[k]`: the uniform profile, 1/N for each ADT (the centre of the
+     simplex; revised during implementation, see below);
    - `delta` = 1e-4 and `background` = 1e-2, as now; `delta_mean` = 1e-4
      and `background_mean` = 1e-2, matching them;
    - `tau_a` = `tau_b` = 1.
 
-   They come from one helper, `.decontProInits(counts, codes)`.
+   They come from one helper, `.decontProInits(N, M, K)`.
 3. **No option to keep the old behaviour** (maintainer, 2026-11-27).
    Results change for every user; NEWS says so, and that decontX 1.11.40
    or earlier gives the old numbers. The old results depended on an
@@ -57,28 +57,58 @@ of an ADT's counts removed.
 | Fit | Labels | Seed | CD4 | CD8a | CD45RA | Ambient share | ELBO |
 |---|---|---|---|---|---|---|---|
 | current | fine | 12345 / 1 | 0.20 | 0.19 | 0.32 / 0.31 | 0.189 | -5.154M / -5.155M |
-| chosen | fine | 12345 | 0.20 | 0.19 | 0.32 | 0.189 | -5.154M |
-| chosen | fine | 2 | 0.20 | 0.19 | 0.32 | 0.192 | -5.181M |
+| chosen | fine | 12345 / 2 | 0.20 | 0.19 | 0.32 | 0.189 | -5.157M / -5.155M |
 | current | coarse "mixed" | 12345 | 0.28 | 1.00 | 0.55 | 0.337 | -10.68M |
 | current | coarse "unclear" | 12345 | 0.96 | 0.18 | 0.46 | 0.372 | -10.60M |
 | current | coarse | 1, 2 | 0.96-0.97 | 1.00 | 0.47-0.56 | 0.42 | |
-| chosen | coarse, both names | 12345 | 0.28 | 1.00 | 0.47 | 0.329 | -10.93M |
-| chosen | coarse | 1, 2, 3 | 0.97 | 1.00 | 0.47-0.56 | 0.42 | -10.66M to -10.92M |
+| chosen | coarse, both names | 12345 | 0.28 | 1.00 | 0.55 | 0.337 | -10.68M |
+| chosen | coarse | 2 | 0.28 | 1.00 | 0.55 | 0.336 | -10.69M |
+| chosen | coarse | 1 | 0.97 | 1.00 | 0.56 | 0.424 | -10.66M |
 
 - With the chosen start, "mixed" and "unclear" give `identical()`
   results.
 - With the fine labels, the chosen start fits as well as the current
-  code (ELBO and Poisson log-likelihood) and the results barely move.
+  code and the results barely move.
 - With the coarse labels, the result still depends on the seed: ADVI's
   noisy gradient steps on a misspecified model reach optima with similar
   ELBOs. No start fixes that. The fine-label fits are stable across
   seeds.
-- Rejected: starting `tau_a` and `tau_b` at the prior scale (`deltaSd`,
-  `backgroundSd`). It pins every droplet's `delta` to its mean; ADVI
-  stopped early with much worse ELBOs (fine labels -5.34M against
-  -5.15M; coarse labels down to -16.9M, one fit with no ambient
-  contamination). Its coarse fits kept CD4 and CD8a, which looked
-  right, but the model itself rates them worse.
+
+The decontPro vignette's 500 cord blood droplets (`set.seed(42)`), share
+of each ADT removed:
+
+| Fit | Ambient | Background | CD8 | CD16 | CD56 | Correlation with the all-droplet fit |
+|---|---|---|---|---|---|---|
+| current, default priors | 0.084 | 0.012 | 0.08 | 0.18 | 0.19 | |
+| chosen, default priors | 0.102 | 0.012 | 0.09 | 0.20 | 0.20 | |
+| current, 5x priors | 0.196 | 0.042 | 0.26 | 0.48 | 0.49 | 0.989 |
+| chosen, 5x priors | 0.215 | 0.042 | 0.27 | 0.49 | 0.52 | 0.983 |
+| current / chosen, 10x priors | 0.390 / 0.390 | 0.057 / 0.059 | 0.37 / 0.37 | 0.62 / 0.62 | 0.59 / 0.60 | |
+
+The correlation is between the log counts decontaminated with 5x priors
+and those of a default fit on all 7,700 labelled droplets; the vignette
+now says 0.98.
+
+Rejected:
+
+- **`r` at each cell type's observed ADT proportions** (+1 per ADT), the
+  start first approved. Those proportions include the contamination, so
+  the native profile starts out explaining nearly every count. The fits
+  settled in a worse optimum: fine labels ELBO -5.35M against -5.15M,
+  CD45RA removed 0.22 against 0.32; on cord blood, 54% of CD16 removed
+  with the default priors against 18%, and a correlation of 0.968. Its
+  coarse fits removed CD8a with all 3 seeds.
+- **`tau_a` and `tau_b` at the prior scale** (`deltaSd`, `backgroundSd`).
+  It pins every droplet's `delta` to its mean; ADVI stopped early with
+  much worse ELBOs (fine labels -5.34M; coarse labels down to -16.9M,
+  one fit with no ambient contamination). Its coarse fits kept CD4 and
+  CD8a, which looked right, but the model itself rates them worse.
+
+Pitfall found on the way: rstan silently ignores an `r` start given as a
+list of vectors, and starts `r` at random. The first probe passed it that
+way, so its "fixed start" fits had a random `r`. `r` must be a K x N
+matrix; a unit test pins the form and a real fit with one cell type
+checks that rstan accepts it.
 
 ## Changes
 
@@ -98,8 +128,9 @@ of an ADT's counts removed.
   re-knits it (`make knit-article FILTER=decontPro_pbmc10k`); with seed
   12345 the coarse fit still loses CD8a.
 - NEWS (1.11.41), DESCRIPTION version.
-- The decontPro vignette is rebuilt by the check; its text names no
-  numbers that this change moves (checked at implementation).
+- `vignettes/decontPro.Rmd`: the correlation with the all-droplet fit
+  becomes 0.98. Its statements about the density plots rest on shares
+  that move by at most 0.03; checked in the rendered vignette.
 
 ## Tests (`tests/testthat/test-decontPro.R`, 10 x 8 fixture)
 
@@ -110,10 +141,11 @@ Written first; each fails on its assertion with the current code.
   and `r_est` equal up to the row names.
 - A factor with reversed levels gives identical counts, with the `r_est`
   rows in the reversed level order.
-- `.decontProInits()`: `r` is K x N, every row a strict simplex, equal
-  to the observed proportions plus 1 per ADT, including a cell type
-  with an ADT at zero; the other parameters have the right shapes and
-  values.
+- `.decontProInits()`: `r` is a K x N matrix of 1/N; the other
+  parameters have the right shapes and values.
+- `decontPro()` passes `.decontProInits()` to Stan and codes the cell
+  types by first appearance (mocked Stan call).
+- A real fit with one cell type (one-row `r`).
 - The existing `r_est` row-name tests keep passing unchanged.
 - No decontPro references are in `decontx-refs.rds`, so none need
   regenerating; `dev/compare-commits.R` shows which decontPro paths move.

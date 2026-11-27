@@ -331,7 +331,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   )
 
 
-  init <- .decontProInits(counts, cellType$codes)
+  init <- .decontProInits(N, M, dat$K)
 
 
   ## Call inference
@@ -430,16 +430,16 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 }
 
 
-# Starting values for every parameter of the Stan model, so that Stan
-# draws no random start (#148). `r` starts at each cell type's observed
-# ADT proportions, with 1 added per ADT because a simplex can't hold a 0.
-# Stan takes delta as droplets x ADTs and background as ADTs x droplets.
-.decontProInits <- function(counts, codes) {
-  N <- nrow(counts)
-  M <- ncol(counts)
-  typeSums <- rowsum(t(counts), codes, reorder = TRUE) + 1
+# Starting values for every parameter of the Stan model, for N ADTs, M
+# droplets and K cell types, so that Stan draws no random start (#148).
+# Each native profile r starts uniform, the centre of the simplex. Starting
+# it at the cell type's observed ADT proportions, which include the
+# contamination, led to worse fits. Stan takes r as cell types x ADTs,
+# delta as droplets x ADTs and background as ADTs x droplets; rstan
+# silently ignores an r given as a list.
+.decontProInits <- function(N, M, K) {
   list(
-    r = unname(typeSums / rowSums(typeSums)),
+    r = matrix(1 / N, K, N),
     delta = matrix(1e-4, M, N),
     background = matrix(1e-2, N, M),
     delta_mean = rep(1e-4, M),

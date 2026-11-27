@@ -6,7 +6,7 @@ change which random start Stan gave each cell type, and with coarse
 labels the fit could then remove a different marker. Stan now numbers
 the cell types in the order they first appear in the droplets, and every
 parameter of the model starts at a fixed value, the native profile of
-each cell type at its observed ADT proportions. Results change for every
+each cell type at the same uniform profile. Results change for every
 user; decontX 1.11.40 or earlier gives the old numbers. The rows of
 `r_est` still follow the sorted labels or the factor's levels (#148).
 

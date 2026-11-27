@@ -569,22 +569,20 @@ test_that("decontPro codes the cell types for Stan by first appearance", {
   # Every parameter gets a starting value, so Stan draws no random start
   expect_identical(
     received$init,
-    .decontProInits(p$counts, received$data$cell_type)
+    .decontProInits(10L, 8L, 4L)
   )
 })
 
 test_that(".decontProInits starts every parameter at a fixed value", {
-  # 3 ADTs x 4 droplets; cell type 2 has no counts of ADT 3
-  counts <- matrix(c(1, 2, 3, 4, 5, 0, 6, 7, 8, 2, 2, 0), nrow = 3)
-  init <- .decontProInits(counts, codes = c(1L, 2L, 1L, 2L))
+  # 3 ADTs, 4 droplets, 2 cell types
+  init <- .decontProInits(N = 3L, M = 4L, K = 2L)
 
   expect_named(init, c(
     "r", "delta", "background", "delta_mean", "background_mean",
     "tau_a", "tau_b"
   ))
-  # Observed proportions of each cell type plus 1 per ADT, cell type x ADT
-  expect_equal(init$r, rbind(c(8, 10, 12) / 30, c(7, 8, 1) / 16))
-  expect_true(all(init$r > 0))
+  # Uniform native profiles, cell type x ADT
+  expect_identical(init$r, matrix(1 / 3, 2, 3))
   # Stan gives delta as droplets x ADTs, background as ADTs x droplets
   expect_identical(init$delta, matrix(1e-4, 4, 3))
   expect_identical(init$background, matrix(1e-2, 3, 4))
