@@ -37,7 +37,8 @@ test_that("decontPro splits each count by the estimated rates", {
   dat <- list(
     N = 2, M = 3, counts = counts, OC = c(18, 12, 28),
     p = c(0.25, 0.75), cell_type = c(1, 2, 2),
-    cell_type_labels = c("B", "T"), delta_sd = 0.1, background_sd = 0.2
+    cell_type_labels = c("B", "T"), cell_type_order = 1:2,
+    delta_sd = 0.1, background_sd = 0.2
   )
   est <- list(
     r = rbind(c(0.5, 0.5), c(0.75, 0.25)),
@@ -81,7 +82,8 @@ test_that("decontPro names the estimates by ADT and droplet", {
   dat <- list(
     N = 2, M = 3, counts = counts, OC = c(18, 12, 28),
     p = c(CD3 = 0.25, CD4 = 0.75), cell_type = c(1, 2, 2),
-    cell_type_labels = c("B", "T"), delta_sd = 0.1, background_sd = 0.2
+    cell_type_labels = c("B", "T"), cell_type_order = 1:2,
+    delta_sd = 0.1, background_sd = 0.2
   )
   # Stan gives the per-droplet and per-ADT means as 1-d arrays
   est <- list(
@@ -513,6 +515,94 @@ test_that("decontPro names the r_est rows by cell_type label", {
   expect_identical(rownames(gapped$parameters$r_est), c("3", "5", "7", "9"))
   rownames(gapped$parameters$r_est) <- rownames(out$parameters$r_est)
   expect_identical(gapped, out)
+})
+
+test_that("decontPro results don't depend on the label names (#148)", {
+  # Labels whose sorted order is the reverse of their order in the droplets
+  p <- refProData()
+  out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
+  renamed <- quietStan(
+    decontPro(p$counts, c("d", "a", "c", "b")[p$k], 1e-2, 1e-2)
+  )
+
+  expect_identical(renamed$decontaminated_counts, out$decontaminated_counts)
+  expect_identical(renamed$ambient_counts, out$ambient_counts)
+  expect_identical(renamed$background_counts, out$background_counts)
+  # r_est rows follow the sorted labels: "a" is label 2, "b" 4, "c" 3, "d" 1
+  expect_identical(rownames(renamed$parameters$r_est), c("a", "b", "c", "d"))
+  expect_identical(
+    unname(renamed$parameters$r_est),
+    unname(out$parameters$r_est[c(2, 4, 3, 1), ])
+  )
+})
+
+test_that("decontPro results don't depend on the factor level order", {
+  p <- refProData()
+  out <- quietStan(decontPro(p$counts, p$k, 1e-2, 1e-2))
+  reversed <- quietStan(
+    decontPro(p$counts, factor(p$k, levels = 4:1), 1e-2, 1e-2)
+  )
+
+  expect_identical(reversed$decontaminated_counts, out$decontaminated_counts)
+  expect_identical(reversed$ambient_counts, out$ambient_counts)
+  expect_identical(reversed$background_counts, out$background_counts)
+  # r_est rows follow the levels
+  expect_identical(
+    reversed$parameters$r_est, out$parameters$r_est[4:1, ]
+  )
+})
+
+test_that("decontPro codes the cell types for Stan by first appearance", {
+  p <- refProData()
+  received <- NULL
+  local_mocked_bindings(
+    .callStanVb = function(data, initial_condition, ...) {
+      received <<- list(data = data, init = initial_condition)
+      NULL
+    },
+    .processStanVbOut = function(stan_vb_output, dat) list()
+  )
+  labels <- c("T", "T", "B", "B", "T", "NK", "B", "M")
+  decontPro(p$counts, labels, 1e-2, 1e-2)
+
+  expect_identical(received$data$cell_type, c(1L, 1L, 2L, 2L, 1L, 3L, 2L, 4L))
+  # Every parameter gets a starting value, so Stan draws no random start
+  expect_identical(
+    received$init,
+    .decontProInits(p$counts, received$data$cell_type)
+  )
+})
+
+test_that(".decontProInits starts every parameter at a fixed value", {
+  # 3 ADTs x 4 droplets; cell type 2 has no counts of ADT 3
+  counts <- matrix(c(1, 2, 3, 4, 5, 0, 6, 7, 8, 2, 2, 0), nrow = 3)
+  init <- .decontProInits(counts, codes = c(1L, 2L, 1L, 2L))
+
+  expect_named(init, c(
+    "r", "delta", "background", "delta_mean", "background_mean",
+    "tau_a", "tau_b"
+  ))
+  # Observed proportions of each cell type plus 1 per ADT, cell type x ADT
+  expect_equal(init$r, rbind(c(8, 10, 12) / 30, c(7, 8, 1) / 16))
+  expect_true(all(init$r > 0))
+  # Stan gives delta as droplets x ADTs, background as ADTs x droplets
+  expect_identical(init$delta, matrix(1e-4, 4, 3))
+  expect_identical(init$background, matrix(1e-2, 3, 4))
+  expect_identical(init$delta_mean, rep(1e-4, 4))
+  expect_identical(init$background_mean, rep(1e-2, 3))
+  expect_identical(init$tau_a, 1)
+  expect_identical(init$tau_b, 1)
+})
+
+test_that("decontPro fits one cell type", {
+  # r has one row, which rstan must still read as an array of simplexes
+  p <- refProData()
+  out <- quietStan(decontPro(p$counts, rep("T", 8), 1e-2, 1e-2))
+  expect_identical(dim(out$parameters$r_est), c(1L, 10L))
+  expect_equal(
+    out$decontaminated_counts + out$ambient_counts + out$background_counts,
+    p$counts
+  )
 })
 
 test_that("decontPro requires whole-number counts", {

@@ -109,9 +109,10 @@
   parameters <- list()
   parameters[["delta_sd"]] <- dat$delta_sd
   parameters[["background_sd"]] <- dat$background_sd
-  parameters[["r_est"]] <- r_est
+  # Stan's rows follow the codes; the output follows dat$cell_type_order
+  parameters[["r_est"]] <- r_est[dat$cell_type_order, , drop = FALSE]
   dimnames(parameters[["r_est"]]) <- list(
-    dat$cell_type_labels, adtDropletNames[[1]]
+    dat$cell_type_labels[dat$cell_type_order], adtDropletNames[[1]]
   )
   parameters[["p_est"]] <- p_est
   parameters[["delta_est"]] <- delta_est

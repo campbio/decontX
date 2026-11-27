@@ -38,7 +38,7 @@ cell type different noise, even from the same start.
      and `background_mean` = 1e-2, matching them;
    - `tau_a` = `tau_b` = 1.
 
-   They come from one helper, `.decontProInits(counts, codes, K)`.
+   They come from one helper, `.decontProInits(counts, codes)`.
 3. **No option to keep the old behaviour** (maintainer, 2026-11-27).
    Results change for every user; NEWS says so, and that decontX 1.11.40
    or earlier gives the old numbers. The old results depended on an
