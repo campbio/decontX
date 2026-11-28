@@ -54,7 +54,10 @@
 #' inference. The fit usually stops earlier, when it converges; each
 #' iteration takes longer on larger data. Default 50000.
 #' @param seed Seed for Stan's random number generator, a whole number
-#' from 0 to \code{.Machine$integer.max}. Default 12345.
+#' from 0 to \code{.Machine$integer.max}. Default 12345. When the labels
+#' don't fit the data well, for example one label for two cell types
+#' whose markers differ, the result can depend on the seed, so a fit with
+#' a second seed is a way to check it.
 #' @param verbose Whether to print messages and Stan's progress. With
 #' \code{FALSE}, Stan's output is shown only if the fit fails. Default TRUE.
 #'
@@ -327,16 +330,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   )
 
 
-  init <- list(
-    delta = matrix(rep(1e-4, N * M),
-      nrow = M,
-      ncol = N
-    ),
-    background = matrix(rep(1e-2, N * M),
-      nrow = N,
-      ncol = M
-    )
-  )
+  init <- .decontProInits(N, M, dat$K)
 
 
   ## Call inference
@@ -348,6 +342,7 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 
   ## Process Stan output
   dat$cell_type_labels <- cellType$labels
+  dat$cell_type_order <- cellType$order
   re <- .processStanVbOut(out, dat)
 
 
@@ -401,9 +396,13 @@ setMethod("decontPro", "ANY", function(filtered_counts,
 }
 
 
-# Stan needs cell types coded 1..K with every code used. Labels are sorted,
-# or kept in a factor's level order with unused levels dropped. `arg` is
-# the name the user gave the argument.
+# Stan needs cell types coded 1..K with every code used. The codes follow
+# the order in which the cell types first appear in the droplets, so that
+# renaming the labels or reordering a factor's levels gives Stan the same
+# input and the same result (#148). `labels` holds the labels in the order
+# of the output: sorted, or a factor's levels with unused levels dropped.
+# `order` gives the code of each of them. `arg` is the name the user gave
+# the argument.
 .recodeCellType <- function(cell_type, M, arg = "cellType") {
   if (length(cell_type) != M) {
     stop(
@@ -419,9 +418,33 @@ setMethod("decontPro", "ANY", function(filtered_counts,
   } else {
     cell_type <- factor(cell_type)
   }
+  # The level number of each droplet's label
+  levelCodes <- as.vector(unclass(cell_type))
+  firstSeen <- unique(levelCodes)
   list(
-    codes = as.integer(cell_type),
-    labels = levels(cell_type)
+    codes = match(levelCodes, firstSeen),
+    labels = levels(cell_type),
+    order = order(firstSeen)
+  )
+}
+
+
+# Starting values for every parameter of the Stan model, for N ADTs, M
+# droplets and K cell types, so that Stan draws no random start (#148).
+# Each native profile r starts uniform, the centre of the simplex. Starting
+# it at the cell type's observed ADT proportions, which include the
+# contamination, led to worse fits. Stan takes r as cell types x ADTs,
+# delta as droplets x ADTs and background as ADTs x droplets; rstan
+# silently ignores an r given as a list.
+.decontProInits <- function(N, M, K) {
+  list(
+    r = matrix(1 / N, K, N),
+    delta = matrix(1e-4, M, N),
+    background = matrix(1e-2, N, M),
+    delta_mean = rep(1e-4, M),
+    background_mean = rep(1e-2, N),
+    tau_a = 1,
+    tau_b = 1
   )
 }
 

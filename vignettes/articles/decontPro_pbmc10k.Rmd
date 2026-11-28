@@ -11,7 +11,7 @@ knitr::knit("decontPro_pbmc10k.Rmd.orig", "decontPro_pbmc10k.Rmd") -->
 
 
 
-*Computed with decontX 1.11.40 on 2026-11-26.
+*Computed with decontX 1.11.41 on 2026-11-27.
 The code below downloads about 200 MB and takes about ten minutes to
 run.*
 
@@ -332,8 +332,8 @@ share <- function(fit) {
 }
 rbind(default = share(default), withEmpty = share(withEmpty))
 #>           ambient background removed
-#> default     0.189      0.071   0.259
-#> withEmpty   0.137      0.093   0.230
+#> default     0.189      0.071    0.26
+#> withEmpty   0.137      0.093    0.23
 ```
 
 And the share of each ADT's counts that each run removes:
@@ -350,16 +350,16 @@ round(cbind(default = removed(default), withEmpty = removed(withEmpty)), 2)
 #> CD4              0.20      0.05
 #> CD8a             0.19      0.18
 #> CD14             0.22      0.22
-#> CD15             0.35      0.92
+#> CD15             0.40      0.91
 #> CD16             0.20      0.72
 #> CD56             0.46      0.50
-#> CD19             0.28      0.29
-#> CD25             0.79      0.89
+#> CD19             0.28      0.28
+#> CD25             0.78      0.89
 #> CD45RA           0.32      0.19
 #> CD45RO           0.27      0.30
-#> PD-1             0.81      0.96
+#> PD-1             0.80      0.95
 #> TIGIT            0.86      0.89
-#> CD127            0.65      0.77
+#> CD127            0.64      0.77
 #> IgG2a_control    0.91      1.00
 #> IgG1_control     0.88      0.99
 #> IgG2b_control    0.97      1.00
@@ -458,9 +458,11 @@ plotDensity(cells, coarse$decontaminated_counts,
 With one T-cell label, DecontPro removes most of the CD8a
 counts, the marker of one kind of T cell, and the naive T cells' CD45RA
 peak shrinks. Within the T cells, it treats real differences between
-cells as contamination. If the decontaminated counts lose a peak that
-the markers say is real, check whether your labels keep the cells that
-have the protein apart from the cells that don't.
+cells as contamination. With such labels the result also depends on
+the seed (the `seed` argument): with other seeds, it can remove most of
+the CD4 counts too. If the decontaminated counts lose a peak
+that the markers say is real, check whether your labels keep the cells
+that have the protein apart from the cells that don't.
 
 # Summary
 
@@ -506,7 +508,7 @@ sessionInfo()
 #>  [7] IRanges_2.47.5              S4Vectors_0.51.10          
 #>  [9] BiocGenerics_0.59.12        generics_0.1.4             
 #> [11] MatrixGenerics_1.25.0       matrixStats_1.5.0          
-#> [13] DropletTestFiles_1.22.0     decontX_1.11.40            
+#> [13] DropletTestFiles_1.22.0     decontX_1.11.41            
 #> 
 #> loaded via a namespace (and not attached):
 #>   [1] DBI_1.3.0                 gridExtra_2.3.1          

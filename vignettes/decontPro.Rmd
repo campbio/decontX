@@ -286,7 +286,7 @@ Now most of the low CD8 peak, and more of the low CD3 and CD4 peaks, move
 toward zero, while the high peaks stay. These results are close to what
 the default priors give on all 7,700 labelled droplets. We fitted those once, outside this vignette:
 for these 500 droplets, the counts decontaminated here and those from the
-fit on all droplets have a correlation of 0.99 on a log scale.
+fit on all droplets have a correlation of 0.98 on a log scale.
 
 CD4 is a useful check: it has three peaks, and the middle one comes from
 monocytes, which express some CD4. Only the lowest peak should move toward

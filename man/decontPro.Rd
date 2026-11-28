@@ -105,7 +105,10 @@ inference. The fit usually stops earlier, when it converges; each
 iteration takes longer on larger data. Default 50000.}
 
 \item{seed}{Seed for Stan's random number generator, a whole number
-from 0 to \code{.Machine$integer.max}. Default 12345.}
+from 0 to \code{.Machine$integer.max}. Default 12345. When the labels
+don't fit the data well, for example one label for two cell types
+whose markers differ, the result can depend on the seed, so a fit with
+a second seed is a way to check it.}
 
 \item{verbose}{Whether to print messages and Stan's progress. With
 \code{FALSE}, Stan's output is shown only if the fit fails. Default TRUE.}

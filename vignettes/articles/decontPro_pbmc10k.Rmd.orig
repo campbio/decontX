@@ -371,18 +371,22 @@ plotDensity(cells, coarse$decontaminated_counts,
 ```{r lost_marker, include = FALSE}
 coarseRemoved <- removed(coarse)
 lostMarker <- names(which.max(coarseRemoved[c("CD4", "CD8a")]))
-# The text says one of CD4 and CD8a is mostly removed, and that CD45RA
-# loses more than with the fine labels.
+keptMarker <- setdiff(c("CD4", "CD8a"), lostMarker)
+# The text says one of CD4 and CD8a is mostly removed, but not the other,
+# and that CD45RA loses more than with the fine labels.
 stopifnot(coarseRemoved[lostMarker] > 0.8,
+          coarseRemoved[keptMarker] < 0.8,
           coarseRemoved["CD45RA"] > removed(default)["CD45RA"])
 ```
 
 With one T-cell label, DecontPro removes most of the `r lostMarker`
 counts, the marker of one kind of T cell, and the naive T cells' CD45RA
 peak shrinks. Within the T cells, it treats real differences between
-cells as contamination. If the decontaminated counts lose a peak that
-the markers say is real, check whether your labels keep the cells that
-have the protein apart from the cells that don't.
+cells as contamination. With such labels the result also depends on
+the seed (the `seed` argument): with other seeds, it can remove most of
+the `r keptMarker` counts too. If the decontaminated counts lose a peak
+that the markers say is real, check whether your labels keep the cells
+that have the protein apart from the cells that don't.
 
 # Summary
 
